@@ -1,0 +1,40 @@
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Configuration (wird bei Installation generiert)
+script/config.yaml
+
+# Logs und Temporary Files
+storage/logs/*
+storage/tmp/*
+storage/pdfs/*
+!storage/logs/.gitkeep
+!storage/tmp/.gitkeep
+!storage/pdfs/.gitkeep
+
+# IDE
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+.DS_Store
+
+# OS
+Thumbs.db
+.DS_Store
+*.swp
+*.swo
+
+# PHP
+*.php.bak
+.phpunit.result.cache
+
+# Session Files
+session/*
+!session/.gitkeep
+
+# Debugging
+debug.log
+*.log
