@@ -4,5 +4,12 @@
 			"path": "."
 		}
 	],
-	"settings": {}
+	"settings": {
+		"chat.tools.terminal.autoApprove": {
+			"/^bash -lc '\nset -e\n# ensure deploy keys are ignored\ngrep -qxF \"deploy_key\" \\.gitignore \\|\\| echo \"deploy_key\" >> \\.gitignore\ngrep -qxF \"deploy_key\\.pub\" \\.gitignore \\|\\| echo \"deploy_key\\.pub\" >> \\.gitignore\n# remove from index if accidentally staged\ngit rm --cached deploy_key 2>/dev/null \\|\\| true\ngit rm --cached deploy_key\\.pub 2>/dev/null \\|\\| true\n# stage all changes\ngit add -A\n# commit if there are staged changes\nif git diff --cached --quiet; then\n  echo \"No changes to commit\"\nelse\n  git commit -m \"chore: update phone input UX and deploy workflow\"\nfi\n# push\ngit push origin main\n'$/": {
+				"approve": true,
+				"matchCommandLine": true
+			}
+		}
+	}
 }
