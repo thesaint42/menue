@@ -1,0 +1,17 @@
+# Menüwahl-System Konfiguration
+# Diese Datei wird von der Installation automatisch erstellt
+
+database:
+  host: "localhost"
+  db_name: "menuselection"
+  user: "root"
+  pass: ""
+  prefix: "menu_"
+
+mail:
+  admin_email: "admin@example.com"
+  sender_name: "Menüwahl System"
+
+system:
+  language: "de"
+  timezone: "Europe/Berlin"

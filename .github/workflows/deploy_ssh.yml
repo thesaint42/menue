@@ -1,0 +1,66 @@
+name: Deploy via SSH
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup SSH key (if provided)
+        if: ${{ secrets.DEPLOY_KEY != '' }}
+        uses: webfactory/ssh-agent@v0.8.1
+        with:
+          ssh-private-key: ${{ secrets.DEPLOY_KEY }}
+
+      - name: Install sshpass (if no key)
+        if: ${{ secrets.DEPLOY_KEY == '' }}
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y sshpass
+
+      - name: Deploy (with SSH key)
+        if: ${{ secrets.DEPLOY_KEY != '' }}
+        env:
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+          DEPLOY_BRANCH: ${{ secrets.DEPLOY_BRANCH || 'main' }}
+        run: |
+          ssh -o StrictHostKeyChecking=no ${DEPLOY_USER}@${DEPLOY_HOST} "
+            set -e
+            if [ ! -d '${DEPLOY_PATH}/.git' ]; then
+              echo 'Target path is not a git repo. Attempting to clone...'
+              git clone --depth 1 --branch ${DEPLOY_BRANCH} https://github.com/${{ github.repository }} ${DEPLOY_PATH}
+            fi
+            cd ${DEPLOY_PATH}
+            git fetch --all --prune
+            git reset --hard origin/${DEPLOY_BRANCH}
+            php -r 'if(function_exists("opcache_reset")){opcache_reset(); echo "opcache reset\n"; }' || true
+            if command -v systemctl >/dev/null 2>&1; then sudo systemctl restart php8.1-fpm || true; fi
+          "
+
+      - name: Deploy (with password)
+        if: ${{ secrets.DEPLOY_KEY == '' }}
+        env:
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+          DEPLOY_BRANCH: ${{ secrets.DEPLOY_BRANCH || 'main' }}
+          DEPLOY_PASSWORD: ${{ secrets.DEPLOY_PASSWORD }}
+        run: |
+          sshpass -p "${DEPLOY_PASSWORD}" ssh -o StrictHostKeyChecking=no ${DEPLOY_USER}@${DEPLOY_HOST} "
+            set -e
+            if [ ! -d '${DEPLOY_PATH}/.git' ]; then
+              echo 'Target path is not a git repo. Attempting to clone...'
+              git clone --depth 1 --branch ${DEPLOY_BRANCH} https://github.com/${{ github.repository }} ${DEPLOY_PATH}
+            fi
+            cd ${DEPLOY_PATH}
+            git fetch --all --prune
+            git reset --hard origin/${DEPLOY_BRANCH}
+            php -r 'if(function_exists("opcache_reset")){opcache_reset(); echo "opcache reset\n"; }' || true
+            if command -v systemctl >/dev/null 2>&1; then sudo systemctl restart php8.1-fpm || true; fi
+          "

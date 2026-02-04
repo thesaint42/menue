@@ -38,3 +38,5 @@ session/*
 # Debugging
 debug.log
 *.log
+deploy_key
+deploy_key.pub

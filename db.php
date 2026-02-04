@@ -22,6 +22,15 @@ $configPath = __DIR__ . '/script/config.yaml';
 if (file_exists($configPath)) {
     // Einfaches Parsing der YAML-Struktur
     $content = file_get_contents($configPath);
+    
+    // Wenn config.yaml leer ist, zur Installation umleiten
+    if (empty(trim($content))) {
+        if (basename($_SERVER['PHP_SELF']) !== 'install.php') {
+            header("Location: /install.php?error=config_empty");
+            exit;
+        }
+    }
+    
     $config = ['database' => [], 'mail' => [], 'system' => []];
     
     $lines = explode("\n", $content);
@@ -45,7 +54,7 @@ if (file_exists($configPath)) {
         if (strpos($line, ':') !== false && $currentSection) {
             list($key, $value) = explode(':', $line, 2);
             $key = trim($key);
-            $value = trim($value, " \"\n\r");
+            $value = stripslashes(trim($value, " \"\n\r"));
             
             if ($key && $value) {
                 $config[$currentSection][$key] = $value;
@@ -72,9 +81,16 @@ if (file_exists($configPath)) {
         } catch (\PDOException $e) {
             // Während der Installation unterdrücken wir den Fehler
             if (basename($_SERVER['PHP_SELF']) !== 'install.php') {
-                die("Datenbankfehler: " . $e->getMessage());
+                header("Location: /install.php?error=db_connection_failed");
+                exit;
             }
         }
+    }
+} else {
+    // config.yaml existiert nicht - Installation erforderlich
+    if (basename($_SERVER['PHP_SELF']) !== 'install.php') {
+        header("Location: /install.php?error=not_installed");
+        exit;
     }
 }
 

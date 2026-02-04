@@ -2,29 +2,43 @@
 
 Ein vollständiges PHP-basiertes System zur Verwaltung von Menüauswahl für Gäste mit Admin-Dashboard, PDF-Export und E-Mail-Integration.
 
+**Aktuelle Version:** 2.2.0
+
 ## Features
 
 ✅ **Gast-Formular**
+- PIN-basierter Zugang (statt direkter URL)
 - Persönliche Daten erfassen (Name, Email, Telefon)
-- Unterscheidung: Einzelperson oder Familie/Haushalt
-- Altersgruppen (Erwachsen oder Kind unter 12 Jahren)
+- **NEU:** Unterscheidung: Einzelperson oder Familie/Haushalt
+- **NEU:** Detaillierte Gast-Informationen pro Familienmitglied:
+  - Name jeder Person
+  - Typ: Erwachsen oder Kind
+  - Alter des Kindes
+  - Hochstuhl benötigt (ja/nein)
 - Intuitive +/- Button zur Menümengenauswahl
 - Automatische Bestätigungsemail an den Gast
 - Admin erhält BCC-Kopie aller Bestellungen
 
 ✅ **Admin-Bereich**
 - Projektmanagement (Veranstaltungen)
+  - **NEU:** PIN-basierter Zugang
+  - **NEU:** QR-Code Generator und Download
+  - **NEU:** E-Mail Einladung versenden
 - Menüverwaltung (5 Kategorien: Vorspeise, Hauptspeise, Beilage, Salat, Nachspeise)
 - Gästeübersicht mit Statistiken
 - Bestellungshistorie
 - PDF-Export der Gästeübersicht
 - SMTP Mail-Konfiguration mit Test-Funktion
+- **NEU:** Datenbankmigrationen für Versionsupdates
 
 ✅ **Datenbankschema**
 - Flexible Tabellenpräfixe (z.B. `menu_`)
 - Optimierte Datenstruktur für Projekte, Menüs, Gäste und Bestellungen
+- **NEU:** Familienmitglieder-Tabelle mit erweiterten Informationen
+- **NEU:** Zugangs-PIN System
 - Audit Logging für Admin-Aktionen
 - Mail Logging für Versandhistorie
+- Migration Tracking für Versionsupdates
 
 ✅ **Sicherheit**
 - Passwort-Hashing mit PHP's Password Hashing API

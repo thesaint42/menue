@@ -1,0 +1,37 @@
+name: Deploy via SFTP
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Deploy to SFTP server
+        uses: SamKirkland/FTP-Deploy-Action@4.0.0
+        with:
+          server: ${{ secrets.SFTP_HOST }}
+          username: ${{ secrets.SFTP_USER }}
+          # either provide password OR private key (SFTP_KEY). If both present, key is preferred.
+          password: ${{ secrets.SFTP_PASSWORD }}
+          key: ${{ secrets.SFTP_KEY }}
+          passphrase: ${{ secrets.SFTP_KEY_PASSPHRASE }}
+          port: ${{ secrets.SFTP_PORT }}
+          protocol: sftp
+          local-dir: ./
+          server-dir: ${{ secrets.SFTP_REMOTE_PATH }}
+          exclude: |
+            .git*
+            .github/
+            node_modules/
+            .env
+
+      - name: Optional: Clear OPcache by calling URL (if provided)
+        if: ${{ secrets.CLEAR_OPCACHE_URL != '' }}
+        run: |
+          echo "Calling CLEAR_OPCACHE_URL"
+          curl -fsS --max-time 10 "${{ secrets.CLEAR_OPCACHE_URL }}" || true

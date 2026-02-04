@@ -47,9 +47,11 @@ function getMenuSelectionSchema($prefix) {
             `contact_email` VARCHAR(150),
             `max_guests` INT DEFAULT 100,
             `admin_email` VARCHAR(150) NOT NULL,
+            `access_pin` VARCHAR(10) NOT NULL,
             `is_active` TINYINT(1) DEFAULT 1,
             `created_by` INT,
             `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE KEY `unique_pin` (`access_pin`),
             FOREIGN KEY (`created_by`) REFERENCES `{$prefix}users`(`id`)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4",
 
@@ -84,13 +86,23 @@ function getMenuSelectionSchema($prefix) {
             `email` VARCHAR(150) NOT NULL,
             `phone` VARCHAR(50),
             `guest_type` ENUM('individual', 'family') DEFAULT 'individual',
-            `age_group` ENUM('adult', 'child') DEFAULT 'adult',
-            `child_age` INT,
             `family_size` INT DEFAULT 1,
             `order_status` ENUM('pending', 'confirmed', 'cancelled') DEFAULT 'pending',
             `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (`project_id`) REFERENCES `{$prefix}projects`(`id`) ON DELETE CASCADE,
             UNIQUE KEY `unique_guest` (`project_id`, `email`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4",
+
+        // 7a. FAMILIENMITGLIEDER
+        "CREATE TABLE IF NOT EXISTS `{$prefix}family_members` (
+            `id` INT AUTO_INCREMENT PRIMARY KEY,
+            `guest_id` INT NOT NULL,
+            `name` VARCHAR(100) NOT NULL,
+            `member_type` ENUM('adult', 'child') DEFAULT 'adult',
+            `child_age` INT,
+            `highchair_needed` TINYINT(1) DEFAULT 0,
+            `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (`guest_id`) REFERENCES `{$prefix}guests`(`id`) ON DELETE CASCADE
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4",
 
         // 8. BESTELLUNGEN (Gast-Menüauswahl)

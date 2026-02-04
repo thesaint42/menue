@@ -3,6 +3,10 @@
  * install.php - Installation und Setup des Menüwahl-Systems
  */
 
+// Fehlerberichterstattung (für Debugging)
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+
 require_once 'db.php';
 require_once 'script/schema.php';
 
@@ -11,20 +15,57 @@ $messageType = "danger";
 $install_success = false;
 $step = isset($_POST['step']) ? (int)$_POST['step'] : 1;
 
+// Überprüfe auf Fehlerparameter von der db.php Umleitung
+if (isset($_GET['error'])) {
+    switch ($_GET['error']) {
+        case 'not_installed':
+            $message = "⚠️ <strong>System nicht installiert</strong><br>Bitte schließen Sie die Installation ab.";
+            $messageType = "warning";
+            break;
+        case 'config_empty':
+            $message = "⚠️ <strong>Konfiguration unvollständig</strong><br>Die config.yaml ist leer oder beschädigt. Bitte führen Sie die Installation erneut aus.";
+            $messageType = "warning";
+            break;
+        case 'db_connection_failed':
+            $message = "⚠️ <strong>Datenbankverbindung fehlgeschlagen</strong><br>Überprüfen Sie Ihre Datenbankeinstellungen und führen Sie die Installation erneut aus.";
+            $messageType = "warning";
+            break;
+    }
+}
+
 // UMGEBUNGSPRÜFUNGEN
 $script_dir = __DIR__ . '/script';
 $storage_dir = __DIR__ . '/storage';
+$config_file = $script_dir . '/config.yaml';
 $test_file = $script_dir . '/.write_test';
 $can_write_script = false;
 $can_write_storage = false;
+$script_write_error = "";
+$storage_write_error = "";
 
-if (is_dir($script_dir) && @file_put_contents($test_file, 'test')) {
-    $can_write_script = true;
-    @unlink($test_file);
+// Test 1: Schreibrechte für script/ Verzeichnis
+if (is_dir($script_dir)) {
+    if (@file_put_contents($test_file, 'test')) {
+        $can_write_script = true;
+        @unlink($test_file);
+    } else {
+        $script_write_error = "script/ Verzeichnis ist nicht schreibbar. Bitte setzen Sie die Schreibrechte (chmod 755 oder 775).";
+    }
+} else {
+    $script_write_error = "script/ Verzeichnis existiert nicht!";
 }
 
-if (is_dir($storage_dir) && is_writable($storage_dir)) {
-    $can_write_storage = true;
+// Test 2: Schreibrechte für storage/ Verzeichnis (mit tatsächlichem Schreibversuch)
+$storage_test_file = $storage_dir . '/.write_test';
+if (is_dir($storage_dir)) {
+    if (@file_put_contents($storage_test_file, 'test')) {
+        $can_write_storage = true;
+        @unlink($storage_test_file);
+    } else {
+        $storage_write_error = "storage/ Verzeichnis ist nicht schreibbar. Bitte setzen Sie die Schreibrechte (chmod 755 oder 775).";
+    }
+} else {
+    $storage_write_error = "storage/ Verzeichnis existiert nicht!";
 }
 
 $checks = [
@@ -45,6 +86,13 @@ if (isset($_POST['test_connection'])) {
     $pass = trim($_POST['db_pass']);
     $prefix = trim($_POST['db_prefix']);
 
+    // Speichere Eingaben in Session (damit sie bei Fehler erhalten bleiben)
+    $_SESSION['form_db_host'] = $host;
+    $_SESSION['form_db_name'] = $name;
+    $_SESSION['form_db_user'] = $user;
+    $_SESSION['form_db_pass'] = $pass;
+    $_SESSION['form_db_prefix'] = $prefix;
+
     // Validierung
     if (empty($prefix)) {
         $prefix = 'menu_';
@@ -64,38 +112,121 @@ if (isset($_POST['test_connection'])) {
                 PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION
             ]);
 
-            // Tabellen erstellen
-            $schemas = getMenuSelectionSchema($prefix);
-            foreach ($schemas as $sql) {
-                $test_pdo->exec($sql);
+            // Prüfe ob Tabellen bereits existieren
+            $stmt = $test_pdo->query("SHOW TABLES LIKE '{$prefix}users'");
+            $table_exists = $stmt->rowCount() > 0;
+
+            if ($table_exists) {
+                // Tabellen existieren - Abfrage ob überschrieben werden sollen
+                $_SESSION['tables_exist'] = true;
+                $_SESSION['db_host'] = $host;
+                $_SESSION['db_name'] = $name;
+                $_SESSION['db_user'] = $user;
+                $_SESSION['db_pass'] = $pass;
+                $_SESSION['db_prefix'] = $prefix;
+                $message = "Tabellen existieren bereits. Bitte wählen Sie eine Option unterhalb.";
+                $messageType = "warning";
+            } else {
+                // Keine Tabellen - neue Installation
+                $_SESSION['tables_exist'] = false;
+                
+                // Tabellen erstellen
+                $schemas = getMenuSelectionSchema($prefix);
+                foreach ($schemas as $sql) {
+                    $test_pdo->exec($sql);
+                }
+
+                // Initialdaten einfügen
+                $initData = getMenuSelectionInitData($prefix);
+                foreach ($initData as $sql) {
+                    $test_pdo->exec($sql);
+                }
+
+                // SMTP Config Tabelle initialisieren
+                $test_pdo->exec("INSERT IGNORE INTO `{$prefix}smtp_config` (id, smtp_host, smtp_port, smtp_user, smtp_pass, smtp_secure, sender_email, sender_name) 
+                                 VALUES (1, 'smtp.example.com', 587, '', '', 'tls', '', 'Menüwahl System')");
+
+                $message = "Datenbankverbindung erfolgreich und Tabellen erstellt!";
+                $messageType = "success";
+                $_SESSION['step'] = 2;
+
+                // Config speichern
+                $_SESSION['db_host'] = $host;
+                $_SESSION['db_name'] = $name;
+                $_SESSION['db_user'] = $user;
+                $_SESSION['db_pass'] = $pass;
+                $_SESSION['db_prefix'] = $prefix;
             }
-
-            // Initialdaten einfügen
-            $initData = getMenuSelectionInitData($prefix);
-            foreach ($initData as $sql) {
-                $test_pdo->exec($sql);
-            }
-
-            // SMTP Config Tabelle initialisieren
-            $test_pdo->exec("INSERT IGNORE INTO `{$prefix}smtp_config` (id, smtp_host, smtp_port, smtp_user, smtp_pass, smtp_secure, sender_email, sender_name) 
-                             VALUES (1, 'smtp.example.com', 587, '', '', 'tls', '', 'Menüwahl System')");
-
-            $message = "✓ Datenbankverbindung erfolgreich und Tabellen erstellt!";
-            $messageType = "success";
-
-            // Config speichern
-            $_SESSION['db_host'] = $host;
-            $_SESSION['db_name'] = $name;
-            $_SESSION['db_user'] = $user;
-            $_SESSION['db_pass'] = $pass;
-            $_SESSION['db_prefix'] = $prefix;
-            $_SESSION['step'] = 2;
 
         } catch (PDOException $e) {
             $message = "Fehler: " . $e->getMessage();
             $messageType = "danger";
         }
     }
+}
+
+// Wenn Tabellen existieren - Benutzer wählt Überschreiben oder Abbrechen
+if (isset($_POST['override_tables'])) {
+    $host = $_SESSION['db_host'];
+    $name = $_SESSION['db_name'];
+    $user = $_SESSION['db_user'];
+    $pass = $_SESSION['db_pass'];
+    $prefix = $_SESSION['db_prefix'];
+
+    try {
+        $test_pdo = new PDO("mysql:host=$host;dbname=$name;charset=utf8mb4", $user, $pass, [
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION
+        ]);
+
+        // Deaktiviere Foreign Key Checks um Constraints nicht zu verletzen
+        $test_pdo->exec("SET FOREIGN_KEY_CHECKS = 0");
+
+        // Alle Tabellen löschen
+        $tables = [
+            'roles', 'users', 'password_resets', 'projects', 'menu_categories',
+            'dishes', 'guests', 'orders', 'smtp_config', 'mail_logs', 'logs'
+        ];
+
+        foreach ($tables as $table) {
+            $test_pdo->exec("DROP TABLE IF EXISTS `{$prefix}{$table}`");
+        }
+
+        // Reaktiviere Foreign Key Checks
+        $test_pdo->exec("SET FOREIGN_KEY_CHECKS = 1");
+
+        // Tabellen neu erstellen
+        $schemas = getMenuSelectionSchema($prefix);
+        foreach ($schemas as $sql) {
+            $test_pdo->exec($sql);
+        }
+
+        // Initialdaten einfügen
+        $initData = getMenuSelectionInitData($prefix);
+        foreach ($initData as $sql) {
+            $test_pdo->exec($sql);
+        }
+
+        // SMTP Config Tabelle initialisieren
+        $test_pdo->exec("INSERT IGNORE INTO `{$prefix}smtp_config` (id, smtp_host, smtp_port, smtp_user, smtp_pass, smtp_secure, sender_email, sender_name) 
+                         VALUES (1, 'smtp.example.com', 587, '', '', 'tls', '', 'Menüwahl System')");
+
+        $message = "Bestehende Tabellen überschrieben und neu erstellt!";
+        $messageType = "success";
+        $_SESSION['tables_exist'] = false;
+        $_SESSION['step'] = 2;
+
+    } catch (PDOException $e) {
+        $message = "Fehler beim Überschreiben: " . $e->getMessage();
+        $messageType = "danger";
+    }
+}
+
+// Wenn Benutzer Abbruch wählt
+if (isset($_POST['cancel_install'])) {
+    $_SESSION['tables_exist'] = false;
+    $message = "Installation abgebrochen. Die bestehende Installation bleibt erhalten.";
+    $messageType = "info";
+    // Nutzer kann erneut versuchen, die Installation zu starten
 }
 
 // SCHRITT 3: ADMIN BENUTZER ERSTELLEN
@@ -106,99 +237,153 @@ if (isset($_POST['create_admin'])) {
     $pass = $_SESSION['db_pass'];
     $prefix = $_SESSION['db_prefix'];
 
-    try {
-        $test_pdo = new PDO("mysql:host=$host;dbname=$name;charset=utf8mb4", $user, $pass, [
-            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION
-        ]);
+    $admin_firstname = trim($_POST['admin_firstname']);
+    $admin_lastname = trim($_POST['admin_lastname']);
+    $admin_email = trim($_POST['admin_email']);
+    $admin_password = $_POST['admin_password'];
+    $admin_password_confirm = $_POST['admin_password_confirm'];
 
-        require_once 'script/auth.php';
+    // Speichere Eingaben in Session (damit sie bei Fehler erhalten bleiben)
+    $_SESSION['form_admin_firstname'] = $admin_firstname;
+    $_SESSION['form_admin_lastname'] = $admin_lastname;
+    $_SESSION['form_admin_email'] = $admin_email;
 
-        $admin_firstname = trim($_POST['admin_firstname']);
-        $admin_lastname = trim($_POST['admin_lastname']);
-        $admin_email = trim($_POST['admin_email']);
-        $admin_password = $_POST['admin_password'];
-        $admin_password_confirm = $_POST['admin_password_confirm'];
+    // Validierung
+    if (empty($admin_firstname) || empty($admin_lastname) || empty($admin_email) || empty($admin_password)) {
+        $message = "Alle Felder sind erforderlich.";
+        $messageType = "danger";
+    } elseif ($admin_password !== $admin_password_confirm) {
+        $message = "Passwörter stimmen nicht überein.";
+        $messageType = "danger";
+    } elseif (strlen($admin_password) < 8) {
+        $message = "Passwort muss mindestens 8 Zeichen lang sein.";
+        $messageType = "danger";
+    } elseif (!filter_var($admin_email, FILTER_VALIDATE_EMAIL)) {
+        $message = "Ungültige E-Mail Adresse.";
+        $messageType = "danger";
+    } else {
+        try {
+            $test_pdo = new PDO("mysql:host=$host;dbname=$name;charset=utf8mb4", $user, $pass, [
+                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION
+            ]);
 
-        // Validierung
-        if (empty($admin_firstname) || empty($admin_lastname) || empty($admin_email) || empty($admin_password)) {
-            $message = "Alle Felder sind erforderlich.";
-            $messageType = "danger";
-        } elseif ($admin_password !== $admin_password_confirm) {
-            $message = "Passwörter stimmen nicht überein.";
-            $messageType = "danger";
-        } elseif (strlen($admin_password) < 8) {
-            $message = "Passwort muss mindestens 8 Zeichen lang sein.";
-            $messageType = "danger";
-        } elseif (!filter_var($admin_email, FILTER_VALIDATE_EMAIL)) {
-            $message = "Ungültige E-Mail Adresse.";
-            $messageType = "danger";
-        } else {
+            require_once 'script/auth.php';
+
             // Admin Benutzer erstellen
             $pw_hash = hashPassword($admin_password);
             $stmt = $test_pdo->prepare("INSERT INTO `{$prefix}users` (firstname, lastname, email, password_hash, role_id, is_active) VALUES (?, ?, ?, ?, 1, 1)");
             $stmt->execute([$admin_firstname, $admin_lastname, $admin_email, $pw_hash]);
 
             $_SESSION['step'] = 3;
-            $message = "✓ Admin Benutzer erfolgreich erstellt!";
+            $message = "Admin Benutzer erfolgreich erstellt!";
             $messageType = "success";
-        }
+            
+            // Leere die gespeicherten Eingaben
+            unset($_SESSION['form_admin_firstname']);
+            unset($_SESSION['form_admin_lastname']);
+            unset($_SESSION['form_admin_email']);
 
-    } catch (PDOException $e) {
-        $message = "Fehler: " . $e->getMessage();
-        $messageType = "danger";
+        } catch (PDOException $e) {
+            // Prüfe ob es ein Duplikat-Fehler ist
+            if (strpos($e->getMessage(), '1062') !== false || strpos($e->getMessage(), 'Duplicate entry') !== false) {
+                $message = "⚠️ <strong>E-Mail Adresse existiert bereits!</strong><br>Ein Administrator mit dieser E-Mail Adresse existiert bereits. Bitte geben Sie eine andere E-Mail Adresse ein.";
+                $messageType = "danger";
+            } else {
+                $message = "Fehler: " . $e->getMessage();
+                $messageType = "danger";
+            }
+        }
     }
 }
 
 // SCHRITT 4: SMTP KONFIGURATION SPEICHERN
 if (isset($_POST['save_smtp'])) {
-    $host = $_SESSION['db_host'];
-    $name = $_SESSION['db_name'];
-    $user = $_SESSION['db_user'];
-    $pass = $_SESSION['db_pass'];
-    $prefix = $_SESSION['db_prefix'];
-
-    try {
-        $test_pdo = new PDO("mysql:host=$host;dbname=$name;charset=utf8mb4", $user, $pass, [
-            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION
-        ]);
-
-        $stmt = $test_pdo->prepare("UPDATE `{$prefix}smtp_config` SET smtp_host = ?, smtp_port = ?, smtp_user = ?, smtp_pass = ?, smtp_secure = ?, sender_email = ?, sender_name = ? WHERE id = 1");
-        $stmt->execute([
-            trim($_POST['smtp_host']),
-            (int)$_POST['smtp_port'],
-            trim($_POST['smtp_user']),
-            trim($_POST['smtp_pass']),
-            $_POST['smtp_secure'],
-            trim($_POST['admin_email_mail']),
-            trim($_POST['sender_name'])
-        ]);
-
-        // Config-Datei schreiben
-        $configContent = "# Menüwahl-System Konfiguration\n";
-        $configContent .= "# Automatisch generiert bei der Installation\n\n";
-        $configContent .= "database:\n";
-        $configContent .= "  host: \"" . $host . "\"\n";
-        $configContent .= "  db_name: \"" . $name . "\"\n";
-        $configContent .= "  user: \"" . $user . "\"\n";
-        $configContent .= "  pass: \"" . $pass . "\"\n";
-        $configContent .= "  prefix: \"" . $prefix . "\"\n\n";
-        $configContent .= "mail:\n";
-        $configContent .= "  admin_email: \"" . trim($_POST['admin_email_mail']) . "\"\n";
-        $configContent .= "  sender_name: \"" . trim($_POST['sender_name']) . "\"\n\n";
-        $configContent .= "system:\n";
-        $configContent .= "  language: \"de\"\n";
-        $configContent .= "  timezone: \"Europe/Berlin\"\n";
-
-        file_put_contents(__DIR__ . '/script/config.yaml', $configContent);
-
-        $_SESSION['step'] = 4;
-        $message = "✓ SMTP Konfiguration gespeichert und config.yaml erstellt!";
-        $messageType = "success";
-        $install_success = true;
-
-    } catch (PDOException $e) {
-        $message = "Fehler: " . $e->getMessage();
+    // Prüfe ob Session-Daten vorhanden sind
+    if (!isset($_SESSION['db_host']) || !isset($_SESSION['db_name']) || !isset($_SESSION['db_user']) || !isset($_SESSION['db_pass']) || !isset($_SESSION['db_prefix'])) {
+        $message = "Fehler: Datenbank-Einstellungen fehlen. Bitte starten Sie die Installation neu.";
         $messageType = "danger";
+    } else {
+        $host = $_SESSION['db_host'];
+        $name = $_SESSION['db_name'];
+        $user = $_SESSION['db_user'];
+        $pass = $_SESSION['db_pass'];
+        $prefix = $_SESSION['db_prefix'];
+
+        $smtp_host = trim($_POST['smtp_host'] ?? '');
+        $smtp_port = (int)($_POST['smtp_port'] ?? 587);
+        $smtp_user = trim($_POST['smtp_user'] ?? '');
+        $smtp_pass = trim($_POST['smtp_pass'] ?? '');
+        $smtp_secure = $_POST['smtp_secure'] ?? 'tls';
+        $admin_email_mail = trim($_POST['admin_email_mail'] ?? '');
+        $sender_name = trim($_POST['sender_name'] ?? 'Menüwahl System');
+
+        // Speichere Eingaben in Session
+        $_SESSION['form_smtp_host'] = $smtp_host;
+        $_SESSION['form_smtp_port'] = $smtp_port;
+        $_SESSION['form_smtp_user'] = $smtp_user;
+        $_SESSION['form_smtp_pass'] = $smtp_pass;
+        $_SESSION['form_smtp_secure'] = $smtp_secure;
+        $_SESSION['form_admin_email_mail'] = $admin_email_mail;
+        $_SESSION['form_sender_name'] = $sender_name;
+
+        try {
+            $test_pdo = new PDO("mysql:host=$host;dbname=$name;charset=utf8mb4", $user, $pass, [
+                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION
+            ]);
+
+            $stmt = $test_pdo->prepare("UPDATE `{$prefix}smtp_config` SET smtp_host = ?, smtp_port = ?, smtp_user = ?, smtp_pass = ?, smtp_secure = ?, sender_email = ?, sender_name = ? WHERE id = 1");
+            $stmt->execute([
+                $smtp_host,
+                $smtp_port,
+                $smtp_user,
+                $smtp_pass,
+                $smtp_secure,
+                $admin_email_mail,
+                $sender_name
+            ]);
+
+            // Config-Datei schreiben (mit Escaping für spezielle Zeichen)
+            $configContent = "# Menüwahl-System Konfiguration\n";
+            $configContent .= "# Automatisch generiert bei der Installation\n\n";
+            $configContent .= "database:\n";
+            $configContent .= "  host: \"" . addslashes($host) . "\"\n";
+            $configContent .= "  db_name: \"" . addslashes($name) . "\"\n";
+            $configContent .= "  user: \"" . addslashes($user) . "\"\n";
+            $configContent .= "  pass: \"" . addslashes($pass) . "\"\n";
+            $configContent .= "  prefix: \"" . addslashes($prefix) . "\"\n\n";
+            $configContent .= "mail:\n";
+            $configContent .= "  admin_email: \"" . addslashes($admin_email_mail) . "\"\n";
+            $configContent .= "  sender_name: \"" . addslashes($sender_name) . "\"\n\n";
+            $configContent .= "system:\n";
+            $configContent .= "  language: \"de\"\n";
+            $configContent .= "  timezone: \"Europe/Berlin\"\n";
+
+            $config_file = __DIR__ . '/script/config.yaml';
+            if (@file_put_contents($config_file, $configContent) === false) {
+                throw new Exception("Fehler beim Schreiben von config.yaml. Überprüfen Sie die Schreibrechte des script/ Verzeichnisses.");
+            }
+
+            $_SESSION['step'] = 4;
+            $message = "SMTP Konfiguration gespeichert und config.yaml erstellt!";
+            $messageType = "success";
+            $install_success = true;
+
+            // Leere die gespeicherten Eingaben
+            unset($_SESSION['form_smtp_host']);
+            unset($_SESSION['form_smtp_port']);
+            unset($_SESSION['form_smtp_user']);
+            unset($_SESSION['form_smtp_pass']);
+            unset($_SESSION['form_smtp_secure']);
+            unset($_SESSION['form_admin_email_mail']);
+            unset($_SESSION['form_sender_name']);
+
+        } catch (PDOException $e) {
+            $message = "Datenbankfehler: " . $e->getMessage();
+            $messageType = "danger";
+        } catch (Exception $e) {
+            $message = "Fehler: " . $e->getMessage();
+            $messageType = "danger";
+        }
     }
 }
 ?>
@@ -255,10 +440,20 @@ if (isset($_POST['save_smtp'])) {
                                 <td><strong>script/ Verzeichnis schreibbar</strong></td>
                                 <td><?php echo $can_write_script ? '<span class="badge bg-success">✓ OK</span>' : '<span class="badge bg-danger">✗ Fehler</span>'; ?></td>
                             </tr>
+                            <?php if (!$can_write_script && $script_write_error): ?>
+                                <tr>
+                                    <td colspan="2"><small class="text-danger"><strong>⚠️ Fehler:</strong> <?php echo htmlspecialchars($script_write_error); ?></small></td>
+                                </tr>
+                            <?php endif; ?>
                             <tr>
                                 <td><strong>storage/ Verzeichnis schreibbar</strong></td>
                                 <td><?php echo $can_write_storage ? '<span class="badge bg-success">✓ OK</span>' : '<span class="badge bg-danger">✗ Fehler</span>'; ?></td>
                             </tr>
+                            <?php if (!$can_write_storage && $storage_write_error): ?>
+                                <tr>
+                                    <td colspan="2"><small class="text-danger"><strong>⚠️ Fehler:</strong> <?php echo htmlspecialchars($storage_write_error); ?></small></td>
+                                </tr>
+                            <?php endif; ?>
                         </table>
 
                         <?php if ($system_ready): ?>
@@ -267,23 +462,23 @@ if (isset($_POST['save_smtp'])) {
                                 <h3 class="mb-3">Datenbank Verbindung</h3>
                                 <div class="mb-3">
                                     <label class="form-label">Datenbank Host</label>
-                                    <input type="text" name="db_host" class="form-control" value="localhost" required>
+                                    <input type="text" name="db_host" class="form-control" value="<?php echo isset($_SESSION['form_db_host']) ? htmlspecialchars($_SESSION['form_db_host']) : 'localhost'; ?>" required>
                                 </div>
                                 <div class="mb-3">
                                     <label class="form-label">Datenbankname</label>
-                                    <input type="text" name="db_name" class="form-control" placeholder="z.B. menuselection" required>
+                                    <input type="text" name="db_name" class="form-control" placeholder="z.B. menuselection" value="<?php echo isset($_SESSION['form_db_name']) ? htmlspecialchars($_SESSION['form_db_name']) : ''; ?>" required>
                                 </div>
                                 <div class="mb-3">
                                     <label class="form-label">Datenbankbenutzer</label>
-                                    <input type="text" name="db_user" class="form-control" required>
+                                    <input type="text" name="db_user" class="form-control" value="<?php echo isset($_SESSION['form_db_user']) ? htmlspecialchars($_SESSION['form_db_user']) : ''; ?>" required>
                                 </div>
                                 <div class="mb-3">
                                     <label class="form-label">Datenbankpasswort</label>
-                                    <input type="password" name="db_pass" class="form-control">
+                                    <input type="password" name="db_pass" class="form-control" value="<?php echo isset($_SESSION['form_db_pass']) ? htmlspecialchars($_SESSION['form_db_pass']) : ''; ?>">
                                 </div>
                                 <div class="mb-3">
                                     <label class="form-label">Tabellenpräfix</label>
-                                    <input type="text" name="db_prefix" class="form-control" value="menu_" placeholder="z.B. menu_" required>
+                                    <input type="text" name="db_prefix" class="form-control" value="<?php echo isset($_SESSION['form_db_prefix']) ? htmlspecialchars($_SESSION['form_db_prefix']) : 'menu_'; ?>" placeholder="z.B. menu_" required>
                                     <small class="form-text">Alle Tabellen werden mit diesem Präfix erstellt (z.B. menu_users, menu_projects)</small>
                                 </div>
                                 <button type="submit" name="test_connection" class="btn btn-primary btn-lg w-100">Verbindung testen & Tabellen erstellen</button>
@@ -297,6 +492,33 @@ if (isset($_POST['save_smtp'])) {
                 </div>
             <?php endif; ?>
 
+            <!-- ABFRAGE: BESTEHENDE TABELLEN ÜBERSCHREIBEN -->
+            <?php if (isset($_SESSION['tables_exist']) && $_SESSION['tables_exist']): ?>
+                <div class="card border-0 shadow border-warning mt-4">
+                    <div class="card-body p-5 bg-light">
+                        <h3 class="mb-4">⚠️ Tabellen bereits vorhanden</h3>
+                        <p class="lead">Es wurden bereits Tabellen mit dem Präfix <strong><?php echo htmlspecialchars($_SESSION['db_prefix']); ?></strong> in der Datenbank gefunden.</p>
+                        
+                        <div class="alert alert-warning">
+                            <strong>Was möchten Sie tun?</strong>
+                            <ul class="mt-2">
+                                <li><strong>Überschreiben:</strong> Alle vorhandenen Daten werden gelöscht und die Installation neu gestartet.</li>
+                                <li><strong>Abbrechen:</strong> Die bestehende Installation bleibt erhalten und wird nicht verändert.</li>
+                            </ul>
+                        </div>
+
+                        <div class="d-grid gap-2 d-sm-flex justify-content-sm-end">
+                            <form method="post" class="d-inline">
+                                <button type="submit" name="cancel_install" class="btn btn-secondary btn-lg">Abbrechen</button>
+                            </form>
+                            <form method="post" class="d-inline">
+                                <button type="submit" name="override_tables" class="btn btn-danger btn-lg">Überschreiben & Neu installieren</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            <?php endif; ?>
+
             <!-- SCHRITT 2: ADMIN BENUTZER -->
             <?php if ($_SESSION['step'] >= 2 && !$install_success): ?>
                 <div class="card border-0 shadow">
@@ -306,15 +528,15 @@ if (isset($_POST['save_smtp'])) {
                             <input type="hidden" name="step" value="3">
                             <div class="mb-3">
                                 <label class="form-label">Vorname</label>
-                                <input type="text" name="admin_firstname" class="form-control" required>
+                                <input type="text" name="admin_firstname" class="form-control" value="<?php echo isset($_SESSION['form_admin_firstname']) ? htmlspecialchars($_SESSION['form_admin_firstname']) : ''; ?>" required>
                             </div>
                             <div class="mb-3">
                                 <label class="form-label">Nachname</label>
-                                <input type="text" name="admin_lastname" class="form-control" required>
+                                <input type="text" name="admin_lastname" class="form-control" value="<?php echo isset($_SESSION['form_admin_lastname']) ? htmlspecialchars($_SESSION['form_admin_lastname']) : ''; ?>" required>
                             </div>
                             <div class="mb-3">
                                 <label class="form-label">E-Mail Adresse</label>
-                                <input type="email" name="admin_email" class="form-control" required>
+                                <input type="email" name="admin_email" class="form-control" value="<?php echo isset($_SESSION['form_admin_email']) ? htmlspecialchars($_SESSION['form_admin_email']) : ''; ?>" required>
                             </div>
                             <div class="mb-3">
                                 <label class="form-label">Passwort (mindestens 8 Zeichen)</label>
@@ -336,43 +558,42 @@ if (isset($_POST['save_smtp'])) {
                     <div class="card-body p-5">
                         <h2 class="mb-4">Schritt 3: SMTP & Mail-Einstellungen</h2>
                         <form method="post">
-                            <input type="hidden" name="step" value="4">
                             
                             <h4 class="mb-3 mt-4">SMTP Server</h4>
                             <div class="mb-3">
                                 <label class="form-label">SMTP Host</label>
-                                <input type="text" name="smtp_host" class="form-control" placeholder="z.B. smtp.example.com" required>
+                                <input type="text" name="smtp_host" class="form-control" placeholder="z.B. smtp.example.com" value="<?php echo isset($_SESSION['form_smtp_host']) ? htmlspecialchars($_SESSION['form_smtp_host']) : ''; ?>" required>
                             </div>
                             <div class="mb-3">
                                 <label class="form-label">SMTP Port</label>
-                                <input type="number" name="smtp_port" class="form-control" value="587" required>
+                                <input type="number" name="smtp_port" class="form-control" value="<?php echo isset($_SESSION['form_smtp_port']) ? htmlspecialchars($_SESSION['form_smtp_port']) : '587'; ?>" required>
                             </div>
                             <div class="mb-3">
                                 <label class="form-label">SMTP Benutzername</label>
-                                <input type="text" name="smtp_user" class="form-control">
+                                <input type="text" name="smtp_user" class="form-control" value="<?php echo isset($_SESSION['form_smtp_user']) ? htmlspecialchars($_SESSION['form_smtp_user']) : ''; ?>">
                             </div>
                             <div class="mb-3">
                                 <label class="form-label">SMTP Passwort</label>
-                                <input type="password" name="smtp_pass" class="form-control">
+                                <input type="password" name="smtp_pass" class="form-control" value="<?php echo isset($_SESSION['form_smtp_pass']) ? htmlspecialchars($_SESSION['form_smtp_pass']) : ''; ?>">
                             </div>
                             <div class="mb-3">
                                 <label class="form-label">Verschlüsselung</label>
                                 <select name="smtp_secure" class="form-select" required>
-                                    <option value="tls">TLS (Port 587)</option>
-                                    <option value="ssl">SSL (Port 465)</option>
-                                    <option value="none">Keine (Port 25)</option>
+                                    <option value="tls" <?php echo (isset($_SESSION['form_smtp_secure']) && $_SESSION['form_smtp_secure'] == 'tls') ? 'selected' : ''; ?>>TLS (Port 587)</option>
+                                    <option value="ssl" <?php echo (isset($_SESSION['form_smtp_secure']) && $_SESSION['form_smtp_secure'] == 'ssl') ? 'selected' : ''; ?>>SSL (Port 465)</option>
+                                    <option value="none" <?php echo (isset($_SESSION['form_smtp_secure']) && $_SESSION['form_smtp_secure'] == 'none') ? 'selected' : ''; ?>>Keine (Port 25)</option>
                                 </select>
                             </div>
 
                             <h4 class="mb-3 mt-4">Mail-Einstellungen</h4>
                             <div class="mb-3">
                                 <label class="form-label">Admin E-Mail Adresse (für BCC Versand)</label>
-                                <input type="email" name="admin_email_mail" class="form-control" required>
+                                <input type="email" name="admin_email_mail" class="form-control" value="<?php echo isset($_SESSION['form_admin_email_mail']) ? htmlspecialchars($_SESSION['form_admin_email_mail']) : ''; ?>" required>
                                 <small class="form-text">Diese Adresse erhält automatisch eine Kopie aller Gast-Formulare</small>
                             </div>
                             <div class="mb-3">
                                 <label class="form-label">Absendername</label>
-                                <input type="text" name="sender_name" class="form-control" value="Menüwahl System" required>
+                                <input type="text" name="sender_name" class="form-control" value="<?php echo isset($_SESSION['form_sender_name']) ? htmlspecialchars($_SESSION['form_sender_name']) : 'Menüwahl System'; ?>" required>
                             </div>
 
                             <button type="submit" name="save_smtp" class="btn btn-success btn-lg w-100">Installation abschließen</button>

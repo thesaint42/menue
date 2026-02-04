@@ -5,25 +5,175 @@
 
 require_once 'db.php';
 require_once 'script/auth.php';
+require_once 'script/phone.php';
 
 $prefix = $config['database']['prefix'] ?? 'menu_';
 $message = "";
 $messageType = "info";
 
-// Projekt-ID aus URL oder Session
-$project_id = isset($_GET['project']) ? (int)$_GET['project'] : ($_SESSION['current_project'] ?? null);
+// Projekt-ID aus URL-Parameter (pin) abrufen
+$pin_input = isset($_GET['pin']) ? trim($_GET['pin']) : null;
+$project_id = null;
+$project = null;
 
-if (!$project_id || !$pdo) {
-    die("Projekt nicht gefunden oder System nicht initialisiert.");
+// Wenn PIN eingegeben wurde, lade das Projekt
+if ($pin_input) {
+    $stmt = $pdo->prepare("SELECT * FROM {$prefix}projects WHERE access_pin = ? AND is_active = 1");
+    $stmt->execute([$pin_input]);
+    $project = $stmt->fetch();
+    
+    if ($project) {
+        $project_id = $project['id'];
+        $_SESSION['current_project'] = $project_id;
+    } else {
+        $message = "❌ Ungültige PIN. Bitte versuchen Sie es erneut.";
+        $messageType = "danger";
+    }
+} else {
+    // Kein PIN-Parameter - zeige PIN-Eingabe
+    ?>
+<!DOCTYPE html>
+<html lang="de" data-bs-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PIN Eingabe - Menüwahl</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="assets/css/style.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/intl-tel-input@24.5.0/build/css/intlTelInput.css">
+    <!-- intl-tel-input applied: v24.5.0; build at 2026-02-04 -->
+</head>
+<body>
+
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-5">
+            <div class="card border-0 shadow bg-dark text-light">
+                <div class="card-body p-5 text-center">
+                    <div class="mb-4" style="font-size: 4rem;">🍽️</div>
+                    <h2 class="card-title mb-4">Menüwahl</h2>
+                    
+                    <p class="text-muted mb-4">Bitte geben Sie Ihre Zugangs-PIN ein:</p>
+                    
+                    <form method="get" action="index.php">
+                        <div class="mb-3">
+                            <input type="text" name="pin" class="form-control form-control-lg text-center fs-5 fw-bold" 
+                                   placeholder="000000" maxlength="10" required autofocus 
+                                   style="letter-spacing: 0.5em; font-family: monospace;">
+                        </div>
+                        <button type="submit" class="btn btn-primary btn-lg w-100 fw-bold">Zugang</button>
+                    </form>
+                </div>
+            </div>
+            
+            <div class="alert alert-info text-center mt-4 small">
+                💡 Tipp: Sie können auch den QR-Code mit einem Smartphone scannen
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/intl-tel-input@24.5.0/build/js/intlTelInput.min.js"></script>
+<script>
+    (function(){
+        var phoneVisible = document.getElementById('phone_visible');
+        var phoneFull = document.getElementById('phone_full');
+        var phoneError = document.getElementById('phone-error');
+        if (!phoneVisible || !phoneFull) return;
+        try {
+            var iti = window.intlTelInput(phoneVisible, {
+                initialCountry: 'de',
+                preferredCountries: ['de','at','ch'],
+                separateDialCode: true,
+                utilsScript: 'https://cdn.jsdelivr.net/npm/intl-tel-input@24.5.0/build/js/utils.js',
+                dropdownContainer: document.body,
+                autoHideDialCode: false
+            });
+
+            var form = document.getElementById('orderForm');
+            if (form) {
+                form.addEventListener('submit', function(e){
+                    if (phoneVisible.value.trim()) {
+                        try {
+                            if (iti.isValidNumber()) {
+                                phoneFull.value = iti.getNumber();
+                                phoneError.classList.add('d-none');
+                            } else {
+                                e.preventDefault();
+                                phoneError.classList.remove('d-none');
+                                phoneVisible.focus();
+                                return false;
+                            }
+                        } catch(err) {
+                            // allow server-side validation if JS fails
+                        }
+                    } else {
+                        phoneFull.value = '';
+                    }
+                });
+            }
+        } catch(e) {}
+    })();
+</script>
+</body>
+</html>
+    <?php
+    exit;
 }
 
-// Projekt laden
-$stmt = $pdo->prepare("SELECT * FROM {$prefix}projects WHERE id = ? AND is_active = 1");
-$stmt->execute([$project_id]);
-$project = $stmt->fetch();
+// Wenn kein Projekt gefunden, zeige Fehlermeldung mit PIN-Eingabe
+if (!$project_id || !$project) {
+    ?>
+<!DOCTYPE html>
+<html lang="de" data-bs-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PIN Eingabe - Menüwahl</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="assets/css/style.css" rel="stylesheet">
+</head>
+<body>
 
-if (!$project) {
-    die("Projekt nicht gefunden.");
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-5">
+            <div class="card border-0 shadow bg-dark text-light">
+                <div class="card-body p-5 text-center">
+                    <div class="mb-4" style="font-size: 4rem;">🍽️</div>
+                    <h2 class="card-title mb-4">Menüwahl</h2>
+                    
+                    <?php if ($message): ?>
+                        <div class="alert alert-<?php echo $messageType; ?> mb-4"><?php echo $message; ?></div>
+                    <?php endif; ?>
+                    
+                    <p class="text-muted mb-4">Bitte geben Sie Ihre Zugangs-PIN ein:</p>
+                    
+                    <form method="get" action="index.php">
+                        <div class="mb-3">
+                            <input type="text" name="pin" class="form-control form-control-lg text-center fs-5 fw-bold" 
+                                   placeholder="000000" maxlength="10" required autofocus 
+                                   value="<?php echo htmlspecialchars($pin_input ?? ''); ?>"
+                                   style="letter-spacing: 0.5em; font-family: monospace;">
+                        </div>
+                        <button type="submit" class="btn btn-primary btn-lg w-100 fw-bold">Zugang</button>
+                    </form>
+                </div>
+            </div>
+            
+            <div class="alert alert-info text-center mt-4 small">
+                💡 Tipp: Sie können auch den QR-Code mit einem Smartphone scannen
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
+    <?php
+    exit;
 }
 
 // Gäste-Statistik
@@ -36,10 +186,9 @@ if (isset($_POST['submit_order'])) {
     $firstname = trim($_POST['firstname']);
     $lastname = trim($_POST['lastname']);
     $email = trim($_POST['email']);
-    $phone = trim($_POST['phone']);
+    $phone_raw = trim($_POST['phone']);
+    $phone = normalize_phone_e164($phone_raw, 'DE');
     $guest_type = $_POST['guest_type']; // 'individual' oder 'family'
-    $age_group = $_POST['age_group']; // 'adult' oder 'child'
-    $child_age = ($age_group === 'child') ? (int)$_POST['child_age'] : null;
     $family_size = ($guest_type === 'family') ? (int)$_POST['family_size'] : 1;
 
     // Validierung
@@ -48,6 +197,9 @@ if (isset($_POST['submit_order'])) {
         $messageType = "danger";
     } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
         $message = "Ungültige E-Mail Adresse.";
+        $messageType = "danger";
+    } elseif ($phone_raw !== '' && $phone === false) {
+        $message = "Ungültige Telefonnummer. Bitte geben Sie die Nummer mit Ländervorwahl ein.";
         $messageType = "danger";
     } elseif ($guest_count >= $project['max_guests']) {
         $message = "Maximale Anzahl von Gästen erreicht.";
@@ -58,23 +210,40 @@ if (isset($_POST['submit_order'])) {
 
             // Gast eintragen (oder Update falls bereits vorhanden)
             $stmt = $pdo->prepare("INSERT INTO {$prefix}guests 
-                (project_id, firstname, lastname, email, phone, guest_type, age_group, child_age, family_size, order_status) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending') 
+                (project_id, firstname, lastname, email, phone, guest_type, family_size, order_status) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, 'pending') 
                 ON DUPLICATE KEY UPDATE 
-                phone = ?, guest_type = ?, age_group = ?, child_age = ?, family_size = ?, order_status = 'pending'");
+                phone = ?, guest_type = ?, family_size = ?, order_status = 'pending'");
             
             $stmt->execute([
-                $project_id, $firstname, $lastname, $email, $phone, $guest_type, $age_group, $child_age, $family_size,
-                $phone, $guest_type, $age_group, $child_age, $family_size
+                $project_id, $firstname, $lastname, $email, $phone, $guest_type, $family_size,
+                $phone, $guest_type, $family_size
             ]);
 
-            $guest_id = $pdo->lastInsertId() ?: $pdo->prepare("SELECT id FROM {$prefix}guests WHERE project_id = ? AND email = ?")->execute([$project_id, $email]);
-            
-            // Gast-ID nochmal abrufen falls UPDATE
-            if (!$guest_id || $guest_id == 0) {
-                $stmt = $pdo->prepare("SELECT id FROM {$prefix}guests WHERE project_id = ? AND email = ?");
-                $stmt->execute([$project_id, $email]);
-                $guest_id = $stmt->fetch()['id'];
+            // Gast-ID abrufen
+            $stmt = $pdo->prepare("SELECT id FROM {$prefix}guests WHERE project_id = ? AND email = ?");
+            $stmt->execute([$project_id, $email]);
+            $guest_id = $stmt->fetch()['id'];
+
+            // Familienmitglieder löschen (beim Update)
+            $stmt = $pdo->prepare("DELETE FROM {$prefix}family_members WHERE guest_id = ?");
+            $stmt->execute([$guest_id]);
+
+            // Familienmitglieder eintragen (falls Familie)
+            if ($guest_type === 'family' && isset($_POST['members'])) {
+                foreach ($_POST['members'] as $idx => $member) {
+                    $member_name = trim($member['name'] ?? '');
+                    $member_type = $member['type'] ?? 'adult';
+                    $child_age = ($member_type === 'child') ? (int)($member['age'] ?? 0) : null;
+                    $highchair = ($member_type === 'child') ? ((int)($member['highchair'] ?? 0)) : 0;
+
+                    if (!empty($member_name)) {
+                        $stmt = $pdo->prepare("INSERT INTO {$prefix}family_members 
+                            (guest_id, name, member_type, child_age, highchair_needed) 
+                            VALUES (?, ?, ?, ?, ?)");
+                        $stmt->execute([$guest_id, $member_name, $member_type, $child_age, $highchair]);
+                    }
+                }
             }
 
             // Bestellungen speichern
@@ -135,7 +304,30 @@ foreach ($categories as $cat) {
         <span class="navbar-brand fw-bold">
             🍽️ <?php echo htmlspecialchars($project['name']); ?>
         </span>
+        
+        <!-- Admin-Menü Button (nur wenn angemeldet) -->
+        <?php if (isset($_SESSION['user_id'])): ?>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#adminNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+        <?php endif; ?>
     </div>
+
+    <!-- Kollapsible Admin-Navigation -->
+    <?php if (isset($_SESSION['user_id'])): ?>
+    <div class="collapse navbar-collapse bg-dark border-top border-secondary" id="adminNav">
+        <div class="container-fluid px-4">
+            <ul class="navbar-nav ms-auto mt-2 mb-2">
+                <li class="nav-item"><a class="nav-link text-end" href="admin/admin.php">📊 Admin-Bereich</a></li>
+                <li class="nav-item"><a class="nav-link text-end" href="admin/projects.php">📁 Projekte</a></li>
+                <li class="nav-item"><a class="nav-link text-end" href="admin/guests.php">👥 Gäste</a></li>
+                <li class="nav-item"><a class="nav-link text-end" href="admin/orders.php">📋 Bestellungen</a></li>
+                <li class="nav-item"><hr class="dropdown-divider"></li>
+                <li class="nav-item"><a class="nav-link text-end text-danger" href="admin/logout.php">Logout</a></li>
+            </ul>
+        </div>
+    </div>
+    <?php endif; ?>
 </nav>
 
 <div class="container py-4">
@@ -200,7 +392,9 @@ foreach ($categories as $cat) {
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Telefon</label>
-                                <input type="tel" name="phone" class="form-control">
+                                <input type="tel" id="phone_visible" class="form-control">
+                                <input type="hidden" name="phone" id="phone_full">
+                                <div id="phone-error" class="text-danger small mt-1 d-none">Ungültige Telefonnummer. Bitte prüfen Sie die Eingabe (z.B. Ländervorwahl).</div>
                             </div>
                         </div>
 
@@ -216,24 +410,15 @@ foreach ($categories as $cat) {
                             </div>
                             <div class="col-md-6" id="familySizeContainer" style="display: none;">
                                 <label class="form-label">Anzahl Personen *</label>
-                                <input type="number" name="family_size" id="familySize" class="form-control" min="2" value="2">
+                                <input type="number" name="family_size" id="familySize" class="form-control" min="2" value="2" onchange="updateFamilyForm()">
                             </div>
                         </div>
 
-                        <hr class="my-4">
-
-                        <div class="row g-3">
-                            <div class="col-md-6">
-                                <label class="form-label">Erwachsen oder Kind? *</label>
-                                <select name="age_group" id="ageGroup" class="form-select" required onchange="updateChildAge()">
-                                    <option value="adult">Erwachsener</option>
-                                    <option value="child">Kind (unter 12 Jahren)</option>
-                                </select>
-                            </div>
-                            <div class="col-md-6" id="childAgeContainer" style="display: none;">
-                                <label class="form-label">Alter des Kindes (Jahre) *</label>
-                                <input type="number" name="child_age" id="childAge" class="form-control" min="1" max="11">
-                            </div>
+                        <!-- Familienmitglieder Details -->
+                        <div id="familyMembersContainer" style="display: none; margin-top: 20px;">
+                            <hr class="my-4">
+                            <h6 class="mb-3">Familienmitglieder Details</h6>
+                            <div id="membersForm"></div>
                         </div>
                     </div>
                 </div>
@@ -290,6 +475,47 @@ foreach ($categories as $cat) {
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<style>
+    .navbar-collapse {
+        position: fixed !important;
+        top: 60px;
+        right: 0;
+        left: auto;
+        background-color: #212529;
+        border-left: 1px solid #495057;
+        border-bottom: 1px solid #495057;
+        z-index: 1000;
+        width: auto;
+        min-width: 250px;
+        box-shadow: -2px 2px 8px rgba(0,0,0,0.3);
+        visibility: hidden;
+        opacity: 0;
+        transition: opacity 0.3s ease-in-out, visibility 0.3s ease-in-out;
+    }
+    
+    .navbar-collapse.show {
+        visibility: visible;
+        opacity: 1;
+    }
+    
+    .navbar-backdrop {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0,0,0,0.5);
+        z-index: 999;
+        visibility: hidden;
+        opacity: 0;
+        transition: opacity 0.3s ease-in-out, visibility 0.3s ease-in-out;
+    }
+    
+    .navbar-backdrop.show {
+        visibility: visible;
+        opacity: 1;
+    }
+</style>
 <script>
 function changeQty(btn, change) {
     const input = btn.parentElement.querySelector('.qty-input');
@@ -300,17 +526,77 @@ function changeQty(btn, change) {
 
 function updateFamilySize() {
     const type = document.getElementById('guestType').value;
-    document.getElementById('familySizeContainer').style.display = type === 'family' ? 'block' : 'none';
+    const container = document.getElementById('familySizeContainer');
+    const familyMembers = document.getElementById('familyMembersContainer');
+    
     if (type === 'family') {
+        container.style.display = 'block';
         document.getElementById('familySize').required = true;
+        familyMembers.style.display = 'block';
+        updateFamilyForm();
+    } else {
+        container.style.display = 'none';
+        document.getElementById('familySize').required = false;
+        familyMembers.style.display = 'none';
+        document.getElementById('membersForm').innerHTML = '';
     }
 }
 
-function updateChildAge() {
-    const age = document.getElementById('ageGroup').value;
-    document.getElementById('childAgeContainer').style.display = age === 'child' ? 'block' : 'none';
-    if (age === 'child') {
-        document.getElementById('childAge').required = true;
+function updateFamilyForm() {
+    const size = parseInt(document.getElementById('familySize').value) || 2;
+    const container = document.getElementById('membersForm');
+    let html = '';
+    
+    for (let i = 0; i < size; i++) {
+        html += `
+            <div class="card bg-dark border-secondary mb-3" style="padding: 15px;">
+                <h6 class="mb-3">Person ${i + 1}</h6>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Name *</label>
+                        <input type="text" name="members[${i}][name]" class="form-control" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Typ *</label>
+                        <select name="members[${i}][type]" class="form-select member-type" onchange="updateMemberFields(${i})">
+                            <option value="adult">Erwachsener</option>
+                            <option value="child">Kind</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6 member-age-${i}" style="display: none;">
+                        <label class="form-label">Alter (Jahre)</label>
+                        <input type="number" name="members[${i}][age]" class="form-control" min="1" max="12">
+                    </div>
+                    <div class="col-md-6 member-highchair-${i}" style="display: none;">
+                        <label class="form-label">
+                            <input type="checkbox" name="members[${i}][highchair]" value="1" class="form-check-input">
+                            Hochstuhl benötigt
+                        </label>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+    
+    container.innerHTML = html;
+    
+    // Update alle Member-Felder
+    for (let i = 0; i < size; i++) {
+        updateMemberFields(i);
+    }
+}
+
+function updateMemberFields(index) {
+    const select = document.querySelector(`select[name="members[${index}][type]"]`);
+    const ageField = document.querySelector(`.member-age-${index}`);
+    const highchairField = document.querySelector(`.member-highchair-${index}`);
+    
+    if (select.value === 'child') {
+        ageField.style.display = 'block';
+        highchairField.style.display = 'block';
+    } else {
+        ageField.style.display = 'none';
+        highchairField.style.display = 'none';
     }
 }
 </script>
