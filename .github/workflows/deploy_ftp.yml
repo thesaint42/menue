@@ -23,11 +23,12 @@ jobs:
 
       - name: Deploy via lftp (SFTP/FTP)
         env:
-          DEPLOY_HOST: ${{ secrets.DEPLOY_FTP_HOST }}
-          DEPLOY_USER: ${{ secrets.DEPLOY_FTP_USER }}
-          DEPLOY_PASSWORD: ${{ secrets.DEPLOY_FTP_PASSWORD }}
-          DEPLOY_PATH: ${{ secrets.DEPLOY_FTP_PATH }}
-          DEPLOY_PROTOCOL: ${{ secrets.DEPLOY_FTP_PROTOCOL }}
+          # Reuse existing deploy secrets (same as SSH/SFTP settings)
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_PASSWORD: ${{ secrets.DEPLOY_PASSWORD }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+          DEPLOY_PROTOCOL: ${{ secrets.DEPLOY_PROTOCOL }}
         run: |
           set -ex
           PROTO="${DEPLOY_PROTOCOL:-sftp}"
