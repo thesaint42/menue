@@ -1,0 +1,37 @@
+name: Deploy via FTP/SFTP
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Show files to upload
+        run: |
+          echo "Files in repo (top):"
+          ls -la | sed -n '1,200p'
+
+      - name: Install lftp
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y lftp
+
+      - name: Deploy via lftp (SFTP/FTP)
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_FTP_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_FTP_USER }}
+          DEPLOY_PASSWORD: ${{ secrets.DEPLOY_FTP_PASSWORD }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_FTP_PATH }}
+          DEPLOY_PROTOCOL: ${{ secrets.DEPLOY_FTP_PROTOCOL }}
+        run: |
+          set -ex
+          PROTO="${DEPLOY_PROTOCOL:-sftp}"
+          URL="${PROTO}://${DEPLOY_USER}:${DEPLOY_PASSWORD}@${DEPLOY_HOST}"
+          echo "Deploying to $URL path ${DEPLOY_PATH}"
+          # Use lftp mirror to push repo contents to remote. Adjust --exclude for any local-only files.
+          lftp -c "set ssl:verify-certificate no; open $URL; mirror -R --verbose --delete --only-newer ./ ${DEPLOY_PATH:-.}"

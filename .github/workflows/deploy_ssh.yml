@@ -19,6 +19,10 @@ jobs:
           DEPLOY_BRANCH: ${{ secrets.DEPLOY_BRANCH }}
           DEPLOY_PASSWORD: ${{ secrets.DEPLOY_PASSWORD }}
         run: |
+          set -x
+          # Debug: print a few non-secret environment values for visibility
+          echo "Deploy host=${DEPLOY_HOST:-<unset>} user=${DEPLOY_USER:-<unset>} path=${DEPLOY_PATH:-<unset>} branch=${DEPLOY_BRANCH:-main}"
+
           # If a private key was provided, configure ssh-agent for subsequent SSH commands
           if [ -n "${{ secrets.DEPLOY_KEY }}" ]; then
             echo "Setting up ssh-agent with provided DEPLOY_KEY"
@@ -45,30 +49,28 @@ jobs:
           # Choose SSH invocation depending on whether we have an agent with keys or must use sshpass
           if ssh-add -l >/dev/null 2>&1; then
             echo "Deploying using SSH key to ${DEPLOY_HOST}"
-            ssh -o StrictHostKeyChecking=no ${DEPLOY_USER}@${DEPLOY_HOST} "
-              set -e
-              if [ ! -d '${DEPLOY_PATH}/.git' ]; then
-                echo 'Target path is not a git repo. Attempting to clone...'
-                git clone --depth 1 --branch ${BRANCH} https://github.com/${{ github.repository }} ${DEPLOY_PATH}
-              fi
-              cd ${DEPLOY_PATH}
-              git fetch --all --prune
-              git reset --hard origin/${BRANCH}
-              php -r 'if(function_exists("opcache_reset")){opcache_reset(); echo "opcache reset\n"; }' || true
-              if command -v systemctl >/dev/null 2>&1; then sudo systemctl restart php8.1-fpm || true; fi
-            "
+            # add -v for SSH-level debug and set -ex on remote to show failing commands
+            ssh -v -o StrictHostKeyChecking=no ${DEPLOY_USER}@${DEPLOY_HOST} "set -ex; \
+              if [ ! -d '${DEPLOY_PATH}/.git' ]; then \
+                echo 'Target path is not a git repo. Attempting to clone...'; \
+                git clone --depth 1 --branch ${BRANCH} https://github.com/${{ github.repository }} ${DEPLOY_PATH}; \
+              fi; \
+              cd ${DEPLOY_PATH}; \
+              git fetch --all --prune; \
+              git reset --hard origin/${BRANCH}; \
+              php -r 'if(function_exists("opcache_reset")){opcache_reset(); echo "opcache reset\\n"; }' || true; \
+              if command -v systemctl >/dev/null 2>&1; then sudo systemctl restart php8.1-fpm || true; fi"
           else
-            echo "Deploying using password to ${DEPLOY_HOST}"
-            sshpass -p "${DEPLOY_PASSWORD}" ssh -o StrictHostKeyChecking=no ${DEPLOY_USER}@${DEPLOY_HOST} "
-              set -e
-              if [ ! -d '${DEPLOY_PATH}/.git' ]; then
-                echo 'Target path is not a git repo. Attempting to clone...'
-                git clone --depth 1 --branch ${BRANCH} https://github.com/${{ github.repository }} ${DEPLOY_PATH}
-              fi
-              cd ${DEPLOY_PATH}
-              git fetch --all --prune
-              git reset --hard origin/${BRANCH}
-              php -r 'if(function_exists("opcache_reset")){opcache_reset(); echo "opcache reset\n"; }' || true
-              if command -v systemctl >/dev/null 2>&1; then sudo systemctl restart php8.1-fpm || true; fi
-            "
+            echo "Deploying using password to ${DEPLOY_HOST} (sshpass)"
+            # verbose sshpass+ssh to collect key exchange issues
+            sshpass -p "${DEPLOY_PASSWORD}" ssh -v -o StrictHostKeyChecking=no ${DEPLOY_USER}@${DEPLOY_HOST} "set -ex; \
+              if [ ! -d '${DEPLOY_PATH}/.git' ]; then \
+                echo 'Target path is not a git repo. Attempting to clone...'; \
+                git clone --depth 1 --branch ${BRANCH} https://github.com/${{ github.repository }} ${DEPLOY_PATH}; \
+              fi; \
+              cd ${DEPLOY_PATH}; \
+              git fetch --all --prune; \
+              git reset --hard origin/${BRANCH}; \
+              php -r 'if(function_exists("opcache_reset")){opcache_reset(); echo "opcache reset\\n"; }' || true; \
+              if command -v systemctl >/dev/null 2>&1; then sudo systemctl restart php8.1-fpm || true; fi"
           fi
