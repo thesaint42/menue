@@ -338,7 +338,7 @@ $projects = $pdo->query("SELECT * FROM {$prefix}projects ORDER BY created_at DES
                 <h5 class="modal-title">Projekt bearbeiten</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
-            <form method="post">
+            <form method="post" id="editProjectForm">
                 <input type="hidden" name="project_id" id="edit_project_id">
                 <div class="modal-body">
                     <div class="row g-3">
@@ -360,7 +360,8 @@ $projects = $pdo->query("SELECT * FROM {$prefix}projects ORDER BY created_at DES
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Telefon</label>
-                            <input type="tel" name="contact_phone" id="edit_contact_phone" class="form-control">
+                            <input type="tel" id="edit_contact_phone_visible" class="form-control">
+                            <input type="hidden" name="contact_phone" id="edit_contact_phone_full">
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Kontakt Email</label>
@@ -393,7 +394,7 @@ $projects = $pdo->query("SELECT * FROM {$prefix}projects ORDER BY created_at DES
                 <h5 class="modal-title">Neues Projekt anlegen</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
-            <form method="post">
+            <form method="post" id="addProjectForm">
                 <div class="modal-body">
                     <div class="row g-3">
                         <div class="col-md-6">
@@ -414,7 +415,8 @@ $projects = $pdo->query("SELECT * FROM {$prefix}projects ORDER BY created_at DES
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Telefon</label>
-                            <input type="tel" name="contact_phone" class="form-control">
+                            <input type="tel" id="add_contact_phone_visible" class="form-control">
+                            <input type="hidden" name="contact_phone" id="add_contact_phone_full">
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Kontakt Email</label>
@@ -551,7 +553,8 @@ function loadProjectData(project) {
     document.getElementById('edit_location').value = project.location || '';
     document.getElementById('edit_description').value = project.description || '';
     document.getElementById('edit_contact_person').value = project.contact_person || '';
-    var phoneEl = document.getElementById('edit_contact_phone');
+    var phoneEl = document.getElementById('edit_contact_phone_visible');
+    var phoneFull = document.getElementById('edit_contact_phone_full');
     if (phoneEl) {
         try {
             if (phoneEl._iti && typeof phoneEl._iti.setNumber === 'function') {
@@ -563,10 +566,57 @@ function loadProjectData(project) {
             phoneEl.value = project.contact_phone || '';
         }
     }
+    if (phoneFull) {
+        phoneFull.value = project.contact_phone || '';
+    }
     document.getElementById('edit_contact_email').value = project.contact_email || '';
     document.getElementById('edit_max_guests').value = project.max_guests;
     document.getElementById('edit_admin_email').value = project.admin_email;
 }
+</script>
+<script>
+// Initialize intl-tel-input for admin modal phone fields (if library loaded)
+document.addEventListener('DOMContentLoaded', function(){
+    try {
+        var editVisible = document.getElementById('edit_contact_phone_visible');
+        var editFull = document.getElementById('edit_contact_phone_full');
+        var addVisible = document.getElementById('add_contact_phone_visible');
+        var addFull = document.getElementById('add_contact_phone_full');
+
+        function attach(formId, visibleEl, hiddenEl) {
+            var form = document.getElementById(formId);
+            if (!form || !visibleEl) return;
+            // init intl-tel-input if available
+            try {
+                if (typeof window.intlTelInput === 'function' && !visibleEl._iti) {
+                    var iti = window.intlTelInput(visibleEl, {
+                        initialCountry: 'auto',
+                        separateDialCode: true,
+                        preferredCountries: ['de','at','ch'],
+                        utilsScript: 'https://cdn.jsdelivr.net/npm/intl-tel-input@24.5.0/build/js/utils.js',
+                        geoIpLookup: function(cb){ cb('DE'); },
+                        dropdownContainer: visibleEl.closest('.modal') || document.body,
+                        autoHideDialCode: false
+                    });
+                    visibleEl._iti = iti;
+                }
+            } catch(e) {}
+
+            form.addEventListener('submit', function(){
+                try {
+                    if (visibleEl && visibleEl._iti && visibleEl._iti.getNumber) {
+                        hiddenEl && (hiddenEl.value = visibleEl._iti.getNumber());
+                    } else if (visibleEl) {
+                        hiddenEl && (hiddenEl.value = visibleEl.value || '');
+                    }
+                } catch(e) {}
+            });
+        }
+
+        attach('editProjectForm', editVisible, editFull);
+        attach('addProjectForm', addVisible, addFull);
+    } catch(e) {}
+});
 </script>
 </body>
 </html>
