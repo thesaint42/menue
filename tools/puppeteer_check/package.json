@@ -1,0 +1,12 @@
+{
+  "name": "puppeteer-check",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Automated UI check for intl-tel-input on schneider-ret.de/menue",
+  "scripts": {
+    "check": "node run_puppeteer_check.js"
+  },
+  "dependencies": {
+    "puppeteer": "^21.0.0"
+  }
+}

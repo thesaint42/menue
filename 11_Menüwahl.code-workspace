@@ -9,6 +9,14 @@
 			"/^bash -lc '\nset -e\n# ensure deploy keys are ignored\ngrep -qxF \"deploy_key\" \\.gitignore \\|\\| echo \"deploy_key\" >> \\.gitignore\ngrep -qxF \"deploy_key\\.pub\" \\.gitignore \\|\\| echo \"deploy_key\\.pub\" >> \\.gitignore\n# remove from index if accidentally staged\ngit rm --cached deploy_key 2>/dev/null \\|\\| true\ngit rm --cached deploy_key\\.pub 2>/dev/null \\|\\| true\n# stage all changes\ngit add -A\n# commit if there are staged changes\nif git diff --cached --quiet; then\n  echo \"No changes to commit\"\nelse\n  git commit -m \"chore: update phone input UX and deploy workflow\"\nfi\n# push\ngit push origin main\n'$/": {
 				"approve": true,
 				"matchCommandLine": true
+			},
+			"/^bash -lc 'curl -sS -L -D - https://schneider-ret\\.de/menue -o /tmp/menue_site\\.html \\|\\| true; echo \"--- HTTP HEAD ---\"; head -n 20 /tmp/menue_site\\.html; echo \"--- grep intl-tel-input ---\"; grep -n \"intl-tel-input\" /tmp/menue_site\\.html \\|\\| true; echo \"--- grep top_nav identifier ---\"; grep -n \"iti__country-list\\\\\\|iti__search\\\\\\|top_nav\" /tmp/menue_site\\.html \\|\\| true'$/": {
+				"approve": true,
+				"matchCommandLine": true
+			},
+			"/^bash -lc 'cd tools/puppeteer_check && npm install --no-audit --no-fund'$/": {
+				"approve": true,
+				"matchCommandLine": true
 			}
 		}
 	}
