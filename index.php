@@ -133,6 +133,8 @@ if (!$project_id || !$project) {
     <title>PIN Eingabe - Menüwahl</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="assets/css/style.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/intl-tel-input@24.5.0/build/css/intlTelInput.css">
+    <!-- intl-tel-input applied: v24.5.0 -->
 </head>
 <body>
 
@@ -170,6 +172,48 @@ if (!$project_id || !$project) {
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/intl-tel-input@24.5.0/build/js/intlTelInput.min.js"></script>
+<script>
+(function(){
+    var phoneVisible = document.getElementById('phone_visible');
+    var phoneFull = document.getElementById('phone_full');
+    var phoneError = document.getElementById('phone-error');
+    if (!phoneVisible || !phoneFull) return;
+    try {
+        var iti = window.intlTelInput(phoneVisible, {
+            initialCountry: 'de',
+            preferredCountries: ['de','at','ch'],
+            separateDialCode: true,
+            utilsScript: 'https://cdn.jsdelivr.net/npm/intl-tel-input@24.5.0/build/js/utils.js',
+            dropdownContainer: document.body,
+            autoHideDialCode: false
+        });
+
+        var form = document.getElementById('orderForm');
+        if (form) {
+            form.addEventListener('submit', function(e){
+                if (phoneVisible.value.trim()) {
+                    try {
+                        if (iti.isValidNumber()) {
+                            phoneFull.value = iti.getNumber();
+                            phoneError.classList.add('d-none');
+                        } else {
+                            e.preventDefault();
+                            phoneError.classList.remove('d-none');
+                            phoneVisible.focus();
+                            return false;
+                        }
+                    } catch(err) {
+                        // allow server-side validation if JS fails
+                    }
+                } else {
+                    phoneFull.value = '';
+                }
+            });
+        }
+    } catch(e) {}
+})();
+</script>
 </body>
 </html>
     <?php
