@@ -3,6 +3,7 @@ name: Deploy via FTP/SFTP
 on:
   push:
     branches: [ main ]
+  workflow_dispatch:
 
 jobs:
   deploy:
