@@ -16,7 +16,7 @@ $title = 'Impressum';
   <main class="container" style="max-width:800px;margin:2rem auto;padding:1rem;">
     <h1>📄 Impressum</h1>
 
-    <p><strong>Angaben gemäß § 5 TMG</strong></p>
+    <p><strong>Angaben gemäß § 5 Digitale-Dienste-Gesetz (DDG)</strong></p>
 
     <p><strong>Verantwortlicher:</strong><br>
     Olaf Schneider<br>
