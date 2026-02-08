@@ -36,12 +36,12 @@ $display_name = $page_names[$current_page] ?? ucfirst($current_page);
                 })();
                 ?>
 
-                <a class="navbar-brand fw-bold d-flex align-items-center" href="<?php echo $home_href; ?>">
+                <div class="navbar-brand fw-bold d-flex align-items-center">
                     <img src="<?php echo $root; ?>img/logo.png" alt="Event Menue Order System (EMOS)" style="height:32px; width:auto; margin-right:10px;" />
-                    <span>Event Menue Order System (EMOS)</span>
+                    <a class="nav-home-link text-decoration-none text-light" href="<?php echo $home_href; ?>">Event Menue Order System (EMOS)</a>
                     <span class="fw-normal text-secondary mx-2">|</span>
                     <span class="fw-semibold text-info"><?php echo $display_name; ?></span>
-                </a>
+                </div>
 
                 <div class="d-flex align-items-center gap-2 ms-auto">
                     <?php if ($is_logged_in): ?>
@@ -76,6 +76,7 @@ $display_name = $page_names[$current_page] ?? ucfirst($current_page);
                             <li class="nav-item"><a class="nav-link text-end" href="<?php echo $root; ?>admin/orders.php">Bestellungen</a></li>
                             <li class="nav-item"><a class="nav-link text-end" href="<?php echo $root; ?>admin/settings_mail.php">Mail Einstellungen</a></li>
                         <?php else: ?>
+                            <li class="nav-item"><a class="nav-link text-end" href="<?php echo $root; ?>index.php">Startseite</a></li>
                             <li class="nav-item"><a class="nav-link text-end" href="<?php echo $root; ?>admin/login.php">Admin Login</a></li>
                         <?php endif; ?>
                     </ul>

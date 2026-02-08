@@ -56,9 +56,7 @@ if ($pin_input) {
                     
                         <p class="text-muted mb-4">Bitte geben Sie Ihre Zugangs-PIN ein:</p>
 
-                        <div class="alert alert-warning small mt-3">
-                            Du bist nicht eingeloggt. <a href="admin/login.php" class="alert-link">Zum Admin‑Login</a>
-                        </div>
+                        <!-- admin-login notice removed; access via menu -->
                     
                     <form method="get" action="index.php">
                         <div class="mb-3">
@@ -200,9 +198,7 @@ if (!$project_id || !$project) {
                     <?php endif; ?>
                     
                     <p class="text-muted mb-4">Bitte geben Sie Ihre Zugangs-PIN ein:</p>
-                    <div class="alert alert-warning small mt-3">
-                        Du bist nicht eingeloggt. <a href="admin/login.php" class="alert-link">Zum Admin‑Login</a>
-                    </div>
+                    <!-- admin-login notice removed; access via menu -->
                     
                     <form method="get" action="index.php">
                         <div class="mb-3">
