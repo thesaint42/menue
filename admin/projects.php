@@ -618,5 +618,6 @@ document.addEventListener('DOMContentLoaded', function(){
     } catch(e) {}
 });
 </script>
+<?php include '../nav/footer.php'; ?>
 </body>
 </html>
