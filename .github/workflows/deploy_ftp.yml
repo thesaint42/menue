@@ -50,7 +50,7 @@ jobs:
           # If no changed files found, fall back to mirror with --only-newer but DO NOT --delete (less disruptive)
           if [ -z "$CHANGED_FILES" ]; then
             echo "No changed-files list found; using conservative mirror (only newer, no delete)"
-            lftp -c "set ssl:verify-certificate no; open $URL; mirror -R --verbose --only-newer --no-symlinks ./ ${REMOTE_ROOT}"
+            lftp -c "set ssl:verify-certificate no; set ftp:passive-mode true; set net:timeout 60; set net:max-retries 1; set net:reconnect-interval-base 5; open -u \"${DEPLOY_USER}\",\"${DEPLOY_PASSWORD}\" \"${DEPLOY_HOST}\"; mirror -R --verbose --only-newer --no-symlinks --parallel=1 ./ ${REMOTE_ROOT}; bye"
             exit 0
           fi
 
@@ -67,10 +67,10 @@ jobs:
             if [ -f "$file" ]; then
               remote_dir=$(dirname "$REMOTE_ROOT/$file")
               echo "Uploading file: $file -> $remote_dir"
-              lftp -c "set ssl:verify-certificate no; open $URL; mkdir -p \"$remote_dir\"; put -O \"$remote_dir\" \"$file\""
+              lftp -c "set ssl:verify-certificate no; set ftp:passive-mode true; set net:timeout 20; set net:max-retries 1; set net:reconnect-interval-base 5; open -u \"${DEPLOY_USER}\",\"${DEPLOY_PASSWORD}\" \"${DEPLOY_HOST}\"; mkdir -p \"$remote_dir\"; put -O \"$remote_dir\" \"$file\"; bye"
             elif [ -d "$file" ]; then
               echo "Uploading directory: $file"
-              lftp -c "set ssl:verify-certificate no; open $URL; mirror -R --verbose --only-newer --no-symlinks \"$file\" \"${REMOTE_ROOT%/}/$file\""
+              lftp -c "set ssl:verify-certificate no; set ftp:passive-mode true; set net:timeout 60; set net:max-retries 1; set net:reconnect-interval-base 5; open -u \"${DEPLOY_USER}\",\"${DEPLOY_PASSWORD}\" \"${DEPLOY_HOST}\"; mirror -R --verbose --only-newer --no-symlinks --parallel=1 \"$file\" \"${REMOTE_ROOT%/}/$file\"; bye"
             else
               echo "Skipping (deleted or unknown type): $file"
             fi
