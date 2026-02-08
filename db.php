@@ -26,7 +26,9 @@ if (file_exists($configPath)) {
     // Wenn config.yaml leer ist, zur Installation umleiten
     if (empty(trim($content))) {
         if (basename($_SERVER['PHP_SELF']) !== 'install.php') {
-            header("Location: /install.php?error=config_empty");
+            $base = rtrim(dirname($_SERVER['SCRIPT_NAME']), '/\\');
+            $base = ($base === '/') ? '' : $base;
+            header("Location: {$base}/install.php?error=config_empty");
             exit;
         }
     }
@@ -80,16 +82,20 @@ if (file_exists($configPath)) {
 
         } catch (\PDOException $e) {
             // Während der Installation unterdrücken wir den Fehler
-            if (basename($_SERVER['PHP_SELF']) !== 'install.php') {
-                header("Location: /install.php?error=db_connection_failed");
-                exit;
-            }
+                if (basename($_SERVER['PHP_SELF']) !== 'install.php') {
+                    $base = rtrim(dirname($_SERVER['SCRIPT_NAME']), '/\\');
+                    $base = ($base === '/') ? '' : $base;
+                    header("Location: {$base}/install.php?error=db_connection_failed");
+                    exit;
+                }
         }
     }
 } else {
     // config.yaml existiert nicht - Installation erforderlich
     if (basename($_SERVER['PHP_SELF']) !== 'install.php') {
-        header("Location: /install.php?error=not_installed");
+        $base = rtrim(dirname($_SERVER['SCRIPT_NAME']), '/\\');
+        $base = ($base === '/') ? '' : $base;
+        header("Location: {$base}/install.php?error=not_installed");
         exit;
     }
 }

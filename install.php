@@ -33,6 +33,24 @@ if (isset($_GET['error'])) {
     }
 }
 
+// Wenn eine Fehlerseite angezeigt wird, versuche einen kurzen Log-Auszug anzuzeigen
+$log_excerpt = '';
+if (isset($_GET['error'])) {
+    $possible_logs = [__DIR__ . '/storage/logs/error.log', __DIR__ . '/storage/logs/app.log', __DIR__ . '/storage/logs/latest.log'];
+    foreach ($possible_logs as $lf) {
+        if (file_exists($lf) && is_readable($lf)) {
+            // letzte 100 Zeilen lesen (konservativ)
+            $lines = @file($lf, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+            if ($lines !== false) {
+                $start = max(0, count($lines) - 100);
+                $excerpt = array_slice($lines, $start);
+                $log_excerpt = implode("\n", array_map('htmlspecialchars', $excerpt));
+                break;
+            }
+        }
+    }
+}
+
 // UMGEBUNGSPRÜFUNGEN
 $script_dir = __DIR__ . '/script';
 $storage_dir = __DIR__ . '/storage';
