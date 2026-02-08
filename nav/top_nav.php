@@ -81,8 +81,12 @@ $display_name = $page_names[$current_page] ?? ucfirst($current_page);
                             <li class="nav-item"><a class="nav-link text-end" href="<?php echo $root; ?>admin/dishes.php">Menüs</a></li>
                             <li class="nav-item"><a class="nav-link text-end" href="<?php echo $root; ?>admin/guests.php">Gäste</a></li>
                             <li class="nav-item"><a class="nav-link text-end" href="<?php echo $root; ?>admin/orders.php">Bestellungen</a></li>
+                            <li class="nav-item"><a class="nav-link text-end" href="<?php echo $root; ?>admin/export_pdf.php">Reporting</a></li>
+
+                            <li><hr class="dropdown-divider"></li>
+                            <li class="nav-item"><span class="nav-link text-end text-muted small">System</span></li>
                             <li class="nav-item"><a class="nav-link text-end" href="<?php echo $root; ?>admin/settings_mail.php">Mail Einstellungen</a></li>
-                            <li class="nav-item"><a class="nav-link text-end" href="<?php echo $root; ?>migrate.php">Migration</a></li>
+                            <li class="nav-item"><a class="nav-link text-end" href="<?php echo $root; ?>menue/migrate.php">Migration</a></li>
                             <li class="nav-item"><a class="nav-link text-end" href="<?php echo $root; ?>admin/backup.php">Backup</a></li>
                         <?php else: ?>
                             <li class="nav-item"><a class="nav-link text-end" href="<?php echo $root; ?>index.php">Startseite</a></li>
