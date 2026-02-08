@@ -17,6 +17,8 @@ $page_names = [
     'settings_mail' => 'Mail Einstellungen',
     'profile' => 'Mein Profil'
     , 'vvt' => 'VVT'
+    , 'migrate' => 'Migration'
+    , 'backup' => 'Backup'
 ];
 
 $display_name = $page_names[$current_page] ?? ucfirst($current_page);
@@ -38,8 +40,11 @@ $display_name = $page_names[$current_page] ?? ucfirst($current_page);
 
                 <div class="navbar-brand fw-bold d-flex align-items-center">
                     <a class="nav-home-link d-flex align-items-center text-decoration-none text-light" href="<?php echo $home_href; ?>" aria-label="Zur Startseite">
-                        <img src="<?php echo $root; ?>img/logo.png" alt="Event Menue Order System (EMOS)" style="height:32px; width:auto; margin-right:10px;" />
-                        <span class="fw-bold">Event Menue Order System (EMOS)</span>
+                        <img src="<?php echo $root; ?>img/logo.png" alt="EMOS" style="height:32px; width:auto; margin-right:10px;" />
+                        <span class="fw-bold nav-brand-names">
+                            <span class="full-name d-none d-md-inline">Event Menue Order System (EMOS)</span>
+                            <span class="short-name d-inline d-md-none">EMOS</span>
+                        </span>
                     </a>
                     <span class="fw-normal text-secondary mx-2">|</span>
                     <span class="fw-semibold text-info"><?php echo $display_name; ?></span>
@@ -77,6 +82,8 @@ $display_name = $page_names[$current_page] ?? ucfirst($current_page);
                             <li class="nav-item"><a class="nav-link text-end" href="<?php echo $root; ?>admin/guests.php">Gäste</a></li>
                             <li class="nav-item"><a class="nav-link text-end" href="<?php echo $root; ?>admin/orders.php">Bestellungen</a></li>
                             <li class="nav-item"><a class="nav-link text-end" href="<?php echo $root; ?>admin/settings_mail.php">Mail Einstellungen</a></li>
+                            <li class="nav-item"><a class="nav-link text-end" href="<?php echo $root; ?>admin/migrate.php">Migration</a></li>
+                            <li class="nav-item"><a class="nav-link text-end" href="<?php echo $root; ?>admin/backup.php">Backup</a></li>
                         <?php else: ?>
                             <li class="nav-item"><a class="nav-link text-end" href="<?php echo $root; ?>index.php">Startseite</a></li>
                             <li class="nav-item"><a class="nav-link text-end" href="<?php echo $root; ?>admin/login.php">Admin Login</a></li>
@@ -87,6 +94,10 @@ $display_name = $page_names[$current_page] ?? ucfirst($current_page);
         </nav>
 
         <style>
+            /* Brand name: full on md+, short on small screens */
+            .nav-brand-names { line-height: 1; }
+            .nav-brand-names .full-name { white-space: nowrap; }
+            .nav-brand-names .short-name { white-space: nowrap; }
             .dropdown-item { color: #dee2e6 !important; }
             .dropdown-item:hover { background-color: #343a40 !important; color: #fff !important; }
             .dropdown-menu { background-color: #212529 !important; }
