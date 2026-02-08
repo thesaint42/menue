@@ -256,6 +256,7 @@ $projects = $pdo->query("SELECT * FROM {$prefix}projects ORDER BY created_at DES
     <meta charset="UTF-8">
     <title>Projektenverwaltung - Event Menue Order System (EMOS)</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/intl-tel-input@24.5.0/build/css/intlTelInput.min.css">
     <link href="../assets/css/style.css" rel="stylesheet">
 </head>
 <body>
@@ -360,7 +361,7 @@ $projects = $pdo->query("SELECT * FROM {$prefix}projects ORDER BY created_at DES
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Telefon</label>
-                            <input type="tel" id="edit_contact_phone_visible" class="form-control">
+                            <input type="tel" id="edit_contact_phone_visible" class="form-control" placeholder="z.B. 0151 1234567" autocomplete="tel" inputmode="tel">
                             <input type="hidden" name="contact_phone" id="edit_contact_phone_full">
                         </div>
                         <div class="col-md-6">
@@ -415,7 +416,7 @@ $projects = $pdo->query("SELECT * FROM {$prefix}projects ORDER BY created_at DES
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Telefon</label>
-                            <input type="tel" id="add_contact_phone_visible" class="form-control">
+                            <input type="tel" id="add_contact_phone_visible" class="form-control" placeholder="z.B. 0151 1234567" autocomplete="tel" inputmode="tel">
                             <input type="hidden" name="contact_phone" id="add_contact_phone_full">
                         </div>
                         <div class="col-md-6">
@@ -574,6 +575,7 @@ function loadProjectData(project) {
     document.getElementById('edit_admin_email').value = project.admin_email;
 }
 </script>
+<script src="https://cdn.jsdelivr.net/npm/intl-tel-input@24.5.0/build/js/intlTelInput.min.js"></script>
 <script>
 // Initialize intl-tel-input for admin modal phone fields (if library loaded)
 document.addEventListener('DOMContentLoaded', function(){
