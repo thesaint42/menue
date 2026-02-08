@@ -360,7 +360,7 @@ $projects = $pdo->query("SELECT * FROM {$prefix}projects ORDER BY created_at DES
                             <input type="text" name="contact_person" id="edit_contact_person" class="form-control">
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label">Telefon</label>
+                            <label class="form-label d-block mb-1">Telefon</label>
                             <input type="tel" id="edit_contact_phone_visible" class="form-control" placeholder="z.B. 0151 1234567" autocomplete="tel" inputmode="tel">
                             <input type="hidden" name="contact_phone" id="edit_contact_phone_full">
                         </div>
@@ -415,7 +415,7 @@ $projects = $pdo->query("SELECT * FROM {$prefix}projects ORDER BY created_at DES
                             <input type="text" name="contact_person" class="form-control">
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label">Telefon</label>
+                            <label class="form-label d-block mb-1">Telefon</label>
                             <input type="tel" id="add_contact_phone_visible" class="form-control" placeholder="z.B. 0151 1234567" autocomplete="tel" inputmode="tel">
                             <input type="hidden" name="contact_phone" id="add_contact_phone_full">
                         </div>
