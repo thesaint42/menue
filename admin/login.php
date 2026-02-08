@@ -50,15 +50,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 </head>
 <body class="bg-body-tertiary">
 
-<nav class="navbar navbar-dark bg-dark border-bottom border-secondary position-fixed w-100" style="top: 0; z-index: 1030;">
-    <div class="container-fluid px-4">
-        <span class="navbar-brand fw-bold">
-            🍽️ Event Menue Order System (EMOS) | Admin
-        </span>
-    </div>
-</nav>
+<?php include __DIR__ . '/../nav/top_nav.php'; ?>
 
-<div class="container" style="margin-top: 80px;">
+<div class="container" style="margin-top: 1rem;">
     <div class="row justify-content-center">
         <div class="col-lg-5">
             <div class="card shadow border-0 bg-dark">
