@@ -5,7 +5,6 @@
 
 require_once '../db.php';
 require_once '../script/auth.php';
-require_once '../nav/top_nav.php';
 
 // Authentifizierung prüfen
 checkLogin();
@@ -57,6 +56,8 @@ if ($project_id > 0) {
     <link rel="stylesheet" href="../assets/css/style.css">
 </head>
 <body>
+
+<?php include '../nav/top_nav.php'; ?>
 
 <div class="container py-4">
     <div class="row mb-4">
