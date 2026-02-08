@@ -1,0 +1,270 @@
+﻿2026-02-05T00:54:14.6723280Z Current runner version: '2.331.0'
+2026-02-05T00:54:14.6746331Z ##[group]Runner Image Provisioner
+2026-02-05T00:54:14.6747205Z Hosted Compute Agent
+2026-02-05T00:54:14.6747722Z Version: 20260123.484
+2026-02-05T00:54:14.6748425Z Commit: 6bd6555ca37d84114959e1c76d2c01448ff61c5d
+2026-02-05T00:54:14.6749234Z Build Date: 2026-01-23T19:41:17Z
+2026-02-05T00:54:14.6749874Z Worker ID: {901146bb-95fb-4386-95fe-0fe2f355a052}
+2026-02-05T00:54:14.6750623Z Azure Region: westus
+2026-02-05T00:54:14.6751181Z ##[endgroup]
+2026-02-05T00:54:14.6752531Z ##[group]Operating System
+2026-02-05T00:54:14.6753226Z Ubuntu
+2026-02-05T00:54:14.6753686Z 24.04.3
+2026-02-05T00:54:14.6754113Z LTS
+2026-02-05T00:54:14.6754669Z ##[endgroup]
+2026-02-05T00:54:14.6755133Z ##[group]Runner Image
+2026-02-05T00:54:14.6755682Z Image: ubuntu-24.04
+2026-02-05T00:54:14.6756193Z Version: 20260126.10.1
+2026-02-05T00:54:14.6757355Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20260126.10/images/ubuntu/Ubuntu2404-Readme.md
+2026-02-05T00:54:14.6758845Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20260126.10
+2026-02-05T00:54:14.6759943Z ##[endgroup]
+2026-02-05T00:54:14.6760934Z ##[group]GITHUB_TOKEN Permissions
+2026-02-05T00:54:14.6762779Z Contents: read
+2026-02-05T00:54:14.6763359Z Metadata: read
+2026-02-05T00:54:14.6763804Z Packages: read
+2026-02-05T00:54:14.6764442Z ##[endgroup]
+2026-02-05T00:54:14.6766544Z Secret source: Actions
+2026-02-05T00:54:14.6767201Z Prepare workflow directory
+2026-02-05T00:54:14.7098744Z Prepare all required actions
+2026-02-05T00:54:14.7137080Z Getting action download info
+2026-02-05T00:54:15.1154701Z Download action repository 'actions/checkout@v4' (SHA:34e114876b0b11c390a56381ad16ebd13914f8d5)
+2026-02-05T00:54:15.3065319Z Complete job name: deploy
+2026-02-05T00:54:15.3859500Z ##[group]Run actions/checkout@v4
+2026-02-05T00:54:15.3860444Z with:
+2026-02-05T00:54:15.3860845Z   repository: thesaint42/menue
+2026-02-05T00:54:15.3861484Z   token: ***
+2026-02-05T00:54:15.3861861Z   ssh-strict: true
+2026-02-05T00:54:15.3862257Z   ssh-user: git
+2026-02-05T00:54:15.3862671Z   persist-credentials: true
+2026-02-05T00:54:15.3863109Z   clean: true
+2026-02-05T00:54:15.3863503Z   sparse-checkout-cone-mode: true
+2026-02-05T00:54:15.3863968Z   fetch-depth: 1
+2026-02-05T00:54:15.3864387Z   fetch-tags: false
+2026-02-05T00:54:15.3864770Z   show-progress: true
+2026-02-05T00:54:15.3865167Z   lfs: false
+2026-02-05T00:54:15.3865527Z   submodules: false
+2026-02-05T00:54:15.3865930Z   set-safe-directory: true
+2026-02-05T00:54:15.3866584Z ##[endgroup]
+2026-02-05T00:54:15.4926927Z Syncing repository: thesaint42/menue
+2026-02-05T00:54:15.4928734Z ##[group]Getting Git version info
+2026-02-05T00:54:15.4929659Z Working directory is '/home/runner/work/menue/menue'
+2026-02-05T00:54:15.4930608Z [command]/usr/bin/git version
+2026-02-05T00:54:15.5014451Z git version 2.52.0
+2026-02-05T00:54:15.5040617Z ##[endgroup]
+2026-02-05T00:54:15.5054698Z Temporarily overriding HOME='/home/runner/work/_temp/c49dc984-9b6b-46a3-b795-b193829bca5e' before making global git config changes
+2026-02-05T00:54:15.5056924Z Adding repository directory to the temporary git global config as a safe directory
+2026-02-05T00:54:15.5068169Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/menue/menue
+2026-02-05T00:54:15.5110040Z Deleting the contents of '/home/runner/work/menue/menue'
+2026-02-05T00:54:15.5113852Z ##[group]Initializing the repository
+2026-02-05T00:54:15.5118534Z [command]/usr/bin/git init /home/runner/work/menue/menue
+2026-02-05T00:54:15.5236990Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-02-05T00:54:15.5238339Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-02-05T00:54:15.5239602Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-02-05T00:54:15.5240789Z hint: call:
+2026-02-05T00:54:15.5241169Z hint:
+2026-02-05T00:54:15.5241769Z hint: 	git config --global init.defaultBranch <name>
+2026-02-05T00:54:15.5243176Z hint:
+2026-02-05T00:54:15.5244149Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-02-05T00:54:15.5245750Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-02-05T00:54:15.5247045Z hint:
+2026-02-05T00:54:15.5247754Z hint: 	git branch -m <name>
+2026-02-05T00:54:15.5248496Z hint:
+2026-02-05T00:54:15.5249702Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-02-05T00:54:15.5251350Z Initialized empty Git repository in /home/runner/work/menue/menue/.git/
+2026-02-05T00:54:15.5254329Z [command]/usr/bin/git remote add origin https://github.com/thesaint42/menue
+2026-02-05T00:54:15.5290983Z ##[endgroup]
+2026-02-05T00:54:15.5292163Z ##[group]Disabling automatic garbage collection
+2026-02-05T00:54:15.5295893Z [command]/usr/bin/git config --local gc.auto 0
+2026-02-05T00:54:15.5325267Z ##[endgroup]
+2026-02-05T00:54:15.5325961Z ##[group]Setting up auth
+2026-02-05T00:54:15.5332301Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-02-05T00:54:15.5364143Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-02-05T00:54:15.5736641Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-02-05T00:54:15.5767299Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-02-05T00:54:15.5985359Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-02-05T00:54:15.6017372Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-02-05T00:54:15.6246965Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-02-05T00:54:15.6280724Z ##[endgroup]
+2026-02-05T00:54:15.6281976Z ##[group]Fetching the repository
+2026-02-05T00:54:15.6291164Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +3c2ff092be0a0254d960343ee02cf34aaa09bf1a:refs/remotes/origin/main
+2026-02-05T00:54:17.0471637Z From https://github.com/thesaint42/menue
+2026-02-05T00:54:17.0474355Z  * [new ref]         3c2ff092be0a0254d960343ee02cf34aaa09bf1a -> origin/main
+2026-02-05T00:54:17.0505428Z ##[endgroup]
+2026-02-05T00:54:17.0507319Z ##[group]Determining the checkout info
+2026-02-05T00:54:17.0509645Z ##[endgroup]
+2026-02-05T00:54:17.0513803Z [command]/usr/bin/git sparse-checkout disable
+2026-02-05T00:54:17.0572365Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2026-02-05T00:54:17.0599417Z ##[group]Checking out the ref
+2026-02-05T00:54:17.0603756Z [command]/usr/bin/git checkout --progress --force -B main refs/remotes/origin/main
+2026-02-05T00:54:17.3587277Z Switched to a new branch 'main'
+2026-02-05T00:54:17.3587826Z branch 'main' set up to track 'origin/main'.
+2026-02-05T00:54:17.3604941Z ##[endgroup]
+2026-02-05T00:54:17.3643551Z [command]/usr/bin/git log -1 --format=%H
+2026-02-05T00:54:17.3666687Z 3c2ff092be0a0254d960343ee02cf34aaa09bf1a
+2026-02-05T00:54:17.3851940Z ##[group]Run echo "Files in repo (top):"
+2026-02-05T00:54:17.3852385Z [36;1mecho "Files in repo (top):"[0m
+2026-02-05T00:54:17.3852702Z [36;1mls -la | sed -n '1,200p'[0m
+2026-02-05T00:54:17.3887961Z shell: /usr/bin/bash -e {0}
+2026-02-05T00:54:17.3888280Z ##[endgroup]
+2026-02-05T00:54:17.3957402Z Files in repo (top):
+2026-02-05T00:54:17.3972960Z total 160
+2026-02-05T00:54:17.3974174Z drwxr-xr-x 10 runner runner  4096 Feb  5 00:54 .
+2026-02-05T00:54:17.3974895Z drwxr-xr-x  3 runner runner  4096 Feb  5 00:54 ..
+2026-02-05T00:54:17.3975570Z drwxr-xr-x  7 runner runner  4096 Feb  5 00:54 .git
+2026-02-05T00:54:17.3976634Z drwxr-xr-x  3 runner runner  4096 Feb  5 00:54 .github
+2026-02-05T00:54:17.3977772Z -rw-r--r--  1 runner runner   501 Feb  5 00:54 .gitignore
+2026-02-05T00:54:17.3979102Z -rw-r--r--  1 runner runner  1419 Feb  5 00:54 11_Menüwahl.code-workspace
+2026-02-05T00:54:17.3979893Z -rw-r--r--  1 runner runner  8670 Feb  5 00:54 README.md
+2026-02-05T00:54:17.3980468Z -rw-r--r--  1 runner runner  4052 Feb  5 00:54 UPGRADE.md
+2026-02-05T00:54:17.3980926Z -rw-r--r--  1 runner runner  3873 Feb  5 00:54 UPGRADE_CHECKLIST.md
+2026-02-05T00:54:17.3981383Z drwxr-xr-x  2 runner runner  4096 Feb  5 00:54 admin
+2026-02-05T00:54:17.3981765Z drwxr-xr-x  3 runner runner  4096 Feb  5 00:54 assets
+2026-02-05T00:54:17.3982166Z -rw-r--r--  1 runner runner  3797 Feb  5 00:54 db.php
+2026-02-05T00:54:17.3982519Z drwxr-xr-x  2 runner runner  4096 Feb  5 00:54 img
+2026-02-05T00:54:17.3982887Z -rw-r--r--  1 runner runner 30785 Feb  5 00:54 index.php
+2026-02-05T00:54:17.3983264Z -rw-r--r--  1 runner runner 32908 Feb  5 00:54 install.php
+2026-02-05T00:54:17.3983638Z -rw-r--r--  1 runner runner 19863 Feb  5 00:54 migrate.php
+2026-02-05T00:54:17.3984012Z drwxr-xr-x  2 runner runner  4096 Feb  5 00:54 nav
+2026-02-05T00:54:17.3984364Z drwxr-xr-x  5 runner runner  4096 Feb  5 00:54 script
+2026-02-05T00:54:17.3984740Z drwxr-xr-x  3 runner runner  4096 Feb  5 00:54 tools
+2026-02-05T00:54:17.4014089Z ##[group]Run sudo apt-get update -y
+2026-02-05T00:54:17.4014483Z [36;1msudo apt-get update -y[0m
+2026-02-05T00:54:17.4014803Z [36;1msudo apt-get install -y lftp[0m
+2026-02-05T00:54:17.4044359Z shell: /usr/bin/bash -e {0}
+2026-02-05T00:54:17.4044648Z ##[endgroup]
+2026-02-05T00:54:17.4760199Z Get:1 file:/etc/apt/apt-mirrors.txt Mirrorlist [144 B]
+2026-02-05T00:54:17.5068275Z Hit:2 http://azure.archive.ubuntu.com/ubuntu noble InRelease
+2026-02-05T00:54:17.5088110Z Get:3 http://azure.archive.ubuntu.com/ubuntu noble-updates InRelease [126 kB]
+2026-02-05T00:54:17.5138536Z Get:4 http://azure.archive.ubuntu.com/ubuntu noble-backports InRelease [126 kB]
+2026-02-05T00:54:17.5167725Z Get:5 http://azure.archive.ubuntu.com/ubuntu noble-security InRelease [126 kB]
+2026-02-05T00:54:17.5298607Z Get:6 https://packages.microsoft.com/repos/azure-cli noble InRelease [3564 B]
+2026-02-05T00:54:17.5361650Z Get:7 https://packages.microsoft.com/ubuntu/24.04/prod noble InRelease [3600 B]
+2026-02-05T00:54:17.6368402Z Get:8 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 Packages [1730 kB]
+2026-02-05T00:54:17.6530251Z Get:9 http://azure.archive.ubuntu.com/ubuntu noble-updates/main Translation-en [323 kB]
+2026-02-05T00:54:17.6558594Z Get:10 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 Components [175 kB]
+2026-02-05T00:54:17.6574835Z Get:11 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 c-n-f Metadata [16.4 kB]
+2026-02-05T00:54:17.6584429Z Get:12 http://azure.archive.ubuntu.com/ubuntu noble-updates/universe amd64 Packages [1528 kB]
+2026-02-05T00:54:17.6671285Z Get:13 http://azure.archive.ubuntu.com/ubuntu noble-updates/universe Translation-en [313 kB]
+2026-02-05T00:54:17.6703533Z Get:14 http://azure.archive.ubuntu.com/ubuntu noble-updates/universe amd64 Components [386 kB]
+2026-02-05T00:54:17.6735076Z Get:15 http://azure.archive.ubuntu.com/ubuntu noble-updates/universe amd64 c-n-f Metadata [31.9 kB]
+2026-02-05T00:54:17.6746131Z Get:16 http://azure.archive.ubuntu.com/ubuntu noble-updates/restricted amd64 Packages [2564 kB]
+2026-02-05T00:54:17.6873674Z Get:17 http://azure.archive.ubuntu.com/ubuntu noble-updates/restricted Translation-en [588 kB]
+2026-02-05T00:54:17.7371209Z Get:18 http://azure.archive.ubuntu.com/ubuntu noble-updates/restricted amd64 Components [212 B]
+2026-02-05T00:54:17.7377453Z Get:19 http://azure.archive.ubuntu.com/ubuntu noble-updates/restricted amd64 c-n-f Metadata [556 B]
+2026-02-05T00:54:17.7388386Z Get:20 http://azure.archive.ubuntu.com/ubuntu noble-updates/multiverse amd64 Packages [32.1 kB]
+2026-02-05T00:54:17.7431823Z Get:21 http://azure.archive.ubuntu.com/ubuntu noble-updates/multiverse Translation-en [6816 B]
+2026-02-05T00:54:17.7433074Z Get:22 http://azure.archive.ubuntu.com/ubuntu noble-updates/multiverse amd64 Components [940 B]
+2026-02-05T00:54:17.7435164Z Get:23 http://azure.archive.ubuntu.com/ubuntu noble-updates/multiverse amd64 c-n-f Metadata [496 B]
+2026-02-05T00:54:17.7436336Z Get:24 http://azure.archive.ubuntu.com/ubuntu noble-backports/main amd64 Components [7308 B]
+2026-02-05T00:54:17.7447835Z Get:25 http://azure.archive.ubuntu.com/ubuntu noble-backports/universe amd64 Components [10.5 kB]
+2026-02-05T00:54:17.7457718Z Get:26 http://azure.archive.ubuntu.com/ubuntu noble-backports/restricted amd64 Components [212 B]
+2026-02-05T00:54:17.7469706Z Get:27 http://azure.archive.ubuntu.com/ubuntu noble-backports/multiverse amd64 Components [212 B]
+2026-02-05T00:54:17.7477458Z Get:28 http://azure.archive.ubuntu.com/ubuntu noble-security/main amd64 Packages [1430 kB]
+2026-02-05T00:54:17.7555723Z Get:29 http://azure.archive.ubuntu.com/ubuntu noble-security/main Translation-en [232 kB]
+2026-02-05T00:54:17.7579956Z Get:30 http://azure.archive.ubuntu.com/ubuntu noble-security/main amd64 Components [21.5 kB]
+2026-02-05T00:54:17.7593211Z Get:31 http://azure.archive.ubuntu.com/ubuntu noble-security/main amd64 c-n-f Metadata [9836 B]
+2026-02-05T00:54:17.7946090Z Get:44 https://packages.microsoft.com/repos/azure-cli noble/main amd64 Packages [2163 B]
+2026-02-05T00:54:17.8046063Z Get:32 http://azure.archive.ubuntu.com/ubuntu noble-security/universe amd64 Packages [929 kB]
+2026-02-05T00:54:17.8106163Z Get:33 http://azure.archive.ubuntu.com/ubuntu noble-security/universe Translation-en [212 kB]
+2026-02-05T00:54:17.8133351Z Get:34 http://azure.archive.ubuntu.com/ubuntu noble-security/universe amd64 Components [74.2 kB]
+2026-02-05T00:54:17.8147278Z Get:35 http://azure.archive.ubuntu.com/ubuntu noble-security/universe amd64 c-n-f Metadata [19.9 kB]
+2026-02-05T00:54:17.8158887Z Get:36 http://azure.archive.ubuntu.com/ubuntu noble-security/restricted amd64 Packages [2411 kB]
+2026-02-05T00:54:17.8279347Z Get:37 http://azure.archive.ubuntu.com/ubuntu noble-security/restricted Translation-en [553 kB]
+2026-02-05T00:54:17.8320424Z Get:38 http://azure.archive.ubuntu.com/ubuntu noble-security/restricted amd64 Components [212 B]
+2026-02-05T00:54:17.8331433Z Get:39 http://azure.archive.ubuntu.com/ubuntu noble-security/restricted amd64 c-n-f Metadata [536 B]
+2026-02-05T00:54:17.8348717Z Get:40 http://azure.archive.ubuntu.com/ubuntu noble-security/multiverse amd64 Packages [28.8 kB]
+2026-02-05T00:54:17.8360321Z Get:41 http://azure.archive.ubuntu.com/ubuntu noble-security/multiverse Translation-en [6492 B]
+2026-02-05T00:54:17.8367811Z Get:42 http://azure.archive.ubuntu.com/ubuntu noble-security/multiverse amd64 Components [208 B]
+2026-02-05T00:54:17.8379819Z Get:43 http://azure.archive.ubuntu.com/ubuntu noble-security/multiverse amd64 c-n-f Metadata [396 B]
+2026-02-05T00:54:17.8413005Z Get:45 https://packages.microsoft.com/ubuntu/24.04/prod noble/main amd64 Packages [88.5 kB]
+2026-02-05T00:54:17.8448262Z Get:46 https://packages.microsoft.com/ubuntu/24.04/prod noble/main arm64 Packages [68.0 kB]
+2026-02-05T00:54:26.7789763Z Fetched 14.2 MB in 2s (8835 kB/s)
+2026-02-05T00:54:27.5591506Z Reading package lists...
+2026-02-05T00:54:27.5920343Z Reading package lists...
+2026-02-05T00:54:27.7789208Z Building dependency tree...
+2026-02-05T00:54:27.7797062Z Reading state information...
+2026-02-05T00:54:27.9642533Z The following NEW packages will be installed:
+2026-02-05T00:54:27.9648012Z   lftp
+2026-02-05T00:54:27.9819346Z 0 upgraded, 1 newly installed, 0 to remove and 105 not upgraded.
+2026-02-05T00:54:27.9819965Z Need to get 704 kB of archives.
+2026-02-05T00:54:27.9820512Z After this operation, 1892 kB of additional disk space will be used.
+2026-02-05T00:54:27.9821151Z Get:1 file:/etc/apt/apt-mirrors.txt Mirrorlist [144 B]
+2026-02-05T00:54:28.1293704Z Get:2 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 lftp amd64 4.9.2-2ubuntu1.1 [704 kB]
+2026-02-05T00:54:28.7665567Z Fetched 704 kB in 1s (1319 kB/s)
+2026-02-05T00:54:28.7889687Z Selecting previously unselected package lftp.
+2026-02-05T00:54:28.8177587Z (Reading database ... 
+2026-02-05T00:54:28.8178456Z (Reading database ... 5%
+2026-02-05T00:54:28.8178691Z (Reading database ... 10%
+2026-02-05T00:54:28.8179468Z (Reading database ... 15%
+2026-02-05T00:54:28.8179838Z (Reading database ... 20%
+2026-02-05T00:54:28.8180208Z (Reading database ... 25%
+2026-02-05T00:54:28.8180565Z (Reading database ... 30%
+2026-02-05T00:54:28.8180764Z (Reading database ... 35%
+2026-02-05T00:54:28.8180964Z (Reading database ... 40%
+2026-02-05T00:54:28.8181155Z (Reading database ... 45%
+2026-02-05T00:54:28.8181364Z (Reading database ... 50%
+2026-02-05T00:54:28.8274196Z (Reading database ... 55%
+2026-02-05T00:54:28.9566458Z (Reading database ... 60%
+2026-02-05T00:54:29.0351632Z (Reading database ... 65%
+2026-02-05T00:54:29.1609394Z (Reading database ... 70%
+2026-02-05T00:54:29.2488866Z (Reading database ... 75%
+2026-02-05T00:54:29.4126825Z (Reading database ... 80%
+2026-02-05T00:54:29.5497074Z (Reading database ... 85%
+2026-02-05T00:54:29.7045466Z (Reading database ... 90%
+2026-02-05T00:54:29.8677683Z (Reading database ... 95%
+2026-02-05T00:54:29.8678207Z (Reading database ... 100%
+2026-02-05T00:54:29.8678694Z (Reading database ... 217639 files and directories currently installed.)
+2026-02-05T00:54:29.8722249Z Preparing to unpack .../lftp_4.9.2-2ubuntu1.1_amd64.deb ...
+2026-02-05T00:54:29.8752942Z Unpacking lftp (4.9.2-2ubuntu1.1) ...
+2026-02-05T00:54:29.9484899Z Setting up lftp (4.9.2-2ubuntu1.1) ...
+2026-02-05T00:54:29.9526772Z Processing triggers for hicolor-icon-theme (0.17-2) ...
+2026-02-05T00:54:30.4267560Z Processing triggers for man-db (2.12.0-4build2) ...
+2026-02-05T00:54:30.4297621Z Not building database; man-db/auto-update is not 'true'.
+2026-02-05T00:54:31.1589818Z 
+2026-02-05T00:54:31.1590456Z Running kernel seems to be up-to-date.
+2026-02-05T00:54:31.1590836Z 
+2026-02-05T00:54:31.1590985Z No services need to be restarted.
+2026-02-05T00:54:31.1591279Z 
+2026-02-05T00:54:31.1591382Z No containers need to be restarted.
+2026-02-05T00:54:31.1591572Z 
+2026-02-05T00:54:31.1591702Z No user sessions are running outdated binaries.
+2026-02-05T00:54:31.1591956Z 
+2026-02-05T00:54:31.1592231Z No VM guests are running outdated hypervisor (qemu) binaries on this host.
+2026-02-05T00:54:32.1593295Z ##[group]Run set -ex
+2026-02-05T00:54:32.1593556Z [36;1mset -ex[0m
+2026-02-05T00:54:32.1593772Z [36;1mPROTO="${DEPLOY_PROTOCOL:-sftp}"[0m
+2026-02-05T00:54:32.1594142Z [36;1mURL="${PROTO}://${DEPLOY_USER}:${DEPLOY_PASSWORD}@${DEPLOY_HOST}"[0m
+2026-02-05T00:54:32.1594540Z [36;1mecho "Deploying to $URL path ${DEPLOY_PATH}"[0m
+2026-02-05T00:54:32.1595018Z [36;1m# Use lftp mirror to push repo contents to remote. Adjust --exclude for any local-only files.[0m
+2026-02-05T00:54:32.1595769Z [36;1mlftp -c "set ssl:verify-certificate no; open $URL; mirror -R --verbose --delete --only-newer ./ ${DEPLOY_PATH:-.}"[0m
+2026-02-05T00:54:32.1628682Z shell: /usr/bin/bash -e {0}
+2026-02-05T00:54:32.1628916Z env:
+2026-02-05T00:54:32.1629262Z   DEPLOY_HOST: 
+2026-02-05T00:54:32.1629443Z   DEPLOY_USER: 
+2026-02-05T00:54:32.1629623Z   DEPLOY_PASSWORD: 
+2026-02-05T00:54:32.1629796Z   DEPLOY_PATH: 
+2026-02-05T00:54:32.1629953Z   DEPLOY_PROTOCOL: 
+2026-02-05T00:54:32.1630126Z ##[endgroup]
+2026-02-05T00:54:32.1682269Z + PROTO=sftp
+2026-02-05T00:54:32.1682611Z + URL=sftp://:@
+2026-02-05T00:54:32.1682940Z + echo 'Deploying to sftp://:@ path '
+2026-02-05T00:54:32.1683708Z + lftp -c 'set ssl:verify-certificate no; open sftp://:@; mirror -R --verbose --delete --only-newer ./ .'
+2026-02-05T00:54:32.1684472Z Deploying to sftp://:@ path 
+2026-02-05T00:54:32.1722392Z open: Not connected
+2026-02-05T00:54:32.1723760Z mirror: Not connected
+2026-02-05T00:54:32.1742286Z ##[error]Process completed with exit code 1.
+2026-02-05T00:54:32.1905814Z Post job cleanup.
+2026-02-05T00:54:32.2843661Z [command]/usr/bin/git version
+2026-02-05T00:54:32.2879768Z git version 2.52.0
+2026-02-05T00:54:32.2924015Z Temporarily overriding HOME='/home/runner/work/_temp/8419b9fa-7462-4917-84ca-e37fbc8ae3b8' before making global git config changes
+2026-02-05T00:54:32.2925298Z Adding repository directory to the temporary git global config as a safe directory
+2026-02-05T00:54:32.2937276Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/menue/menue
+2026-02-05T00:54:32.2971968Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-02-05T00:54:32.3003761Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-02-05T00:54:32.3247326Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-02-05T00:54:32.3270517Z http.https://github.com/.extraheader
+2026-02-05T00:54:32.3283685Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+2026-02-05T00:54:32.3314803Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-02-05T00:54:32.3545349Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-02-05T00:54:32.3580007Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-02-05T00:54:32.3957705Z Cleaning up orphan processes

@@ -70,7 +70,7 @@ try {
     $mail->isHTML(true);
     $mail->Subject = "Einladung: " . $project['name'];
 
-    $mail->Body = "<h2>Menüwahl - Einladung</h2>" .
+    $mail->Body = "<h2>Event Menue Order System (EMOS) - Einladung</h2>" .
         "<p>Sie sind zu <strong>" . htmlspecialchars($project['name']) . "</strong> eingeladen!</p>" .
         "<div style='border:2px solid #007bff;padding:20px;margin:20px 0;'>" .
         "<p style='font-size:18px;margin-bottom:10px;'><strong>Zugangs-PIN:</strong></p>" .

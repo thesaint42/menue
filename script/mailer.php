@@ -1,6 +1,6 @@
 <?php
 /**
- * script/mailer.php - PHPMailer Integration für Menüwahl System
+ * script/mailer.php - PHPMailer Integration für Event Menue Order System (EMOS)
  */
 
 use PHPMailer\PHPMailer\PHPMailer;
@@ -116,7 +116,7 @@ function sendOrderConfirmation($pdo, $prefix, $guest_id) {
                 
                 <p style='color: #999; font-size: 12px; margin-top: 30px;'>
                     Mit freundlichen Grüßen,<br>
-                    Das Menüwahl System
+                    Event Menue Order System (EMOS)
                 </p>
             </div>
         </body>
@@ -172,7 +172,7 @@ function sendTestMail($pdo, $prefix, $recipient_email) {
         $mail->addAddress($recipient_email);
 
         $mail->isHTML(true);
-        $mail->Subject = "Menüwahl System - SMTP Testmail";
+        $mail->Subject = "Event Menue Order System (EMOS) - SMTP Testmail";
         $mail->Body = "<h2>✓ SMTP Test erfolgreich!</h2><p>Diese Testmail wurde am " . date('d.m.Y H:i:s') . " versendet.</p>";
 
         $mail->send();

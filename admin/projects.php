@@ -205,7 +205,7 @@ if (isset($_POST['send_invite'])) {
                     
                     // HTML Body
                     $mail->Body = "
-                        <h2>Menüwahl - Einladung</h2>
+                            <h2>Event Menue Order System (EMOS) - Einladung</h2>
                         <p>Sie sind zu <strong>{$project['name']}</strong> eingeladen!</p>
                         
                         <div style='border: 2px solid #007bff; padding: 20px; margin: 20px 0;'>
@@ -216,7 +216,7 @@ if (isset($_POST['send_invite'])) {
                         </div>
                         
                         <p><strong>Oder nutzen Sie diesen Link:</strong></p>
-                        <p><a href='{$access_url}' style='background-color: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block;'>Zur Menüwahl</a></p>
+                        <p><a href='{$access_url}' style='background-color: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block;'>Zur Event Menue Order System (EMOS)</a></p>
                         
                         " . (!empty($custom_message) ? "<p><strong>Nachricht:</strong></p><p>" . htmlspecialchars($custom_message) . "</p>" : "") . "
                         
@@ -254,7 +254,7 @@ $projects = $pdo->query("SELECT * FROM {$prefix}projects ORDER BY created_at DES
 <html lang="de" data-bs-theme="dark">
 <head>
     <meta charset="UTF-8">
-    <title>Projektenverwaltung - Menüwahl</title>
+    <title>Projektenverwaltung - Event Menue Order System (EMOS)</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="../assets/css/style.css" rel="stylesheet">
 </head>

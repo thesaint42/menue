@@ -1,0 +1,87 @@
+﻿2026-02-05T00:54:16.2101804Z ##[group]Run set -x
+2026-02-05T00:54:16.2102242Z [36;1mset -x[0m
+2026-02-05T00:54:16.2102634Z [36;1m# Debug: print a few non-secret environment values for visibility[0m
+2026-02-05T00:54:16.2103470Z [36;1mecho "Deploy host=${DEPLOY_HOST:-<unset>} user=${DEPLOY_USER:-<unset>} path=${DEPLOY_PATH:-<unset>} branch=${DEPLOY_BRANCH:-***}"[0m
+2026-02-05T00:54:16.2104082Z [36;1m[0m
+2026-02-05T00:54:16.2104474Z [36;1m# If a private key was provided, configure ssh-agent for subsequent SSH commands[0m
+2026-02-05T00:54:16.2104954Z [36;1mif [ -n "" ]; then[0m
+2026-02-05T00:54:16.2105307Z [36;1m  echo "Setting up ssh-agent with provided DEPLOY_KEY"[0m
+2026-02-05T00:54:16.2105686Z [36;1m  mkdir -p ~/.ssh[0m
+2026-02-05T00:54:16.2106179Z [36;1m  echo "" > ~/.ssh/deploy_key[0m
+2026-02-05T00:54:16.2106491Z [36;1m  chmod 600 ~/.ssh/deploy_key[0m
+2026-02-05T00:54:16.2106803Z [36;1m  eval "$(ssh-agent -s)"[0m
+2026-02-05T00:54:16.2107113Z [36;1m  ssh-add ~/.ssh/deploy_key[0m
+2026-02-05T00:54:16.2107396Z [36;1melse[0m
+2026-02-05T00:54:16.2107788Z [36;1m  echo "No DEPLOY_KEY provided; will use password-based ssh (sshpass)"[0m
+2026-02-05T00:54:16.2108228Z [36;1m  sudo apt-get update -y[0m
+2026-02-05T00:54:16.2108591Z [36;1m  sudo apt-get install -y sshpass || true[0m
+2026-02-05T00:54:16.2108927Z [36;1mfi[0m
+2026-02-05T00:54:16.2145190Z shell: /usr/bin/bash -e {0}
+2026-02-05T00:54:16.2145535Z env:
+2026-02-05T00:54:16.2145755Z   DEPLOY_KEY: 
+2026-02-05T00:54:16.2146095Z   DEPLOY_USER: ***
+2026-02-05T00:54:16.2146365Z   DEPLOY_HOST: ***
+2026-02-05T00:54:16.2146642Z   DEPLOY_PATH: ***
+2026-02-05T00:54:16.2146913Z   DEPLOY_BRANCH: ***
+2026-02-05T00:54:16.2147202Z   DEPLOY_PASSWORD: ***
+2026-02-05T00:54:16.2147477Z ##[endgroup]
+2026-02-05T00:54:16.2220397Z + echo 'Deploy host=*** user=*** path=*** branch=***'
+2026-02-05T00:54:16.2221868Z Deploy host=*** user=*** path=*** branch=***
+2026-02-05T00:54:16.2222492Z + '[' -n '' ']'
+2026-02-05T00:54:16.2222973Z + echo 'No DEPLOY_KEY provided; will use password-based ssh (sshpass)'
+2026-02-05T00:54:16.2223429Z + sudo apt-get update -y
+2026-02-05T00:54:16.2223792Z No DEPLOY_KEY provided; will use password-based ssh (sshpass)
+2026-02-05T00:54:16.3544613Z Get:1 file:/etc/apt/apt-mirrors.txt Mirrorlist [144 B]
+2026-02-05T00:54:16.3665391Z Get:6 https://packages.microsoft.com/repos/azure-cli noble InRelease [3564 B]
+2026-02-05T00:54:16.3887203Z Get:7 https://packages.microsoft.com/ubuntu/24.04/prod noble InRelease [3600 B]
+2026-02-05T00:54:16.3890748Z Hit:2 http://azure.archive.ubuntu.com/ubuntu noble InRelease
+2026-02-05T00:54:16.3903344Z Get:3 http://azure.archive.ubuntu.com/ubuntu noble-updates InRelease [126 kB]
+2026-02-05T00:54:16.3936878Z Get:4 http://azure.archive.ubuntu.com/ubuntu noble-backports InRelease [126 kB]
+2026-02-05T00:54:16.3955662Z Get:5 http://azure.archive.ubuntu.com/ubuntu noble-security InRelease [126 kB]
+2026-02-05T00:54:16.5055636Z Get:8 https://packages.microsoft.com/repos/azure-cli noble/*** amd64 Packages [2163 B]
+2026-02-05T00:54:16.5562302Z Get:9 https://packages.microsoft.com/ubuntu/24.04/prod noble/*** arm64 Packages [68.0 kB]
+2026-02-05T00:54:16.5603878Z Get:10 https://packages.microsoft.com/ubuntu/24.04/prod noble/*** amd64 Packages [88.5 kB]
+2026-02-05T00:54:16.6612746Z Get:11 http://azure.archive.ubuntu.com/ubuntu noble-updates/*** amd64 Packages [1730 kB]
+2026-02-05T00:54:16.6719348Z Get:12 http://azure.archive.ubuntu.com/ubuntu noble-updates/*** Translation-en [323 kB]
+2026-02-05T00:54:16.6747277Z Get:13 http://azure.archive.ubuntu.com/ubuntu noble-updates/*** amd64 Components [175 kB]
+2026-02-05T00:54:16.6766917Z Get:14 http://azure.archive.ubuntu.com/ubuntu noble-updates/*** amd64 c-n-f Metadata [16.4 kB]
+2026-02-05T00:54:16.6779545Z Get:15 http://azure.archive.ubuntu.com/ubuntu noble-updates/universe amd64 Packages [1528 kB]
+2026-02-05T00:54:16.6862586Z Get:16 http://azure.archive.ubuntu.com/ubuntu noble-updates/universe Translation-en [313 kB]
+2026-02-05T00:54:16.6885334Z Get:17 http://azure.archive.ubuntu.com/ubuntu noble-updates/universe amd64 Components [386 kB]
+2026-02-05T00:54:16.6914285Z Get:18 http://azure.archive.ubuntu.com/ubuntu noble-updates/universe amd64 c-n-f Metadata [31.9 kB]
+2026-02-05T00:54:16.6932068Z Get:19 http://azure.archive.ubuntu.com/ubuntu noble-updates/restricted amd64 Packages [2564 kB]
+2026-02-05T00:54:16.7056008Z Get:20 http://azure.archive.ubuntu.com/ubuntu noble-updates/restricted Translation-en [588 kB]
+2026-02-05T00:54:16.7512718Z Get:21 http://azure.archive.ubuntu.com/ubuntu noble-updates/restricted amd64 Components [212 B]
+2026-02-05T00:54:16.7518912Z Get:22 http://azure.archive.ubuntu.com/ubuntu noble-updates/restricted amd64 c-n-f Metadata [556 B]
+2026-02-05T00:54:16.7557989Z Get:23 http://azure.archive.ubuntu.com/ubuntu noble-updates/multiverse amd64 Packages [32.1 kB]
+2026-02-05T00:54:16.7567265Z Get:24 http://azure.archive.ubuntu.com/ubuntu noble-updates/multiverse Translation-en [6816 B]
+2026-02-05T00:54:16.7583088Z Get:25 http://azure.archive.ubuntu.com/ubuntu noble-updates/multiverse amd64 Components [940 B]
+2026-02-05T00:54:16.7596146Z Get:26 http://azure.archive.ubuntu.com/ubuntu noble-updates/multiverse amd64 c-n-f Metadata [496 B]
+2026-02-05T00:54:16.7608271Z Get:27 http://azure.archive.ubuntu.com/ubuntu noble-backports/*** amd64 Components [7308 B]
+2026-02-05T00:54:16.7620583Z Get:28 http://azure.archive.ubuntu.com/ubuntu noble-backports/universe amd64 Components [10.5 kB]
+2026-02-05T00:54:16.7630915Z Get:29 http://azure.archive.ubuntu.com/ubuntu noble-backports/restricted amd64 Components [212 B]
+2026-02-05T00:54:16.7649374Z Get:30 http://azure.archive.ubuntu.com/ubuntu noble-backports/multiverse amd64 Components [212 B]
+2026-02-05T00:54:16.7911683Z Get:31 http://azure.archive.ubuntu.com/ubuntu noble-security/*** amd64 Packages [1430 kB]
+2026-02-05T00:54:16.7987310Z Get:32 http://azure.archive.ubuntu.com/ubuntu noble-security/*** Translation-en [232 kB]
+2026-02-05T00:54:16.8006967Z Get:33 http://azure.archive.ubuntu.com/ubuntu noble-security/*** amd64 Components [21.5 kB]
+2026-02-05T00:54:16.8017334Z Get:34 http://azure.archive.ubuntu.com/ubuntu noble-security/*** amd64 c-n-f Metadata [9836 B]
+2026-02-05T00:54:16.8469591Z Get:35 http://azure.archive.ubuntu.com/ubuntu noble-security/universe amd64 Packages [929 kB]
+2026-02-05T00:54:16.8523338Z Get:36 http://azure.archive.ubuntu.com/ubuntu noble-security/universe Translation-en [212 kB]
+2026-02-05T00:54:16.8543250Z Get:37 http://azure.archive.ubuntu.com/ubuntu noble-security/universe amd64 Components [74.2 kB]
+2026-02-05T00:54:16.8556797Z Get:38 http://azure.archive.ubuntu.com/ubuntu noble-security/universe amd64 c-n-f Metadata [19.9 kB]
+2026-02-05T00:54:16.8572425Z Get:39 http://azure.archive.ubuntu.com/ubuntu noble-security/restricted amd64 Packages [2411 kB]
+2026-02-05T00:54:16.8687272Z Get:40 http://azure.archive.ubuntu.com/ubuntu noble-security/restricted Translation-en [553 kB]
+2026-02-05T00:54:16.8717947Z Get:41 http://azure.archive.ubuntu.com/ubuntu noble-security/restricted amd64 Components [212 B]
+2026-02-05T00:54:16.8727839Z Get:42 http://azure.archive.ubuntu.com/ubuntu noble-security/restricted amd64 c-n-f Metadata [536 B]
+2026-02-05T00:54:16.8738639Z Get:43 http://azure.archive.ubuntu.com/ubuntu noble-security/multiverse amd64 Packages [28.8 kB]
+2026-02-05T00:54:16.8748993Z Get:44 http://azure.archive.ubuntu.com/ubuntu noble-security/multiverse Translation-en [6492 B]
+2026-02-05T00:54:16.8759013Z Get:45 http://azure.archive.ubuntu.com/ubuntu noble-security/multiverse amd64 Components [208 B]
+2026-02-05T00:54:16.8768479Z Get:46 http://azure.archive.ubuntu.com/ubuntu noble-security/multiverse amd64 c-n-f Metadata [396 B]
+2026-02-05T00:54:25.9983330Z Fetched 14.2 MB in 2s (8107 kB/s)
+2026-02-05T00:54:26.7575699Z Reading package lists...
+2026-02-05T00:54:26.7683852Z + sudo apt-get install -y sshpass
+2026-02-05T00:54:26.7909220Z Reading package lists...
+2026-02-05T00:54:26.9575920Z Building dependency tree...
+2026-02-05T00:54:26.9583662Z Reading state information...
+2026-02-05T00:54:27.1236878Z sshpass is already the newest version (1.09-1).
+2026-02-05T00:54:27.1238614Z 0 upgraded, 0 newly installed, 0 to remove and 105 not upgraded.

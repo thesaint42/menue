@@ -1,0 +1,9 @@
+{
+  "name": "gh-set-secrets",
+  "version": "1.0.0",
+  "private": true,
+  "dependencies": {
+    "node-fetch": "2.6.12",
+    "tweetsodium": "1.0.0"
+  }
+}

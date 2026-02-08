@@ -22,9 +22,8 @@ jobs:
           sudo apt-get update -y
           sudo apt-get install -y lftp
 
-      - name: Deploy via lftp (SFTP/FTP)
+      - name: Deploy via lftp (upload only changed files)
         env:
-          # Reuse existing deploy secrets (same as SSH/SFTP settings)
           DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
           DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
           DEPLOY_PASSWORD: ${{ secrets.DEPLOY_PASSWORD }}
@@ -34,6 +33,46 @@ jobs:
           set -ex
           PROTO="${DEPLOY_PROTOCOL:-sftp}"
           URL="${PROTO}://${DEPLOY_USER}:${DEPLOY_PASSWORD}@${DEPLOY_HOST}"
-          echo "Deploying to $URL path ${DEPLOY_PATH}"
-          # Use lftp mirror to push repo contents to remote. Adjust --exclude for any local-only files.
-          lftp -c "set ssl:verify-certificate no; open $URL; mirror -R --verbose --delete --only-newer ./ ${DEPLOY_PATH:-.}"
+          REMOTE_ROOT="${DEPLOY_PATH:-.}"
+          echo "Deploying to $URL path ${REMOTE_ROOT}"
+
+          # Determine changed files between commits. For push events use event.before/event.after; for manual runs fall back
+          if [ -n "${{ github.event.before || '' }}" ] && [ -n "${{ github.sha || '' }}" ]; then
+            echo "Detected push event; computing changed files"
+            CHANGED_FILES=$(git diff --name-only "${{ github.event.before }}" "${{ github.sha }}" || true)
+          else
+            echo "Fallback: using last commit diff"
+            CHANGED_FILES=$(git diff --name-only HEAD~1 HEAD || true)
+          fi
+
+          echo "Changed files list:"; echo "$CHANGED_FILES"
+
+          # If no changed files found, fall back to mirror with --only-newer but DO NOT --delete (less disruptive)
+          if [ -z "$CHANGED_FILES" ]; then
+            echo "No changed-files list found; using conservative mirror (only newer, no delete)"
+            lftp -c "set ssl:verify-certificate no; open $URL; mirror -R --verbose --only-newer --no-symlinks ./ ${REMOTE_ROOT}"
+            exit 0
+          fi
+
+          # Upload only added/modified files. Do NOT perform deletions on the remote by default.
+          echo "$CHANGED_FILES" | while IFS= read -r file; do
+            # skip empty lines
+            [ -z "$file" ] && continue
+            # skip workflow files and local-only dirs
+            case "$file" in
+              .github/*|.git/*|tools/*) echo "Skipping $file"; continue ;;
+            esac
+
+            if [ -f "$file" ]; then
+              remote_dir=$(dirname "$REMOTE_ROOT/$file")
+              echo "Uploading file: $file -> $remote_dir"
+              lftp -c "set ssl:verify-certificate no; open $URL; mkdir -p \"$remote_dir\"; put -O \"$remote_dir\" \"$file\""
+            elif [ -d "$file" ]; then
+              echo "Uploading directory: $file"
+              lftp -c "set ssl:verify-certificate no; open $URL; mirror -R --verbose --only-newer --no-symlinks \"$file\" \"${REMOTE_ROOT%/}/$file\""
+            else
+              echo "Skipping (deleted or unknown type): $file"
+            fi
+          done
+
+          echo "Upload finished."

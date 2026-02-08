@@ -1,0 +1,26 @@
+﻿2026-02-05T00:54:17.3851908Z ##[group]Run echo "Files in repo (top):"
+2026-02-05T00:54:17.3852379Z [36;1mecho "Files in repo (top):"[0m
+2026-02-05T00:54:17.3852698Z [36;1mls -la | sed -n '1,200p'[0m
+2026-02-05T00:54:17.3887938Z shell: /usr/bin/bash -e {0}
+2026-02-05T00:54:17.3888277Z ##[endgroup]
+2026-02-05T00:54:17.3957370Z Files in repo (top):
+2026-02-05T00:54:17.3972933Z total 160
+2026-02-05T00:54:17.3974147Z drwxr-xr-x 10 runner runner  4096 Feb  5 00:54 .
+2026-02-05T00:54:17.3974883Z drwxr-xr-x  3 runner runner  4096 Feb  5 00:54 ..
+2026-02-05T00:54:17.3975555Z drwxr-xr-x  7 runner runner  4096 Feb  5 00:54 .git
+2026-02-05T00:54:17.3976608Z drwxr-xr-x  3 runner runner  4096 Feb  5 00:54 .github
+2026-02-05T00:54:17.3977754Z -rw-r--r--  1 runner runner   501 Feb  5 00:54 .gitignore
+2026-02-05T00:54:17.3978913Z -rw-r--r--  1 runner runner  1419 Feb  5 00:54 11_Menüwahl.code-workspace
+2026-02-05T00:54:17.3979886Z -rw-r--r--  1 runner runner  8670 Feb  5 00:54 README.md
+2026-02-05T00:54:17.3980415Z -rw-r--r--  1 runner runner  4052 Feb  5 00:54 UPGRADE.md
+2026-02-05T00:54:17.3980923Z -rw-r--r--  1 runner runner  3873 Feb  5 00:54 UPGRADE_CHECKLIST.md
+2026-02-05T00:54:17.3981380Z drwxr-xr-x  2 runner runner  4096 Feb  5 00:54 admin
+2026-02-05T00:54:17.3981762Z drwxr-xr-x  3 runner runner  4096 Feb  5 00:54 assets
+2026-02-05T00:54:17.3982163Z -rw-r--r--  1 runner runner  3797 Feb  5 00:54 db.php
+2026-02-05T00:54:17.3982516Z drwxr-xr-x  2 runner runner  4096 Feb  5 00:54 img
+2026-02-05T00:54:17.3982884Z -rw-r--r--  1 runner runner 30785 Feb  5 00:54 index.php
+2026-02-05T00:54:17.3983261Z -rw-r--r--  1 runner runner 32908 Feb  5 00:54 install.php
+2026-02-05T00:54:17.3983635Z -rw-r--r--  1 runner runner 19863 Feb  5 00:54 migrate.php
+2026-02-05T00:54:17.3984010Z drwxr-xr-x  2 runner runner  4096 Feb  5 00:54 nav
+2026-02-05T00:54:17.3984361Z drwxr-xr-x  5 runner runner  4096 Feb  5 00:54 script
+2026-02-05T00:54:17.3984737Z drwxr-xr-x  3 runner runner  4096 Feb  5 00:54 tools

@@ -1,6 +1,6 @@
 <?php
 /**
- * schema.php - SQL-Schema für das Menüwahl-System
+ * schema.php - SQL-Schema für das Event Menue Order System (EMOS)
  * Ersetzt {PREFIX} durch den Tabellenpräfix
  */
 

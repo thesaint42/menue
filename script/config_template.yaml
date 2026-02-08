@@ -1,4 +1,4 @@
-# Menüwahl-System Konfiguration
+# Event Menue Order System (EMOS) Konfiguration
 # Diese Datei wird von der Installation automatisch erstellt
 
 database:
@@ -10,7 +10,7 @@ database:
 
 mail:
   admin_email: "admin@example.com"
-  sender_name: "Menüwahl System"
+  sender_name: "Event Menue Order System (EMOS)"
 
 system:
   language: "de"

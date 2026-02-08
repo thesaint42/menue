@@ -46,7 +46,7 @@ if (isset($_GET['download']) && $tcpdf_available) {
     require_once '../script/tcpdf/tcpdf.php';
 
     $pdf = new TCPDF(PDF_PAGE_ORIENTATION, PDF_UNIT, PDF_PAGE_FORMAT, true, 'UTF-8', false);
-    $pdf->SetCreator('Menüwahl System');
+    $pdf->SetCreator('Event Menue Order System (EMOS)');
     $pdf->SetTitle('Bestellungsübersicht - ' . $project['name']);
     $pdf->SetMargins(10, 10, 10);
     $pdf->SetAutoPageBreak(true, 15);

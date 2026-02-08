@@ -1,0 +1,72 @@
+﻿2026-02-05T00:54:14.7098141Z ##[group]Run actions/checkout@v4
+2026-02-05T00:54:14.7098987Z with:
+2026-02-05T00:54:14.7099413Z   repository: thesaint42/menue
+2026-02-05T00:54:14.7100062Z   token: ***
+2026-02-05T00:54:14.7100489Z   ssh-strict: true
+2026-02-05T00:54:14.7100900Z   ssh-user: git
+2026-02-05T00:54:14.7101493Z   persist-credentials: true
+2026-02-05T00:54:14.7101967Z   clean: true
+2026-02-05T00:54:14.7102403Z   sparse-checkout-cone-mode: true
+2026-02-05T00:54:14.7102910Z   fetch-depth: 1
+2026-02-05T00:54:14.7103325Z   fetch-tags: false
+2026-02-05T00:54:14.7103752Z   show-progress: true
+2026-02-05T00:54:14.7104180Z   lfs: false
+2026-02-05T00:54:14.7104575Z   submodules: false
+2026-02-05T00:54:14.7105009Z   set-safe-directory: true
+2026-02-05T00:54:14.7105706Z ##[endgroup]
+2026-02-05T00:54:14.8170507Z Syncing repository: thesaint42/menue
+2026-02-05T00:54:14.8172644Z ##[group]Getting Git version info
+2026-02-05T00:54:14.8173352Z Working directory is '/home/runner/work/menue/menue'
+2026-02-05T00:54:14.8174284Z [command]/usr/bin/git version
+2026-02-05T00:54:14.8247914Z git version 2.52.0
+2026-02-05T00:54:14.8273656Z ##[endgroup]
+2026-02-05T00:54:14.8287300Z Temporarily overriding HOME='/home/runner/work/_temp/6053dd18-8dd9-4ba7-9126-5494c3d8b3f5' before making global git config changes
+2026-02-05T00:54:14.8288707Z Adding repository directory to the temporary git global config as a safe directory
+2026-02-05T00:54:14.8298897Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/menue/menue
+2026-02-05T00:54:14.8337654Z Deleting the contents of '/home/runner/work/menue/menue'
+2026-02-05T00:54:14.8341358Z ##[group]Initializing the repository
+2026-02-05T00:54:14.8345117Z [command]/usr/bin/git init /home/runner/work/menue/menue
+2026-02-05T00:54:14.8461401Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-02-05T00:54:14.8462875Z hint: will change to "***" in Git 3.0. To configure the initial branch name
+2026-02-05T00:54:14.8464016Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-02-05T00:54:14.8465537Z hint: call:
+2026-02-05T00:54:14.8466152Z hint:
+2026-02-05T00:54:14.8466977Z hint: 	git config --global init.defaultBranch <name>
+2026-02-05T00:54:14.8468751Z hint:
+2026-02-05T00:54:14.8470129Z hint: Names commonly chosen instead of 'master' are '***', 'trunk' and
+2026-02-05T00:54:14.8472426Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-02-05T00:54:14.8473811Z hint:
+2026-02-05T00:54:14.8474532Z hint: 	git branch -m <name>
+2026-02-05T00:54:14.8475347Z hint:
+2026-02-05T00:54:14.8476417Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-02-05T00:54:14.8478215Z Initialized empty Git repository in /home/runner/work/menue/menue/.git/
+2026-02-05T00:54:14.8481010Z [command]/usr/bin/git remote add origin https://github.com/thesaint42/menue
+2026-02-05T00:54:14.8513340Z ##[endgroup]
+2026-02-05T00:54:14.8514658Z ##[group]Disabling automatic garbage collection
+2026-02-05T00:54:14.8518156Z [command]/usr/bin/git config --local gc.auto 0
+2026-02-05T00:54:14.8547339Z ##[endgroup]
+2026-02-05T00:54:14.8548672Z ##[group]Setting up auth
+2026-02-05T00:54:14.8554822Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-02-05T00:54:14.8585437Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-02-05T00:54:14.8911684Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-02-05T00:54:14.8939872Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-02-05T00:54:14.9154718Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-02-05T00:54:14.9183595Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-02-05T00:54:14.9408369Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-02-05T00:54:14.9439804Z ##[endgroup]
+2026-02-05T00:54:14.9440685Z ##[group]Fetching the repository
+2026-02-05T00:54:14.9448154Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +3c2ff092be0a0254d960343ee02cf34aaa09bf1a:refs/remotes/origin/***
+2026-02-05T00:54:15.8695872Z From https://github.com/thesaint42/menue
+2026-02-05T00:54:15.8697774Z  * [new ref]         3c2ff092be0a0254d960343ee02cf34aaa09bf1a -> origin/***
+2026-02-05T00:54:15.8730205Z ##[endgroup]
+2026-02-05T00:54:15.8731983Z ##[group]Determining the checkout info
+2026-02-05T00:54:15.8733352Z ##[endgroup]
+2026-02-05T00:54:15.8737057Z [command]/usr/bin/git sparse-checkout disable
+2026-02-05T00:54:15.8777323Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2026-02-05T00:54:15.8803576Z ##[group]Checking out the ref
+2026-02-05T00:54:15.8808354Z [command]/usr/bin/git checkout --progress --force -B *** refs/remotes/origin/***
+2026-02-05T00:54:16.1799882Z Switched to a new branch '***'
+2026-02-05T00:54:16.1800811Z branch '***' set up to track 'origin/***'.
+2026-02-05T00:54:16.1819526Z ##[endgroup]
+2026-02-05T00:54:16.1859084Z [command]/usr/bin/git log -1 --format=%H
+2026-02-05T00:54:16.1882384Z 3c2ff092be0a0254d960343ee02cf34aaa09bf1a

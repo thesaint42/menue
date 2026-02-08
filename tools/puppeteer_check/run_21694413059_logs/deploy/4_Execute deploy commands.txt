@@ -1,0 +1,63 @@
+﻿2026-02-05T00:54:27.1296105Z ##[group]Run BRANCH="${DEPLOY_BRANCH:-***}"
+2026-02-05T00:54:27.1296532Z [36;1mBRANCH="${DEPLOY_BRANCH:-***}"[0m
+2026-02-05T00:54:27.1296995Z [36;1m# Choose SSH invocation depending on whether we have an agent with keys or must use sshpass[0m
+2026-02-05T00:54:27.1297493Z [36;1mif ssh-add -l >/dev/null 2>&1; then[0m
+2026-02-05T00:54:27.1297835Z [36;1m  echo "Deploying using SSH key to ${DEPLOY_HOST}"[0m
+2026-02-05T00:54:27.1298297Z [36;1m  # add -v for SSH-level debug and set -ex on remote to show failing commands[0m
+2026-02-05T00:54:27.1298858Z [36;1m  ssh -v -o StrictHostKeyChecking=no ${DEPLOY_USER}@${DEPLOY_HOST} "set -ex; \[0m
+2026-02-05T00:54:27.1299501Z [36;1m    if [ ! -d '${DEPLOY_PATH}/.git' ]; then \[0m
+2026-02-05T00:54:27.1299890Z [36;1m      echo 'Target path is not a git repo. Attempting to clone...'; \[0m
+2026-02-05T00:54:27.1300462Z [36;1m      git clone --depth 1 --branch ${BRANCH} https://github.com/thesaint42/menue ${DEPLOY_PATH}; \[0m
+2026-02-05T00:54:27.1300934Z [36;1m    fi; \[0m
+2026-02-05T00:54:27.1301445Z [36;1m    cd ${DEPLOY_PATH}; \[0m
+2026-02-05T00:54:27.1301846Z [36;1m    git fetch --all --prune; \[0m
+2026-02-05T00:54:27.1302142Z [36;1m    git reset --hard origin/${BRANCH}; \[0m
+2026-02-05T00:54:27.1302643Z [36;1m    php -r 'if(function_exists("opcache_reset")){opcache_reset(); echo "opcache reset\\n"; }' || true; \[0m
+2026-02-05T00:54:27.1303312Z [36;1m    if command -v systemctl >/dev/null 2>&1; then sudo systemctl restart php8.1-fpm || true; fi"[0m
+2026-02-05T00:54:27.1303753Z [36;1melse[0m
+2026-02-05T00:54:27.1304048Z [36;1m  echo "Deploying using password to ${DEPLOY_HOST} (sshpass)"[0m
+2026-02-05T00:54:27.1304478Z [36;1m  # verbose sshpass+ssh to collect key exchange issues[0m
+2026-02-05T00:54:27.1305050Z [36;1m  sshpass -p "${DEPLOY_PASSWORD}" ssh -v -o StrictHostKeyChecking=no ${DEPLOY_USER}@${DEPLOY_HOST} "set -ex; \[0m
+2026-02-05T00:54:27.1305590Z [36;1m    if [ ! -d '${DEPLOY_PATH}/.git' ]; then \[0m
+2026-02-05T00:54:27.1306013Z [36;1m      echo 'Target path is not a git repo. Attempting to clone...'; \[0m
+2026-02-05T00:54:27.1306639Z [36;1m      git clone --depth 1 --branch ${BRANCH} https://github.com/thesaint42/menue ${DEPLOY_PATH}; \[0m
+2026-02-05T00:54:27.1307094Z [36;1m    fi; \[0m
+2026-02-05T00:54:27.1307304Z [36;1m    cd ${DEPLOY_PATH}; \[0m
+2026-02-05T00:54:27.1307568Z [36;1m    git fetch --all --prune; \[0m
+2026-02-05T00:54:27.1307861Z [36;1m    git reset --hard origin/${BRANCH}; \[0m
+2026-02-05T00:54:27.1308353Z [36;1m    php -r 'if(function_exists("opcache_reset")){opcache_reset(); echo "opcache reset\\n"; }' || true; \[0m
+2026-02-05T00:54:27.1309012Z [36;1m    if command -v systemctl >/dev/null 2>&1; then sudo systemctl restart php8.1-fpm || true; fi"[0m
+2026-02-05T00:54:27.1309454Z [36;1mfi[0m
+2026-02-05T00:54:27.1342076Z shell: /usr/bin/bash -e {0}
+2026-02-05T00:54:27.1342340Z env:
+2026-02-05T00:54:27.1342628Z   DEPLOY_USER: ***
+2026-02-05T00:54:27.1342856Z   DEPLOY_HOST: ***
+2026-02-05T00:54:27.1343091Z   DEPLOY_PATH: ***
+2026-02-05T00:54:27.1343322Z   DEPLOY_BRANCH: ***
+2026-02-05T00:54:27.1343566Z   DEPLOY_PASSWORD: ***
+2026-02-05T00:54:27.1343782Z ##[endgroup]
+2026-02-05T00:54:27.1601518Z Deploying using password to *** (sshpass)
+2026-02-05T00:54:27.2088679Z OpenSSH_9.6p1 Ubuntu-3ubuntu13.14, OpenSSL 3.0.13 30 Jan 2024
+2026-02-05T00:54:27.2089496Z debug1: Reading configuration data /etc/ssh/ssh_config
+2026-02-05T00:54:27.2095649Z debug1: /etc/ssh/ssh_config line 19: include /etc/ssh/ssh_config.d/*.conf matched no files
+2026-02-05T00:54:27.2096323Z debug1: /etc/ssh/ssh_config line 21: Applying options for *
+2026-02-05T00:54:27.2141752Z debug1: Connecting to *** [***] port 22.
+2026-02-05T00:54:27.3240266Z debug1: Connection established.
+2026-02-05T00:54:27.3241012Z debug1: identity file /home/runner/.ssh/id_rsa type -1
+2026-02-05T00:54:27.3242062Z debug1: identity file /home/runner/.ssh/id_rsa-cert type -1
+2026-02-05T00:54:27.3242952Z debug1: identity file /home/runner/.ssh/id_ecdsa type -1
+2026-02-05T00:54:27.3244216Z debug1: identity file /home/runner/.ssh/id_ecdsa-cert type -1
+2026-02-05T00:54:27.3245117Z debug1: identity file /home/runner/.ssh/id_ecdsa_sk type -1
+2026-02-05T00:54:27.3246069Z debug1: identity file /home/runner/.ssh/id_ecdsa_sk-cert type -1
+2026-02-05T00:54:27.3246982Z debug1: identity file /home/runner/.ssh/id_ed25519 type -1
+2026-02-05T00:54:27.3247607Z debug1: identity file /home/runner/.ssh/id_ed25519-cert type -1
+2026-02-05T00:54:27.3248181Z debug1: identity file /home/runner/.ssh/id_ed25519_sk type -1
+2026-02-05T00:54:27.3248769Z debug1: identity file /home/runner/.ssh/id_ed25519_sk-cert type -1
+2026-02-05T00:54:27.3249494Z debug1: identity file /home/runner/.ssh/id_xmss type -1
+2026-02-05T00:54:27.3250029Z debug1: identity file /home/runner/.ssh/id_xmss-cert type -1
+2026-02-05T00:54:27.3250563Z debug1: identity file /home/runner/.ssh/id_dsa type -1
+2026-02-05T00:54:27.3251241Z debug1: identity file /home/runner/.ssh/id_dsa-cert type -1
+2026-02-05T00:54:27.3251889Z debug1: Local version string SSH-2.0-OpenSSH_9.6p1 Ubuntu-3ubuntu13.14
+2026-02-05T00:54:32.4507757Z kex_exchange_identification: read: Connection reset by peer
+2026-02-05T00:54:32.4508868Z Connection reset by *** port 22
+2026-02-05T00:54:32.4529424Z ##[error]Process completed with exit code 255.

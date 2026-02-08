@@ -394,36 +394,7 @@ foreach ($categories as $cat) {
 </head>
 <body>
 
-<nav class="navbar navbar-dark bg-dark border-bottom border-secondary mb-4">
-    <div class="container-fluid px-4">
-        <span class="navbar-brand fw-bold">
-            🍽️ <?php echo htmlspecialchars($project['name']); ?>
-        </span>
-        
-        <!-- Admin-Menü Button (nur wenn angemeldet) -->
-        <?php if (isset($_SESSION['user_id'])): ?>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#adminNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-        <?php endif; ?>
-    </div>
-
-    <!-- Kollapsible Admin-Navigation -->
-    <?php if (isset($_SESSION['user_id'])): ?>
-    <div class="collapse navbar-collapse bg-dark border-top border-secondary" id="adminNav">
-        <div class="container-fluid px-4">
-            <ul class="navbar-nav ms-auto mt-2 mb-2">
-                <li class="nav-item"><a class="nav-link text-end" href="admin/admin.php">📊 Admin-Bereich</a></li>
-                <li class="nav-item"><a class="nav-link text-end" href="admin/projects.php">📁 Projekte</a></li>
-                <li class="nav-item"><a class="nav-link text-end" href="admin/guests.php">👥 Gäste</a></li>
-                <li class="nav-item"><a class="nav-link text-end" href="admin/orders.php">📋 Bestellungen</a></li>
-                <li class="nav-item"><hr class="dropdown-divider"></li>
-                <li class="nav-item"><a class="nav-link text-end text-danger" href="admin/logout.php">Logout</a></li>
-            </ul>
-        </div>
-    </div>
-    <?php endif; ?>
-</nav>
+<?php include 'nav/top_nav.php'; ?>
 
 <div class="container py-4">
     <div class="row justify-content-center">

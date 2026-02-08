@@ -41,7 +41,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Login - Menüwahl System</title>
+    <title>Admin Login - Event Menue Order System (EMOS)</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
         body { min-height: 100vh; display: flex; align-items: center; }
@@ -53,7 +53,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <nav class="navbar navbar-dark bg-dark border-bottom border-secondary position-fixed w-100" style="top: 0; z-index: 1030;">
     <div class="container-fluid px-4">
         <span class="navbar-brand fw-bold">
-            🍽️ Menüwahl System | Admin
+            🍽️ Event Menue Order System (EMOS) | Admin
         </span>
     </div>
 </nav>

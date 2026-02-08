@@ -207,7 +207,7 @@ function formatBytes($bytes) {
 }
 
 function exportDatabaseToSQL($pdo, $prefix) {
-    $sql = "-- Menüwahl Database Backup\n";
+    $sql = "-- Event Menue Order System (EMOS) Database Backup\n";
     $sql .= "-- Generated: " . date('Y-m-d H:i:s') . "\n";
     $sql .= "-- Database Prefix: " . $prefix . "\n\n";
     $sql .= "SET FOREIGN_KEY_CHECKS=0;\n\n";

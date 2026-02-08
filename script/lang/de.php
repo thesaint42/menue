@@ -73,7 +73,7 @@ return [
     'email_subject_confirmation' => 'Menübestellung bestätigt',
     'email_thank_you' => 'Vielen Dank für Ihre Bestellung!',
     'email_your_orders' => 'Ihre Bestellungen:',
-    'email_signature' => 'Das Menüwahl System',
+    'email_signature' => 'Das Event Menue Order System (EMOS)',
 
     // Validation
     'error_required_fields' => 'Bitte füllen Sie alle erforderlichen Felder aus.',

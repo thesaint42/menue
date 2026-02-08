@@ -13,7 +13,7 @@ $projects = $pdo->query("SELECT id, name FROM {$prefix}projects ORDER BY created
 <html lang="de" data-bs-theme="dark">
 <head>
     <meta charset="utf-8">
-    <title>SMTP Test - Menüwahl</title>
+    <title>SMTP Test - Event Menue Order System (EMOS)</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="../assets/css/style.css" rel="stylesheet">
 </head>

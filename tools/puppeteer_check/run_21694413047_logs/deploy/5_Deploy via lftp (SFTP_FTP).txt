@@ -1,0 +1,23 @@
+﻿2026-02-05T00:54:32.1593283Z ##[group]Run set -ex
+2026-02-05T00:54:32.1593553Z [36;1mset -ex[0m
+2026-02-05T00:54:32.1593769Z [36;1mPROTO="${DEPLOY_PROTOCOL:-sftp}"[0m
+2026-02-05T00:54:32.1594139Z [36;1mURL="${PROTO}://${DEPLOY_USER}:${DEPLOY_PASSWORD}@${DEPLOY_HOST}"[0m
+2026-02-05T00:54:32.1594538Z [36;1mecho "Deploying to $URL path ${DEPLOY_PATH}"[0m
+2026-02-05T00:54:32.1595015Z [36;1m# Use lftp mirror to push repo contents to remote. Adjust --exclude for any local-only files.[0m
+2026-02-05T00:54:32.1595766Z [36;1mlftp -c "set ssl:verify-certificate no; open $URL; mirror -R --verbose --delete --only-newer ./ ${DEPLOY_PATH:-.}"[0m
+2026-02-05T00:54:32.1628676Z shell: /usr/bin/bash -e {0}
+2026-02-05T00:54:32.1628914Z env:
+2026-02-05T00:54:32.1629258Z   DEPLOY_HOST: 
+2026-02-05T00:54:32.1629440Z   DEPLOY_USER: 
+2026-02-05T00:54:32.1629620Z   DEPLOY_PASSWORD: 
+2026-02-05T00:54:32.1629795Z   DEPLOY_PATH: 
+2026-02-05T00:54:32.1629951Z   DEPLOY_PROTOCOL: 
+2026-02-05T00:54:32.1630125Z ##[endgroup]
+2026-02-05T00:54:32.1682198Z + PROTO=sftp
+2026-02-05T00:54:32.1682608Z + URL=sftp://:@
+2026-02-05T00:54:32.1682936Z + echo 'Deploying to sftp://:@ path '
+2026-02-05T00:54:32.1683704Z + lftp -c 'set ssl:verify-certificate no; open sftp://:@; mirror -R --verbose --delete --only-newer ./ .'
+2026-02-05T00:54:32.1684469Z Deploying to sftp://:@ path 
+2026-02-05T00:54:32.1722381Z open: Not connected
+2026-02-05T00:54:32.1723755Z mirror: Not connected
+2026-02-05T00:54:32.1742273Z ##[error]Process completed with exit code 1.

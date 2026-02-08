@@ -1,4 +1,4 @@
-# 🍽️ Menüwahl System
+# 🍽️ Event Menue Order System (EMOS)
 
 Ein vollständiges PHP-basiertes System zur Verwaltung von Menüauswahl für Gäste mit Admin-Dashboard, PDF-Export und E-Mail-Integration.
 
@@ -192,7 +192,7 @@ database:
 
 mail:
   admin_email: "admin@example.com"
-  sender_name: "Menüwahl System"
+  sender_name: "Event Menue Order System (EMOS)"
 
 system:
   language: "de"

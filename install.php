@@ -144,7 +144,7 @@ if (isset($_POST['test_connection'])) {
 
                 // SMTP Config Tabelle initialisieren
                 $test_pdo->exec("INSERT IGNORE INTO `{$prefix}smtp_config` (id, smtp_host, smtp_port, smtp_user, smtp_pass, smtp_secure, sender_email, sender_name) 
-                                 VALUES (1, 'smtp.example.com', 587, '', '', 'tls', '', 'Menüwahl System')");
+                                 VALUES (1, 'smtp.example.com', 587, '', '', 'tls', '', 'Event Menue Order System (EMOS)')");
 
                 $message = "Datenbankverbindung erfolgreich und Tabellen erstellt!";
                 $messageType = "success";
@@ -208,7 +208,7 @@ if (isset($_POST['override_tables'])) {
 
         // SMTP Config Tabelle initialisieren
         $test_pdo->exec("INSERT IGNORE INTO `{$prefix}smtp_config` (id, smtp_host, smtp_port, smtp_user, smtp_pass, smtp_secure, sender_email, sender_name) 
-                         VALUES (1, 'smtp.example.com', 587, '', '', 'tls', '', 'Menüwahl System')");
+                 VALUES (1, 'smtp.example.com', 587, '', '', 'tls', '', 'Event Menue Order System (EMOS)')");
 
         $message = "Bestehende Tabellen überschrieben und neu erstellt!";
         $messageType = "success";
@@ -315,7 +315,7 @@ if (isset($_POST['save_smtp'])) {
         $smtp_pass = trim($_POST['smtp_pass'] ?? '');
         $smtp_secure = $_POST['smtp_secure'] ?? 'tls';
         $admin_email_mail = trim($_POST['admin_email_mail'] ?? '');
-        $sender_name = trim($_POST['sender_name'] ?? 'Menüwahl System');
+        $sender_name = trim($_POST['sender_name'] ?? 'Event Menue Order System (EMOS)');
 
         // Speichere Eingaben in Session
         $_SESSION['form_smtp_host'] = $smtp_host;
@@ -343,7 +343,7 @@ if (isset($_POST['save_smtp'])) {
             ]);
 
             // Config-Datei schreiben (mit Escaping für spezielle Zeichen)
-            $configContent = "# Menüwahl-System Konfiguration\n";
+            $configContent = "# Event Menue Order System (EMOS) Konfiguration\n";
             $configContent .= "# Automatisch generiert bei der Installation\n\n";
             $configContent .= "database:\n";
             $configContent .= "  host: \"" . addslashes($host) . "\"\n";
@@ -392,7 +392,7 @@ if (isset($_POST['save_smtp'])) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Installation - Menüwahl System</title>
+    <title>Installation - Event Menue Order System (EMOS)</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
         body { min-height: 100vh; }
@@ -409,7 +409,7 @@ if (isset($_POST['save_smtp'])) {
 <div class="container py-5">
     <div class="row justify-content-center">
         <div class="col-lg-8">
-            <h1 class="text-center mb-4">🍽️ Menüwahl System - Installation</h1>
+            <h1 class="text-center mb-4">🍽️ Event Menue Order System (EMOS) - Installation</h1>
 
             <?php if ($message): ?>
                 <div class="alert alert-<?php echo $messageType; ?> alert-dismissible fade show" role="alert">

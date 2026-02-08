@@ -27,7 +27,7 @@ $recent_projects = $stmt->fetchAll();
 <html lang="de" data-bs-theme="dark">
 <head>
     <meta charset="UTF-8">
-    <title>Admin Dashboard - Menüwahl</title>
+    <title>Admin Dashboard - Event Menue Order System (EMOS)</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="../assets/css/style.css" rel="stylesheet">
 </head>

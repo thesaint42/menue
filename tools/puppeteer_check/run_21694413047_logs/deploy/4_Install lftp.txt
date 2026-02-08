@@ -1,0 +1,103 @@
+﻿2026-02-05T00:54:17.4014070Z ##[group]Run sudo apt-get update -y
+2026-02-05T00:54:17.4014479Z [36;1msudo apt-get update -y[0m
+2026-02-05T00:54:17.4014800Z [36;1msudo apt-get install -y lftp[0m
+2026-02-05T00:54:17.4044347Z shell: /usr/bin/bash -e {0}
+2026-02-05T00:54:17.4044645Z ##[endgroup]
+2026-02-05T00:54:17.4760135Z Get:1 file:/etc/apt/apt-mirrors.txt Mirrorlist [144 B]
+2026-02-05T00:54:17.5068185Z Hit:2 http://azure.archive.ubuntu.com/ubuntu noble InRelease
+2026-02-05T00:54:17.5087405Z Get:3 http://azure.archive.ubuntu.com/ubuntu noble-updates InRelease [126 kB]
+2026-02-05T00:54:17.5138506Z Get:4 http://azure.archive.ubuntu.com/ubuntu noble-backports InRelease [126 kB]
+2026-02-05T00:54:17.5167695Z Get:5 http://azure.archive.ubuntu.com/ubuntu noble-security InRelease [126 kB]
+2026-02-05T00:54:17.5298574Z Get:6 https://packages.microsoft.com/repos/azure-cli noble InRelease [3564 B]
+2026-02-05T00:54:17.5361618Z Get:7 https://packages.microsoft.com/ubuntu/24.04/prod noble InRelease [3600 B]
+2026-02-05T00:54:17.6368209Z Get:8 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 Packages [1730 kB]
+2026-02-05T00:54:17.6530177Z Get:9 http://azure.archive.ubuntu.com/ubuntu noble-updates/main Translation-en [323 kB]
+2026-02-05T00:54:17.6558565Z Get:10 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 Components [175 kB]
+2026-02-05T00:54:17.6574808Z Get:11 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 c-n-f Metadata [16.4 kB]
+2026-02-05T00:54:17.6584403Z Get:12 http://azure.archive.ubuntu.com/ubuntu noble-updates/universe amd64 Packages [1528 kB]
+2026-02-05T00:54:17.6671256Z Get:13 http://azure.archive.ubuntu.com/ubuntu noble-updates/universe Translation-en [313 kB]
+2026-02-05T00:54:17.6703431Z Get:14 http://azure.archive.ubuntu.com/ubuntu noble-updates/universe amd64 Components [386 kB]
+2026-02-05T00:54:17.6735051Z Get:15 http://azure.archive.ubuntu.com/ubuntu noble-updates/universe amd64 c-n-f Metadata [31.9 kB]
+2026-02-05T00:54:17.6746067Z Get:16 http://azure.archive.ubuntu.com/ubuntu noble-updates/restricted amd64 Packages [2564 kB]
+2026-02-05T00:54:17.6873649Z Get:17 http://azure.archive.ubuntu.com/ubuntu noble-updates/restricted Translation-en [588 kB]
+2026-02-05T00:54:17.7371136Z Get:18 http://azure.archive.ubuntu.com/ubuntu noble-updates/restricted amd64 Components [212 B]
+2026-02-05T00:54:17.7377433Z Get:19 http://azure.archive.ubuntu.com/ubuntu noble-updates/restricted amd64 c-n-f Metadata [556 B]
+2026-02-05T00:54:17.7388359Z Get:20 http://azure.archive.ubuntu.com/ubuntu noble-updates/multiverse amd64 Packages [32.1 kB]
+2026-02-05T00:54:17.7431799Z Get:21 http://azure.archive.ubuntu.com/ubuntu noble-updates/multiverse Translation-en [6816 B]
+2026-02-05T00:54:17.7433067Z Get:22 http://azure.archive.ubuntu.com/ubuntu noble-updates/multiverse amd64 Components [940 B]
+2026-02-05T00:54:17.7435154Z Get:23 http://azure.archive.ubuntu.com/ubuntu noble-updates/multiverse amd64 c-n-f Metadata [496 B]
+2026-02-05T00:54:17.7436316Z Get:24 http://azure.archive.ubuntu.com/ubuntu noble-backports/main amd64 Components [7308 B]
+2026-02-05T00:54:17.7447810Z Get:25 http://azure.archive.ubuntu.com/ubuntu noble-backports/universe amd64 Components [10.5 kB]
+2026-02-05T00:54:17.7457690Z Get:26 http://azure.archive.ubuntu.com/ubuntu noble-backports/restricted amd64 Components [212 B]
+2026-02-05T00:54:17.7469680Z Get:27 http://azure.archive.ubuntu.com/ubuntu noble-backports/multiverse amd64 Components [212 B]
+2026-02-05T00:54:17.7477436Z Get:28 http://azure.archive.ubuntu.com/ubuntu noble-security/main amd64 Packages [1430 kB]
+2026-02-05T00:54:17.7555633Z Get:29 http://azure.archive.ubuntu.com/ubuntu noble-security/main Translation-en [232 kB]
+2026-02-05T00:54:17.7579926Z Get:30 http://azure.archive.ubuntu.com/ubuntu noble-security/main amd64 Components [21.5 kB]
+2026-02-05T00:54:17.7593185Z Get:31 http://azure.archive.ubuntu.com/ubuntu noble-security/main amd64 c-n-f Metadata [9836 B]
+2026-02-05T00:54:17.7945718Z Get:44 https://packages.microsoft.com/repos/azure-cli noble/main amd64 Packages [2163 B]
+2026-02-05T00:54:17.8046024Z Get:32 http://azure.archive.ubuntu.com/ubuntu noble-security/universe amd64 Packages [929 kB]
+2026-02-05T00:54:17.8106131Z Get:33 http://azure.archive.ubuntu.com/ubuntu noble-security/universe Translation-en [212 kB]
+2026-02-05T00:54:17.8133326Z Get:34 http://azure.archive.ubuntu.com/ubuntu noble-security/universe amd64 Components [74.2 kB]
+2026-02-05T00:54:17.8147254Z Get:35 http://azure.archive.ubuntu.com/ubuntu noble-security/universe amd64 c-n-f Metadata [19.9 kB]
+2026-02-05T00:54:17.8158861Z Get:36 http://azure.archive.ubuntu.com/ubuntu noble-security/restricted amd64 Packages [2411 kB]
+2026-02-05T00:54:17.8279323Z Get:37 http://azure.archive.ubuntu.com/ubuntu noble-security/restricted Translation-en [553 kB]
+2026-02-05T00:54:17.8320399Z Get:38 http://azure.archive.ubuntu.com/ubuntu noble-security/restricted amd64 Components [212 B]
+2026-02-05T00:54:17.8331410Z Get:39 http://azure.archive.ubuntu.com/ubuntu noble-security/restricted amd64 c-n-f Metadata [536 B]
+2026-02-05T00:54:17.8348658Z Get:40 http://azure.archive.ubuntu.com/ubuntu noble-security/multiverse amd64 Packages [28.8 kB]
+2026-02-05T00:54:17.8360106Z Get:41 http://azure.archive.ubuntu.com/ubuntu noble-security/multiverse Translation-en [6492 B]
+2026-02-05T00:54:17.8367772Z Get:42 http://azure.archive.ubuntu.com/ubuntu noble-security/multiverse amd64 Components [208 B]
+2026-02-05T00:54:17.8379790Z Get:43 http://azure.archive.ubuntu.com/ubuntu noble-security/multiverse amd64 c-n-f Metadata [396 B]
+2026-02-05T00:54:17.8412980Z Get:45 https://packages.microsoft.com/ubuntu/24.04/prod noble/main amd64 Packages [88.5 kB]
+2026-02-05T00:54:17.8448222Z Get:46 https://packages.microsoft.com/ubuntu/24.04/prod noble/main arm64 Packages [68.0 kB]
+2026-02-05T00:54:26.7789693Z Fetched 14.2 MB in 2s (8835 kB/s)
+2026-02-05T00:54:27.5591443Z Reading package lists...
+2026-02-05T00:54:27.5920131Z Reading package lists...
+2026-02-05T00:54:27.7789173Z Building dependency tree...
+2026-02-05T00:54:27.7797008Z Reading state information...
+2026-02-05T00:54:27.9642462Z The following NEW packages will be installed:
+2026-02-05T00:54:27.9647991Z   lftp
+2026-02-05T00:54:27.9819290Z 0 upgraded, 1 newly installed, 0 to remove and 105 not upgraded.
+2026-02-05T00:54:27.9819957Z Need to get 704 kB of archives.
+2026-02-05T00:54:27.9820493Z After this operation, 1892 kB of additional disk space will be used.
+2026-02-05T00:54:27.9821143Z Get:1 file:/etc/apt/apt-mirrors.txt Mirrorlist [144 B]
+2026-02-05T00:54:28.1293644Z Get:2 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 lftp amd64 4.9.2-2ubuntu1.1 [704 kB]
+2026-02-05T00:54:28.7665485Z Fetched 704 kB in 1s (1319 kB/s)
+2026-02-05T00:54:28.7889655Z Selecting previously unselected package lftp.
+2026-02-05T00:54:28.8177531Z (Reading database ... 
+2026-02-05T00:54:28.8178448Z (Reading database ... 5%
+2026-02-05T00:54:28.8178688Z (Reading database ... 10%
+2026-02-05T00:54:28.8179453Z (Reading database ... 15%
+2026-02-05T00:54:28.8179831Z (Reading database ... 20%
+2026-02-05T00:54:28.8180180Z (Reading database ... 25%
+2026-02-05T00:54:28.8180560Z (Reading database ... 30%
+2026-02-05T00:54:28.8180762Z (Reading database ... 35%
+2026-02-05T00:54:28.8180962Z (Reading database ... 40%
+2026-02-05T00:54:28.8181151Z (Reading database ... 45%
+2026-02-05T00:54:28.8181361Z (Reading database ... 50%
+2026-02-05T00:54:28.8274181Z (Reading database ... 55%
+2026-02-05T00:54:28.9566425Z (Reading database ... 60%
+2026-02-05T00:54:29.0351604Z (Reading database ... 65%
+2026-02-05T00:54:29.1609342Z (Reading database ... 70%
+2026-02-05T00:54:29.2488832Z (Reading database ... 75%
+2026-02-05T00:54:29.4126789Z (Reading database ... 80%
+2026-02-05T00:54:29.5497037Z (Reading database ... 85%
+2026-02-05T00:54:29.7045427Z (Reading database ... 90%
+2026-02-05T00:54:29.8677639Z (Reading database ... 95%
+2026-02-05T00:54:29.8678203Z (Reading database ... 100%
+2026-02-05T00:54:29.8678690Z (Reading database ... 217639 files and directories currently installed.)
+2026-02-05T00:54:29.8721831Z Preparing to unpack .../lftp_4.9.2-2ubuntu1.1_amd64.deb ...
+2026-02-05T00:54:29.8752925Z Unpacking lftp (4.9.2-2ubuntu1.1) ...
+2026-02-05T00:54:29.9484863Z Setting up lftp (4.9.2-2ubuntu1.1) ...
+2026-02-05T00:54:29.9526759Z Processing triggers for hicolor-icon-theme (0.17-2) ...
+2026-02-05T00:54:30.4267527Z Processing triggers for man-db (2.12.0-4build2) ...
+2026-02-05T00:54:30.4297608Z Not building database; man-db/auto-update is not 'true'.
+2026-02-05T00:54:31.1589771Z 
+2026-02-05T00:54:31.1590450Z Running kernel seems to be up-to-date.
+2026-02-05T00:54:31.1590832Z 
+2026-02-05T00:54:31.1590981Z No services need to be restarted.
+2026-02-05T00:54:31.1591276Z 
+2026-02-05T00:54:31.1591379Z No containers need to be restarted.
+2026-02-05T00:54:31.1591571Z 
+2026-02-05T00:54:31.1591700Z No user sessions are running outdated binaries.
+2026-02-05T00:54:31.1591953Z 
+2026-02-05T00:54:31.1592224Z No VM guests are running outdated hypervisor (qemu) binaries on this host.

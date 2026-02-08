@@ -39,7 +39,7 @@ $qr_api_url = "https://api.qrserver.com/v1/create-qr-code/?size={$qr_size}x{$qr_
 $context = stream_context_create([
     'http' => [
         'timeout' => 5,
-        'user_agent' => 'Menüwahl-System/2.2.0'
+        'user_agent' => 'EventMenueOrderSystem/2.2.0'
     ],
     'https' => [
         'timeout' => 5,
