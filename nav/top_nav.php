@@ -107,11 +107,23 @@ $display_name = $page_names[$current_page] ?? ucfirst($current_page);
 
 <nav class="navbar navbar-dark bg-dark border-bottom border-secondary mb-4">
     <div class="container-fluid px-4">
-        
-        <!-- Logo / Marke (Links/Mitte) -->
-        <a class="navbar-brand fw-bold d-flex align-items-center" href="<?php echo $root; ?>admin/admin.php">
-            <span style="font-size: 1.5em; margin-right: 10px;">🍽️</span>
-            Menüwahl
+        <?php
+        // include auth helpers (use __DIR__ for reliable path resolution)
+        @include_once __DIR__ . '/../script/auth.php';
+
+        // decide home link: admin users -> admin dashboard, regular users -> public index
+        $home_href = (function() use ($root) {
+            if (function_exists('isAdmin') && isAdmin()) {
+                return $root . 'admin/admin.php';
+            }
+            return $root . 'index.php';
+        })();
+        ?>
+
+        <!-- Logo / Marke (links) -->
+        <a class="navbar-brand fw-bold d-flex align-items-center" href="<?php echo $home_href; ?>">
+            <img src="<?php echo $root; ?>img/logo.png" alt="Event Menue Order System (EMOS)" style="height:32px; width:auto; margin-right:10px;" />
+            <span>Event Menue Order System (EMOS)</span>
             <span class="fw-normal text-secondary mx-2">|</span>
             <span class="fw-semibold text-info"><?php echo $display_name; ?></span>
         </a>
@@ -238,3 +250,8 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 
 <!-- Duplicate intl-tel-input init removed (enhanced version present above) -->
+
+<?php
+// include central footer so pages that include top_nav.php also get the site footer
+@include_once __DIR__ . '/footer.php';
+?>

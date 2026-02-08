@@ -37,7 +37,7 @@ if ($pin_input) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PIN Eingabe - Menüwahl</title>
+    <title>PIN Eingabe - Event Menue Order System (EMOS)</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="assets/css/style.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/intl-tel-input@24.5.0/build/css/intlTelInput.css">
@@ -51,7 +51,7 @@ if ($pin_input) {
             <div class="card border-0 shadow bg-dark text-light">
                 <div class="card-body p-5 text-center">
                     <div class="mb-4" style="font-size: 4rem;">🍽️</div>
-                    <h2 class="card-title mb-4">Menüwahl</h2>
+                    <h2 class="card-title mb-4">Event Menue Order System (EMOS)</h2>
                     
                     <p class="text-muted mb-4">Bitte geben Sie Ihre Zugangs-PIN ein:</p>
                     
@@ -158,6 +158,7 @@ if ($pin_input) {
         } catch(e) {}
     })();
 </script>
+<?php include 'nav/footer.php'; ?>
 </body>
 </html>
     <?php
@@ -172,7 +173,7 @@ if (!$project_id || !$project) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PIN Eingabe - Menüwahl</title>
+    <title>PIN Eingabe - Event Menue Order System (EMOS)</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="assets/css/style.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/intl-tel-input@24.5.0/build/css/intlTelInput.css">
@@ -186,7 +187,7 @@ if (!$project_id || !$project) {
             <div class="card border-0 shadow bg-dark text-light">
                 <div class="card-body p-5 text-center">
                     <div class="mb-4" style="font-size: 4rem;">🍽️</div>
-                    <h2 class="card-title mb-4">Menüwahl</h2>
+                    <h2 class="card-title mb-4">Event Menue Order System (EMOS)</h2>
                     
                     <?php if ($message): ?>
                         <div class="alert alert-<?php echo $messageType; ?> mb-4"><?php echo $message; ?></div>
@@ -256,6 +257,7 @@ if (!$project_id || !$project) {
     } catch(e) {}
 })();
 </script>
+<?php include 'nav/footer.php'; ?>
 </body>
 </html>
     <?php
@@ -687,5 +689,6 @@ function updateMemberFields(index) {
     }
 }
 </script>
+<?php include 'nav/footer.php'; ?>
 </body>
 </html>
