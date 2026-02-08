@@ -77,14 +77,20 @@ $display_name = $page_names[$current_page] ?? ucfirst($current_page);
                     <ul class="navbar-nav ms-auto mt-2 mb-2">
                         <?php if ($is_logged_in && function_exists('isAdmin') && isAdmin()): ?>
                             <li class="nav-item"><a class="nav-link text-end" href="<?php echo $root; ?>index.php">Zur Startseite</a></li>
+                            <li class="nav-item">
+                                <div class="nav-separator my-2"></div>
+                            </li>
+                            <li class="nav-item"><span class="nav-link text-end project-header small">Projektverwaltung</span></li>
                             <li class="nav-item"><a class="nav-link text-end" href="<?php echo $root; ?>admin/projects.php">Projekte</a></li>
                             <li class="nav-item"><a class="nav-link text-end" href="<?php echo $root; ?>admin/dishes.php">Menüs</a></li>
                             <li class="nav-item"><a class="nav-link text-end" href="<?php echo $root; ?>admin/guests.php">Gäste</a></li>
                             <li class="nav-item"><a class="nav-link text-end" href="<?php echo $root; ?>admin/orders.php">Bestellungen</a></li>
                             <li class="nav-item"><a class="nav-link text-end" href="<?php echo $root; ?>admin/export_pdf.php">Reporting</a></li>
 
-                            <li><hr class="dropdown-divider"></li>
-                            <li class="nav-item"><span class="nav-link text-end text-muted small">System</span></li>
+                            <li class="nav-item">
+                                <div class="nav-separator my-2"></div>
+                            </li>
+                            <li class="nav-item"><span class="nav-link text-end system-header small">System</span></li>
                             <li class="nav-item"><a class="nav-link text-end" href="<?php echo $root; ?>admin/settings_mail.php">Mail Einstellungen</a></li>
                             <li class="nav-item"><a class="nav-link text-end" href="<?php echo $root; ?>menue/migrate.php">Migration</a></li>
                             <li class="nav-item"><a class="nav-link text-end" href="<?php echo $root; ?>admin/backup.php">Backup</a></li>
@@ -109,6 +115,15 @@ $display_name = $page_names[$current_page] ?? ucfirst($current_page);
             .navbar-collapse.show { visibility: visible; opacity: 1; }
             .navbar-backdrop { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); z-index: 999; visibility: hidden; opacity: 0; transition: opacity 0.3s ease-in-out, visibility 0.3s ease-in-out; }
             .navbar-backdrop.show { visibility: visible; opacity: 1; }
+
+            /* Visible separator in collapsed burger menu */
+            .navbar-nav .nav-separator { width: 100%; height: 1px; background-color: #6c757d; }
+            /* Section headers: bold + uppercase */
+            .nav-section-header { font-weight: 700; text-transform: uppercase; letter-spacing: 0.02em; }
+            .project-header { color: #ff7a00 !important; }
+            /* System header highlight */
+            .system-header { color: #ff7a00 !important; }
+            .system-header, .project-header { font-weight: 700; text-transform: uppercase; }
         </style>
 
         <div class="navbar-backdrop" id="navbarBackdrop"></div>

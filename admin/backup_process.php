@@ -28,6 +28,10 @@ header('Content-Type: application/json; charset=utf-8');
 if ($action === 'start') {
     $backup_type = $_POST['backup_type'] ?? 'full';
     $timestamp = date('Y-m-d_H-i-s');
+    // timestamp for filenames in format yyyymmdd_hhmmss
+    $file_timestamp = date('Ymd_His');
+    // timestamp for filenames in format yyyymmdd_hhmmss
+    $file_timestamp = date('Ymd_His');
     
     // Initialisiere Status
     $status = [
@@ -49,6 +53,8 @@ if ($action === 'start') {
 } elseif ($action === 'execute') {
     $backup_type = $_POST['backup_type'] ?? 'full';
     $timestamp = date('Y-m-d_H-i-s');
+    // timestamp for filenames in format yyyymmdd_hhmmss
+    $file_timestamp = date('Ymd_His');
     
     $status = [
         'status' => 'processing',
@@ -65,8 +71,54 @@ if ($action === 'start') {
     $prefix = $config['database']['prefix'] ?? 'menu_';
     
     try {
-        // === DATENBANKBACKUP ===
-        if (in_array($backup_type, ['database', 'full'])) {
+        // === PROJEKTBACKUP ===
+        if ($backup_type === 'project') {
+            $status['current_step'] = '💾 Projekt-Datenbank wird exportiert...';
+            $status['progress'] = 20;
+            file_put_contents($status_file, json_encode($status));
+
+            $project_id = isset($_POST['project_id']) ? (int)$_POST['project_id'] : 0;
+            if ($project_id <= 0) throw new Exception('Ungültige Projekt-ID');
+
+            // Fetch project name for filename
+            $proj_name = '';
+            try {
+                $q = $pdo->prepare("SELECT name FROM {$prefix}projects WHERE id = ?");
+                $q->execute([$project_id]);
+                $row = $q->fetch(PDO::FETCH_ASSOC);
+                if ($row && isset($row['name'])) $proj_name = $row['name'];
+            } catch (Exception $e) {
+                // ignore, keep empty name
+            }
+
+            // sanitize project name for filename: allow a-zA-Z0-9 and replace others with underscore
+            $proj_name_clean = preg_replace('/[^A-Za-z0-9\-_]/', '_', trim((string)$proj_name));
+            if ($proj_name_clean === '') $proj_name_clean = 'project';
+            // limit length
+            $proj_name_clean = substr($proj_name_clean, 0, 50);
+
+            $proj_file = $backup_dir . '/project_backup_' . $project_id . '_' . $proj_name_clean . '_' . $file_timestamp . '.sql';
+            try {
+                $sql_dump = exportProjectToSQL($pdo, $prefix, $project_id);
+                if (!empty($sql_dump) && strlen($sql_dump) > 20) {
+                    @file_put_contents($proj_file, $sql_dump);
+                    if (file_exists($proj_file) && filesize($proj_file) > 0) {
+                        $status['details'][] = "✅ Projekt-Export: " . basename($proj_file) . "";
+                        $status['files_created'][] = basename($proj_file);
+                        $status['progress'] = 100;
+                    } else {
+                        throw new Exception('Projekt-Backup konnte nicht geschrieben werden');
+                    }
+                } else {
+                    throw new Exception('Projekt-Export lieferte keine Daten');
+                }
+            } catch (Exception $e) {
+                throw new Exception('Projekt-Backup fehlgeschlagen: ' . $e->getMessage());
+            }
+        }
+
+        // === DATENBANKBACKUP (vollständig) ===
+        elseif (in_array($backup_type, ['database', 'full'])) {
             $status['current_step'] = '💾 Datenbank wird als SQL exportiert...';
             $status['progress'] = 15;
             file_put_contents($status_file, json_encode($status));
@@ -286,5 +338,93 @@ function addDirToZip(&$zip, $dir, $base_path) {
         }
     }
     return $count;
+}
+
+/**
+ * Exportiert nur die projektrelevanten Tabellen/Zeilen als SQL
+ */
+function exportProjectToSQL($pdo, $prefix, $project_id) {
+    $sql = "-- Project Backup (only project-specific rows)\n";
+    $sql .= "-- Generated: " . date('Y-m-d H:i:s') . "\n";
+    $sql .= "SET FOREIGN_KEY_CHECKS=0;\n\n";
+
+    // Tabellen, die projektbezogene Daten enthalten
+    $tables = ['projects', 'dishes', 'guests', 'family_members', 'orders'];
+
+    foreach ($tables as $tshort) {
+        $table = $prefix . $tshort;
+        try {
+            // Create Table
+            $cr = $pdo->query("SHOW CREATE TABLE `$table`")->fetch(PDO::FETCH_NUM);
+            if ($cr && isset($cr[1])) {
+                $sql .= "-- Table: $table\n";
+                $sql .= "DROP TABLE IF EXISTS `$table`;\n";
+                $sql .= $cr[1] . ";\n\n";
+            }
+        } catch (Exception $e) {
+            // Table may not exist; skip
+            continue;
+        }
+
+        // Daten exportieren (eingeschränkt)
+        if ($tshort === 'projects') {
+            $rows = $pdo->prepare("SELECT * FROM `$table` WHERE id = ?");
+            $rows->execute([$project_id]);
+            $data = $rows->fetchAll(PDO::FETCH_ASSOC);
+        } elseif ($tshort === 'dishes') {
+            $rows = $pdo->prepare("SELECT * FROM `$table` WHERE project_id = ?");
+            $rows->execute([$project_id]);
+            $data = $rows->fetchAll(PDO::FETCH_ASSOC);
+        } elseif ($tshort === 'guests') {
+            $rows = $pdo->prepare("SELECT * FROM `$table` WHERE project_id = ?");
+            $rows->execute([$project_id]);
+            $data = $rows->fetchAll(PDO::FETCH_ASSOC);
+        } elseif ($tshort === 'family_members') {
+            // family_members for guests of this project
+            $g = $pdo->prepare("SELECT id FROM `{$prefix}guests` WHERE project_id = ?");
+            $g->execute([$project_id]);
+            $guestIds = $g->fetchAll(PDO::FETCH_COLUMN);
+            $data = [];
+            if (!empty($guestIds)) {
+                $in = implode(',', array_fill(0, count($guestIds), '?'));
+                $stmt = $pdo->prepare("SELECT * FROM `$table` WHERE guest_id IN ($in)");
+                $stmt->execute($guestIds);
+                $data = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            }
+        } elseif ($tshort === 'orders') {
+            $g = $pdo->prepare("SELECT id FROM `{$prefix}guests` WHERE project_id = ?");
+            $g->execute([$project_id]);
+            $guestIds = $g->fetchAll(PDO::FETCH_COLUMN);
+            $data = [];
+            if (!empty($guestIds)) {
+                $in = implode(',', array_fill(0, count($guestIds), '?'));
+                $stmt = $pdo->prepare("SELECT * FROM `$table` WHERE guest_id IN ($in)");
+                $stmt->execute($guestIds);
+                $data = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            }
+        } else {
+            $data = [];
+        }
+
+        if (!empty($data)) {
+            // Column names
+            $cols = array_keys($data[0]);
+            $col_names = '`' . implode('`,`', $cols) . '`';
+            foreach ($data as $row) {
+                $values = [];
+                foreach ($cols as $c) {
+                    $v = $row[$c];
+                    if ($v === null) $values[] = 'NULL';
+                    elseif (is_numeric($v) && $v !== '') $values[] = $v;
+                    else $values[] = "'" . addslashes($v) . "'";
+                }
+                $sql .= "INSERT INTO `$table` ($col_names) VALUES (" . implode(',', $values) . ");\n";
+            }
+            $sql .= "\n";
+        }
+    }
+
+    $sql .= "SET FOREIGN_KEY_CHECKS=1;\n";
+    return $sql;
 }
 ?>

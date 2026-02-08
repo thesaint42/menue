@@ -245,3 +245,32 @@ a:hover {
         color: black;
     }
 }
+
+/* Project action buttons: uniform size, two rows (3 + 3) */
+.project-actions {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.35rem;
+}
+.project-actions .btn {
+    width: 100%;
+    font-size: 0.85rem;
+    padding: 0.32rem 0.5rem;
+}
+
+/* Ensure delete button below actions takes full width and remains small */
+.project-actions + .mt-2 .btn {
+    font-size: 0.85rem;
+    padding: 0.32rem 0.5rem;
+}
+
+@media (max-width: 576px) {
+    .project-actions {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 0.25rem;
+    }
+    .project-actions .btn {
+        font-size: 0.8rem;
+        padding: 0.28rem 0.4rem;
+    }
+}

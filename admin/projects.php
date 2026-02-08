@@ -151,6 +151,72 @@ if (isset($_GET['deactivate'])) {
     logAction($pdo, $prefix, 'project_deactivated', "Projekt ID: $id");
 }
 
+// Projekt aktivieren
+if (isset($_GET['activate'])) {
+    $id = (int)$_GET['activate'];
+    $stmt = $pdo->prepare("UPDATE {$prefix}projects SET is_active = 1 WHERE id = ?");
+    $stmt->execute([$id]);
+    $message = "Projekt aktiviert.";
+    $messageType = "success";
+    logAction($pdo, $prefix, 'project_activated', "Projekt ID: $id");
+}
+
+// Projekt löschen (nur wenn inaktiv)
+if (isset($_POST['delete_project'])) {
+    $id = (int)$_POST['project_id'];
+
+    // Prüfe aktuellen Status
+    $stmt = $pdo->prepare("SELECT is_active, name FROM {$prefix}projects WHERE id = ?");
+    $stmt->execute([$id]);
+    $proj = $stmt->fetch();
+    if (!$proj) {
+        $message = "Projekt nicht gefunden.";
+        $messageType = "danger";
+    } elseif ($proj['is_active']) {
+        $message = "Ein aktives Projekt kann nicht gelöscht werden. Bitte zuerst deaktivieren.";
+        $messageType = "danger";
+    } else {
+        try {
+            $pdo->beginTransaction();
+
+            // Lösche Bestellungen, die zu Gästen dieses Projekts gehören
+            $stmt = $pdo->prepare("SELECT id FROM {$prefix}guests WHERE project_id = ?");
+            $stmt->execute([$id]);
+            $guestIds = $stmt->fetchAll(PDO::FETCH_COLUMN, 0);
+            if (!empty($guestIds)) {
+                // Platzhalter für IN
+                $in = implode(',', array_fill(0, count($guestIds), '?'));
+                $delOrders = $pdo->prepare("DELETE FROM {$prefix}orders WHERE guest_id IN ($in)");
+                $delOrders->execute($guestIds);
+            }
+
+            // Lösche Gäste
+            $delGuests = $pdo->prepare("DELETE FROM {$prefix}guests WHERE project_id = ?");
+            $delGuests->execute([$id]);
+
+            // Lösche Gerichte / Menüs, die diesem Projekt gehören
+            $delDishes = $pdo->prepare("DELETE FROM {$prefix}dishes WHERE project_id = ?");
+            $delDishes->execute([$id]);
+
+            // Optional: weitere projektbezogene Tabellen hier löschen (z.B. uploads)
+
+            // Projekt selbst löschen
+            $delProj = $pdo->prepare("DELETE FROM {$prefix}projects WHERE id = ?");
+            $delProj->execute([$id]);
+
+            $pdo->commit();
+
+            $message = "Projekt und alle zugehörigen Datensätze wurden gelöscht.";
+            $messageType = "success";
+            logAction($pdo, $prefix, 'project_deleted', "Projekt: {$proj['name']} (ID: $id)");
+        } catch (Exception $e) {
+            $pdo->rollBack();
+            $message = "Fehler beim Löschen: " . $e->getMessage();
+            $messageType = "danger";
+        }
+    }
+}
+
 // E-Mail Einladung versenden
 if (isset($_POST['send_invite'])) {
     $project_id = (int)$_POST['project_id'];
@@ -282,12 +348,13 @@ $projects = $pdo->query("SELECT * FROM {$prefix}projects ORDER BY created_at DES
             <table class="table table-hover mb-0">
                 <thead class="table-dark">
                     <tr>
+                        <th>ID</th>
                         <th>Name</th>
                         <th>Ort</th>
                         <th>Gäste</th>
                         <th>Max</th>
+                        <th>PIN</th>
                         <th>Admin Email</th>
-                        <th>Status</th>
                         <th>Aktion</th>
                     </tr>
                 </thead>
@@ -299,29 +366,37 @@ $projects = $pdo->query("SELECT * FROM {$prefix}projects ORDER BY created_at DES
                             $guest_count = $stmt->fetch()['count'];
                         ?>
                         <tr>
+                            <td><?php echo $p['id']; ?></td>
                             <td><strong><?php echo htmlspecialchars($p['name']); ?></strong></td>
                             <td><?php echo htmlspecialchars($p['location'] ?? '–'); ?></td>
                             <td><?php echo $guest_count; ?></td>
                             <td><?php echo $p['max_guests']; ?></td>
+                            <td><code><?php echo htmlspecialchars($p['access_pin']); ?></code></td>
                             <td><small><?php echo htmlspecialchars($p['admin_email']); ?></small></td>
                             <td>
-                                <?php if ($p['is_active']): ?>
-                                    <span class="badge bg-success">Aktiv</span>
-                                <?php else: ?>
-                                    <span class="badge bg-secondary">Inaktiv</span>
-                                <?php endif; ?>
-                            </td>
-                            <td>
-                                <a href="../index.php?pin=<?php echo urlencode($p['access_pin']); ?>" class="btn btn-sm btn-outline-info" target="_blank">🔗 Link</a>
-                                <button class="btn btn-sm btn-outline-success" data-bs-toggle="modal" data-bs-target="#pinModal" 
-                                        onclick="showPinQR(<?php echo htmlspecialchars(json_encode($p)); ?>)">📱 PIN/QR</button>
-                                <button class="btn btn-sm btn-outline-warning" data-bs-toggle="modal" data-bs-target="#editProjectModal" 
-                                        onclick="loadProjectData(<?php echo htmlspecialchars(json_encode($p)); ?>)">✏️ Bearbeiten</button>
-                                <a href="dishes.php?project=<?php echo $p['id']; ?>" class="btn btn-sm btn-outline-secondary">Menu</a>
-                                <a href="guests.php?project=<?php echo $p['id']; ?>" class="btn btn-sm btn-outline-secondary">Gäste</a>
-                                <?php if ($p['is_active']): ?>
-                                    <a href="?deactivate=<?php echo $p['id']; ?>" class="btn btn-sm btn-outline-danger" onclick="return confirm('Sicher?')">Deakt.</a>
-                                <?php endif; ?>
+                                <div class="project-actions">
+                                    <!-- Top row: Link, PIN/QR, Activate/Deactivate -->
+                                    <a href="../index.php?pin=<?php echo urlencode($p['access_pin']); ?>" class="btn btn-sm btn-outline-info" target="_blank">🔗 Link</a>
+                                    <button class="btn btn-sm btn-outline-success" data-bs-toggle="modal" data-bs-target="#pinModal" 
+                                            onclick="showPinQR(<?php echo htmlspecialchars(json_encode($p)); ?>)">📱 PIN/QR</button>
+                                    <?php if ($p['is_active']): ?>
+                                        <a href="?deactivate=<?php echo $p['id']; ?>" class="btn btn-sm btn-outline-danger" onclick="return confirm('Projekt deaktivieren?')">Deaktivieren</a>
+                                    <?php else: ?>
+                                        <a href="?activate=<?php echo $p['id']; ?>" class="btn btn-sm btn-success" onclick="return confirm('Projekt aktivieren?')">Aktivieren</a>
+                                    <?php endif; ?>
+
+                                    <!-- Bottom row: Edit + (Menü/Gäste) OR (Backup/Löschen) -->
+                                    <button class="btn btn-sm btn-outline-warning" data-bs-toggle="modal" data-bs-target="#editProjectModal" 
+                                            onclick="loadProjectData(<?php echo htmlspecialchars(json_encode($p)); ?>)">✏️ Bearbeiten</button>
+
+                                    <?php if ($p['is_active']): ?>
+                                        <a href="dishes.php?project=<?php echo $p['id']; ?>" class="btn btn-sm btn-outline-secondary">Menü</a>
+                                        <a href="guests.php?project=<?php echo $p['id']; ?>" class="btn btn-sm btn-outline-secondary">Gäste</a>
+                                    <?php else: ?>
+                                        <button class="btn btn-sm btn-outline-secondary" onclick="createProjectBackupFor(<?php echo $p['id']; ?>)">Backup</button>
+                                        <button class="btn btn-sm btn-outline-dark" onclick="confirmDelete(<?php echo $p['id']; ?>)">Löschen</button>
+                                    <?php endif; ?>
+                                </div>
                             </td>
                         </tr>
                     <?php endforeach; ?>
@@ -379,6 +454,9 @@ $projects = $pdo->query("SELECT * FROM {$prefix}projects ORDER BY created_at DES
                     </div>
                 </div>
                 <div class="modal-footer border-secondary">
+                    <div class="me-auto">
+                        <button type="button" class="btn btn-secondary" id="projectBackupBtn" onclick="createProjectBackup()">Projekt sichern</button>
+                    </div>
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Abbrechen</button>
                     <button type="submit" name="update_project" class="btn btn-primary">Änderungen speichern</button>
                 </div>
@@ -619,6 +697,113 @@ document.addEventListener('DOMContentLoaded', function(){
         attach('addProjectForm', addVisible, addFull);
     } catch(e) {}
 });
+</script>
+<script>
+function createProjectBackup() {
+    var projectId = document.getElementById('edit_project_id').value;
+    if (!projectId) return alert('Kein Projekt ausgewählt.');
+    if (!confirm('Backup für dieses Projekt erstellen?')) return;
+
+    var btn = document.getElementById('projectBackupBtn');
+    var old = btn.textContent;
+    btn.textContent = 'Sichere...';
+    btn.disabled = true;
+
+    fetch('backup_process.php?action=execute', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        body: 'backup_type=project&project_id=' + encodeURIComponent(projectId)
+    }).then(r => r.json()).then(data => {
+        if (data && data.status === 'completed') {
+            alert('Backup erstellt: ' + (data.files_created && data.files_created[0] ? data.files_created[0] : 'OK'));
+            // optional: refresh backup page in new tab
+        } else if (data && data.status === 'processing') {
+            alert('Backup gestartet. Schau auf der Backup-Seite nach dem Ergebnis.');
+        } else if (data && data.error) {
+            alert('Fehler: ' + data.error);
+        } else {
+            alert('Backup beendet: ' + (data.message || JSON.stringify(data)));
+        }
+    }).catch(e => {
+        alert('Fehler beim Erstellen des Backups: ' + e.message);
+    }).finally(() => {
+        btn.textContent = old;
+        btn.disabled = false;
+    });
+}
+</script>
+<script>
+function createProjectBackupFor(projectId) {
+    if (!projectId) return alert('Ungültige Projekt-ID');
+    if (!confirm('Backup für Projekt #' + projectId + ' erstellen?')) return;
+
+    var original = null;
+    // simple UX: show prompt
+    fetch('backup_process.php?action=execute', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        body: 'backup_type=project&project_id=' + encodeURIComponent(projectId)
+    }).then(r => r.json()).then(data => {
+        if (!data) return alert('Keine Antwort vom Server');
+        if (data.status === 'completed') {
+            alert('Backup erstellt: ' + (data.files_created && data.files_created[0] ? data.files_created[0] : 'OK'));
+        } else if (data.status === 'processing') {
+            alert('Backup gestartet. Schau auf der Backup-Seite nach dem Ergebnis.');
+        } else if (data.status === 'error') {
+            alert('Fehler: ' + (data.message || 'Unbekannter Fehler'));
+        } else {
+            alert('Backup: ' + (data.message || JSON.stringify(data)));
+        }
+    }).catch(e => {
+        alert('Fehler beim Erstellen des Backups: ' + e.message);
+    });
+}
+</script>
+<!-- DELETE CONFIRM MODAL -->
+<div class="modal fade" id="deleteConfirmModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bg-dark text-light border-secondary">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title">Projekt endgültig löschen?</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="fw-bold">Achtung — Dieser Vorgang ist endgültig.</p>
+                <p>Beim Löschen werden alle Gäste, Bestellungen und Gerichte des Projekts entfernt. Bitte erst ein Backup erstellen, falls benötigt.</p>
+                <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="confirmBackupCheck">
+                        <label class="form-check-label" for="confirmBackupCheck">Ich habe ein Backup erstellt oder möchte fortfahren ohne Backup.</label>
+                </div>
+            </div>
+            <div class="modal-footer border-secondary">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Abbrechen</button>
+                <button type="button" id="deleteConfirmBtn" class="btn btn-danger">Endgültig löschen</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<form id="deleteProjectForm" method="post" style="display:none;">
+        <input type="hidden" name="project_id" id="delete_project_id" value="">
+        <input type="hidden" name="delete_project" value="1">
+</form>
+
+<script>
+function confirmDelete(id) {
+        document.getElementById('confirmBackupCheck').checked = false;
+        document.getElementById('delete_project_id').value = id;
+        var modal = new bootstrap.Modal(document.getElementById('deleteConfirmModal'));
+        modal.show();
+
+        document.getElementById('deleteConfirmBtn').onclick = function(){
+                // require checkbox to be checked to proceed
+                var ok = document.getElementById('confirmBackupCheck').checked;
+                if (!ok) {
+                        if (!confirm('Du hast kein Backup bestätigt. Wirklich ohne Backup löschen?')) return;
+                }
+                document.getElementById('deleteProjectForm').submit();
+        };
+}
 </script>
 <?php include '../nav/footer.php'; ?>
 </body>

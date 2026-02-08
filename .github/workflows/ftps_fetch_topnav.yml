@@ -1,0 +1,37 @@
+name: ftps_fetch_topnav
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install lftp
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y lftp
+
+      - name: Fetch remote top_nav.php
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_PASSWORD: ${{ secrets.DEPLOY_PASSWORD }}
+          REMOTE_PATH: ${{ secrets.REMOTE_PATH || '.' }}
+        run: |
+          set -ex
+          LFTP_CMDS="set ftp:ssl-force true; set ftp:ssl-protect-data true; set ssl:verify-certificate no; set ftp:passive-mode true; open -p 21 -u \"${DEPLOY_USER}\",\"${DEPLOY_PASSWORD}\" \"${DEPLOY_HOST}\"; get \"${REMOTE_PATH}/nav/top_nav.php\" -o top_nav_remote.php; bye"
+          echo "Running lftp: $LFTP_CMDS"
+          lftp -c "$LFTP_CMDS"
+
+      - name: Show hashes and diff
+        run: |
+          echo "--- Local nav/top_nav.php SHA256 ---"
+          sha256sum nav/top_nav.php || true
+          echo "--- Remote top_nav.php SHA256 ---"
+          sha256sum top_nav_remote.php || true
+          echo "--- Diff (first 300 lines) ---"
+          diff -u nav/top_nav.php top_nav_remote.php | sed -n '1,300p' || true
