@@ -1,0 +1,47 @@
+name: Deploy one-off files
+
+on:
+  workflow_dispatch:
+    inputs:
+      files:
+        description: 'Space-separated list of repository paths to upload'
+        required: false
+        default: 'impressum.php datenschutz.php nav/footer.php nav/top_nav.php index.php'
+
+jobs:
+  upload:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install lftp
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y lftp
+
+      - name: Upload selected files via lftp
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_PASSWORD: ${{ secrets.DEPLOY_PASSWORD }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+          DEPLOY_PROTOCOL: ${{ secrets.DEPLOY_PROTOCOL }}
+          FILES: ${{ github.event.inputs.files }}
+        run: |
+          set -ex
+          PROTO="${DEPLOY_PROTOCOL:-sftp}"
+          URL="${PROTO}://${DEPLOY_USER}:${DEPLOY_PASSWORD}@${DEPLOY_HOST}"
+          REMOTE_ROOT="${DEPLOY_PATH:-.}"
+          echo "Uploading files: $FILES to $URL:$REMOTE_ROOT"
+
+          for file in $FILES; do
+            if [ ! -e "$file" ]; then
+              echo "Warning: file does not exist in repo: $file"; continue
+            fi
+            remote_dir=$(dirname "$REMOTE_ROOT/$file")
+            echo "Creating remote dir $remote_dir and uploading $file"
+            lftp -c "set ssl:verify-certificate no; open $URL; mkdir -p \"$remote_dir\"; put -O \"$remote_dir\" \"$file\""
+          done
+
+          echo "One-off upload complete."
