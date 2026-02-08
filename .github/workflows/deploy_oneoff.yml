@@ -36,6 +36,10 @@ jobs:
           echo "Uploading files: $FILES to $URL:$REMOTE_ROOT"
 
           for file in $FILES; do
+            # Protect critical files from accidental upload
+            if [ "$file" = "script/config.yaml" ] || [ "$file" = "install.php" ]; then
+              echo "Skipping protected file: $file"; continue
+            fi
             if [ ! -e "$file" ]; then
               echo "Warning: file does not exist in repo: $file"; continue
             fi

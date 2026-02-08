@@ -61,6 +61,7 @@ jobs:
             # skip workflow files and local-only dirs
             case "$file" in
               .github/*|.git/*|tools/*) echo "Skipping $file"; continue ;;
+              script/config.yaml|install.php) echo "Protected file, skipping $file"; continue ;;
             esac
 
             if [ -f "$file" ]; then

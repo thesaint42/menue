@@ -26,8 +26,9 @@ $display_name = $page_names[$current_page] ?? ucfirst($current_page);
             <div class="container-fluid px-4">
                 <?php
                 @include_once __DIR__ . '/../script/auth.php';
-                $home_href = (function() use ($root) {
-                    if (function_exists('isAdmin') && isAdmin()) {
+                $is_logged_in = function_exists('isLoggedIn') && isLoggedIn();
+                $home_href = (function() use ($root, $is_logged_in) {
+                    if ($is_logged_in && function_exists('isAdmin') && isAdmin()) {
                         return $root . 'admin/admin.php';
                     }
                     return $root . 'index.php';
@@ -42,6 +43,7 @@ $display_name = $page_names[$current_page] ?? ucfirst($current_page);
                 </a>
 
                 <div class="d-flex align-items-center gap-2 ms-auto">
+                    <?php if ($is_logged_in): ?>
                     <div class="dropdown">
                         <button class="btn btn-sm btn-outline-secondary dropdown-toggle d-flex align-items-center gap-2" type="button" data-bs-toggle="dropdown" style="border: none;">
                             <span style="font-size: 1.2em;">👤</span>
@@ -53,20 +55,28 @@ $display_name = $page_names[$current_page] ?? ucfirst($current_page);
                             <li><a class="dropdown-item text-danger" href="<?php echo $root; ?>admin/logout.php">Logout</a></li>
                         </ul>
                     </div>
+                    <?php else: ?>
+                    <div class="d-flex align-items-center text-light small me-2">Gast</div>
+                    <?php endif; ?>
                     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                         <span class="navbar-toggler-icon"></span>
                     </button>
                 </div>
             </div>
 
-            <div class="collapse navbar-collapse" id="navbarNav">
+                <div class="collapse navbar-collapse" id="navbarNav">
                 <div class="container-fluid px-4">
                     <ul class="navbar-nav ms-auto mt-2 mb-2">
-                        <li class="nav-item"><a class="nav-link text-end" href="<?php echo $root; ?>admin/projects.php">Projekte</a></li>
-                        <li class="nav-item"><a class="nav-link text-end" href="<?php echo $root; ?>admin/dishes.php">Menüs</a></li>
-                        <li class="nav-item"><a class="nav-link text-end" href="<?php echo $root; ?>admin/guests.php">Gäste</a></li>
-                        <li class="nav-item"><a class="nav-link text-end" href="<?php echo $root; ?>admin/orders.php">Bestellungen</a></li>
-                        <li class="nav-item"><a class="nav-link text-end" href="<?php echo $root; ?>admin/settings_mail.php">Mail Einstellungen</a></li>
+                        <?php if ($is_logged_in && function_exists('isAdmin') && isAdmin()): ?>
+                            <li class="nav-item"><a class="nav-link text-end" href="<?php echo $root; ?>index.php">Zur Startseite</a></li>
+                            <li class="nav-item"><a class="nav-link text-end" href="<?php echo $root; ?>admin/projects.php">Projekte</a></li>
+                            <li class="nav-item"><a class="nav-link text-end" href="<?php echo $root; ?>admin/dishes.php">Menüs</a></li>
+                            <li class="nav-item"><a class="nav-link text-end" href="<?php echo $root; ?>admin/guests.php">Gäste</a></li>
+                            <li class="nav-item"><a class="nav-link text-end" href="<?php echo $root; ?>admin/orders.php">Bestellungen</a></li>
+                            <li class="nav-item"><a class="nav-link text-end" href="<?php echo $root; ?>admin/settings_mail.php">Mail Einstellungen</a></li>
+                        <?php else: ?>
+                            <li class="nav-item"><a class="nav-link text-end" href="<?php echo $root; ?>admin/login.php">Admin Login</a></li>
+                        <?php endif; ?>
                     </ul>
                 </div>
             </div>

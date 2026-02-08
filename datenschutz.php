@@ -76,7 +76,7 @@ $title = 'Datenschutzerklärung';
     <p>Betroffene Personen haben folgende Rechte: Auskunft, Berichtigung, Löschung, Einschränkung der Verarbeitung, Datenübertragbarkeit, Widerruf erteilter Einwilligungen, Beschwerde bei einer Datenschutzaufsichtsbehörde. Anfragen können jederzeit per E‑Mail gestellt werden.</p>
 
     <h2>11. Verzeichnis von Verarbeitungstätigkeiten (VVT)</h2>
-    <p>Ein internes Verzeichnis von Verarbeitungstätigkeiten gemäß Art. 30 DSGVO wird geführt und kann auf Anfrage eingesehen werden.</p>
+    <p>Ein internes Verzeichnis von Verarbeitungstätigkeiten gemäß Art. 30 DSGVO wird geführt und kann auf Anfrage eingesehen werden. Sie können das Verzeichnis hier einsehen: <a href="vvt.php">Verzeichnis von Verarbeitungstätigkeiten (VVT)</a>.</p>
 
   </main>
 
