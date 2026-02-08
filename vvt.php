@@ -14,8 +14,8 @@ $title = 'Verzeichnis von Verarbeitungstätigkeiten (VVT)';
 <?php include __DIR__ . '/nav/top_nav.php'; ?>
 
   <main class="container" style="max-width:800px;margin:2rem auto;padding:1rem;">
-    <h1>📑 Verzeichnis von Verarbeitungstätigkeiten (VVT)</h1>
-    <p class="page-intro">Verzeichnis von Verarbeitungstätigkeiten (Art. 30 DSGVO)</p>
+    <h1>Verzeichnis von Verarbeitungstätigkeiten (VVT)</h1>
+    <p class="page-intro">(gem. Art. 30 DSGVO)</p>
 
     <h2>Verarbeitung: Bestellabwicklung</h2>
     <ul>
