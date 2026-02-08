@@ -44,6 +44,7 @@ if ($pin_input) {
     <!-- intl-tel-input applied: v24.5.0; build at 2026-02-04 -->
 </head>
 <body>
+<?php include 'nav/top_nav.php'; ?>
 
 <div class="container py-5">
     <div class="row justify-content-center">
@@ -53,7 +54,11 @@ if ($pin_input) {
                     <div class="mb-4" style="font-size: 4rem;">🍽️</div>
                     <h2 class="card-title mb-4">Event Menue Order System (EMOS)</h2>
                     
-                    <p class="text-muted mb-4">Bitte geben Sie Ihre Zugangs-PIN ein:</p>
+                        <p class="text-muted mb-4">Bitte geben Sie Ihre Zugangs-PIN ein:</p>
+
+                        <div class="alert alert-warning small mt-3">
+                            Du bist nicht eingeloggt. <a href="admin/login.php" class="alert-link">Zum Admin‑Login</a>
+                        </div>
                     
                     <form method="get" action="index.php">
                         <div class="mb-3">
@@ -180,6 +185,7 @@ if (!$project_id || !$project) {
     <!-- intl-tel-input applied: v24.5.0 -->
 </head>
 <body>
+<?php include 'nav/top_nav.php'; ?>
 
 <div class="container py-5">
     <div class="row justify-content-center">
@@ -194,6 +200,9 @@ if (!$project_id || !$project) {
                     <?php endif; ?>
                     
                     <p class="text-muted mb-4">Bitte geben Sie Ihre Zugangs-PIN ein:</p>
+                    <div class="alert alert-warning small mt-3">
+                        Du bist nicht eingeloggt. <a href="admin/login.php" class="alert-link">Zum Admin‑Login</a>
+                    </div>
                     
                     <form method="get" action="index.php">
                         <div class="mb-3">
@@ -258,9 +267,10 @@ if (!$project_id || !$project) {
 })();
 </script>
 <?php include 'nav/footer.php'; ?>
-</body>
-</html>
-    <?php
+<body>
+<?php include 'nav/top_nav.php'; ?>
+
+<div class="container py-5">
     exit;
 }
 
