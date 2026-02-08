@@ -19,7 +19,36 @@ if (!$project_id) {
     $projects = $pdo->query("SELECT * FROM {$prefix}projects WHERE is_active = 1 ORDER BY name")->fetchAll();
     
     if (empty($projects)) {
-        echo "<div class='container mt-5'><div class='alert alert-warning'>Bitte erstellen Sie zunächst ein Projekt.</div></div>";
+        // Saubere Fehlerseite: kein Projekt angelegt
+        ?>
+        <!DOCTYPE html>
+        <html lang="de" data-bs-theme="dark">
+        <head>
+            <meta charset="UTF-8">
+            <title>Kein Projekt - EMOS</title>
+            <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+            <link href="../assets/css/style.css" rel="stylesheet">
+        </head>
+        <body>
+        <?php include '../nav/top_nav.php'; ?>
+        <div class="container py-5">
+            <div class="row justify-content-center">
+                <div class="col-12 col-md-8">
+                    <div class="card border-0 shadow">
+                        <div class="card-body text-center py-5">
+                            <h3 class="mb-3">Kein Projekt angelegt</h3>
+                            <p class="text-muted">Bitte erstellen Sie zuerst ein Projekt, bevor Sie Menüs oder Gerichte verwalten.</p>
+                            <a href="projects.php" class="btn btn-primary mt-3">Projekt anlegen</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <?php include '../nav/footer.php'; ?>
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+        </body>
+        </html>
+        <?php
         exit;
     }
 
@@ -33,7 +62,37 @@ $stmt->execute([$project_id]);
 $project = $stmt->fetch();
 
 if (!$project) {
-    die("Projekt nicht gefunden.");
+    // Projekt nicht gefunden – saubere Fehlerseite
+    ?>
+    <!DOCTYPE html>
+    <html lang="de" data-bs-theme="dark">
+    <head>
+        <meta charset="UTF-8">
+        <title>Projekt nicht gefunden - EMOS</title>
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+        <link href="../assets/css/style.css" rel="stylesheet">
+    </head>
+    <body>
+    <?php include '../nav/top_nav.php'; ?>
+    <div class="container py-5">
+        <div class="row justify-content-center">
+            <div class="col-12 col-md-8">
+                <div class="card border-0 shadow">
+                    <div class="card-body text-center py-5">
+                        <h3 class="mb-3">Projekt nicht gefunden</h3>
+                        <p class="text-muted">Das ausgewählte Projekt existiert nicht oder wurde gelöscht.</p>
+                        <a href="projects.php" class="btn btn-primary mt-3">Zur Projektübersicht</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <?php include '../nav/footer.php'; ?>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    </body>
+    </html>
+    <?php
+    exit;
 }
 
 // Gericht erstellen
@@ -110,15 +169,22 @@ $projects = $pdo->query("SELECT * FROM {$prefix}projects WHERE is_active = 1 ORD
         </div>
     <?php endif; ?>
 
-    <!-- PROJEKT FILTER -->
-    <div class="mb-4">
-        <label class="form-label">Projekt auswählen:</label>
-        <div class="btn-group w-100" role="group">
-            <?php foreach ($projects as $p): ?>
-                <a href="?project=<?php echo $p['id']; ?>" class="btn btn-outline-secondary <?php echo $p['id'] == $project_id ? 'active' : ''; ?>">
-                    <?php echo htmlspecialchars($p['name']); ?>
-                </a>
-            <?php endforeach; ?>
+    <!-- PROJEKT FILTER (Select wie in orders.php) -->
+    <div class="card border-0 shadow mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label">Projekt auswählen</label>
+                    <select name="project" class="form-select" onchange="this.form.submit()">
+                        <option value="">-- Bitte wählen --</option>
+                        <?php foreach ($projects as $p): ?>
+                            <option value="<?php echo $p['id']; ?>" <?php echo ($p['id'] == $project_id) ? 'selected' : ''; ?>>
+                                <?php echo htmlspecialchars($p['name']); ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+            </form>
         </div>
     </div>
 
@@ -136,7 +202,20 @@ $projects = $pdo->query("SELECT * FROM {$prefix}projects WHERE is_active = 1 ORD
             ?>
 
             <?php if (empty($dishes)): ?>
-                <div class="alert alert-info">Noch keine Gerichte hinzugefügt.</div>
+                <div class="py-5 text-center">
+                    <div class="mx-auto" style="max-width:720px;">
+                        <div class="card border-0 shadow">
+                            <div class="card-body py-5">
+                                <h3 class="mb-3">Noch kein Menü gepflegt</h3>
+                                <p class="text-muted">Für das Projekt <strong><?php echo htmlspecialchars($project['name']); ?></strong> wurden noch keine Gerichte angelegt.</p>
+                                <div class="mt-3">
+                                    <a href="admin/projects.php" class="btn btn-outline-secondary">Projekte verwalten</a>
+                                    <button class="btn btn-primary ms-2" data-bs-toggle="modal" data-bs-target="#addDishModal">Gericht anlegen</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             <?php else: ?>
                 <?php foreach ($grouped as $cat_name => $cat_dishes): ?>
                     <div class="mb-4">

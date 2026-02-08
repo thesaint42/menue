@@ -16,7 +16,36 @@ $messageType = "info";
 if (!$project_id) {
     $projects = $pdo->query("SELECT * FROM {$prefix}projects WHERE is_active = 1 ORDER BY name")->fetchAll();
     if (empty($projects)) {
-        echo "<div class='container mt-5'><div class='alert alert-warning'>Keine Projekte vorhanden.</div></div>";
+        // Saubere Fehlerseite anzeigen: kein Projekt angelegt
+        ?>
+        <!DOCTYPE html>
+        <html lang="de" data-bs-theme="dark">
+        <head>
+            <meta charset="UTF-8">
+            <title>Keine Projekte - EMOS</title>
+            <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+            <link href="../assets/css/style.css" rel="stylesheet">
+        </head>
+        <body>
+        <?php include '../nav/top_nav.php'; ?>
+        <div class="container py-5">
+            <div class="row justify-content-center">
+                <div class="col-12 col-md-8">
+                    <div class="card border-0 shadow">
+                        <div class="card-body text-center py-5">
+                            <h3 class="mb-3">Keine Projekte vorhanden</h3>
+                            <p class="text-muted">Es wurde noch kein Projekt angelegt. Bitte legen Sie zuerst ein Projekt an, damit Gäste verwaltet werden können.</p>
+                                <a href="projects.php" class="btn btn-primary mt-3">Projekt anlegen</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <?php include '../nav/footer.php'; ?>
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+        </body>
+        </html>
+        <?php
         exit;
     }
     $project_id = $projects[0]['id'];
@@ -28,7 +57,37 @@ $stmt->execute([$project_id]);
 $project = $stmt->fetch();
 
 if (!$project) {
-    die("Projekt nicht gefunden.");
+    // Projekt nicht gefunden – saubere Fehlerseite
+    ?>
+    <!DOCTYPE html>
+    <html lang="de" data-bs-theme="dark">
+    <head>
+        <meta charset="UTF-8">
+        <title>Projekt nicht gefunden - EMOS</title>
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+        <link href="../assets/css/style.css" rel="stylesheet">
+    </head>
+    <body>
+    <?php include '../nav/top_nav.php'; ?>
+    <div class="container py-5">
+        <div class="row justify-content-center">
+            <div class="col-12 col-md-8">
+                <div class="card border-0 shadow">
+                    <div class="card-body text-center py-5">
+                        <h3 class="mb-3">Projekt nicht gefunden</h3>
+                        <p class="text-muted">Das angeforderte Projekt existiert nicht oder wurde gelöscht.</p>
+                        <a href="projects.php" class="btn btn-primary mt-3">Zur Projektübersicht</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <?php include '../nav/footer.php'; ?>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    </body>
+    </html>
+    <?php
+    exit;
 }
 
 // Gäste laden
@@ -56,15 +115,22 @@ $projects = $pdo->query("SELECT * FROM {$prefix}projects WHERE is_active = 1 ORD
 <div class="container py-4">
     <h2 class="mb-4">Gästeübersicht</h2>
 
-    <!-- PROJEKT FILTER -->
-    <div class="mb-4">
-        <label class="form-label">Projekt auswählen:</label>
-        <div class="btn-group w-100" role="group">
-            <?php foreach ($projects as $p): ?>
-                <a href="?project=<?php echo $p['id']; ?>" class="btn btn-outline-secondary <?php echo $p['id'] == $project_id ? 'active' : ''; ?>">
-                    <?php echo htmlspecialchars($p['name']); ?>
-                </a>
-            <?php endforeach; ?>
+    <!-- PROJEKT FILTER (Select wie in orders.php) -->
+    <div class="card border-0 shadow mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label">Projekt auswählen</label>
+                    <select name="project" class="form-select" onchange="this.form.submit()">
+                        <option value="">-- Bitte wählen --</option>
+                        <?php foreach ($projects as $p): ?>
+                            <option value="<?php echo $p['id']; ?>" <?php echo ($p['id'] == $project_id) ? 'selected' : ''; ?>>
+                                <?php echo htmlspecialchars($p['name']); ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+            </form>
         </div>
     </div>
 
