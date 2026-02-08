@@ -267,13 +267,9 @@ if (!$project_id || !$project) {
 })();
 </script>
 <?php include 'nav/footer.php'; ?>
-<body>
-<?php include 'nav/top_nav.php'; ?>
-
-<div class="container py-5">
+<?php
     exit;
 }
-
 // Gäste-Statistik
 $stmt = $pdo->prepare("SELECT COUNT(*) as count FROM {$prefix}guests WHERE project_id = ?");
 $stmt->execute([$project_id]);
