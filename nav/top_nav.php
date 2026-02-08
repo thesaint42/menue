@@ -16,6 +16,7 @@ $page_names = [
     'export_pdf' => 'PDF Export',
     'settings_mail' => 'Mail Einstellungen',
     'profile' => 'Mein Profil'
+    , 'vvt' => 'VVT'
 ];
 
 $display_name = $page_names[$current_page] ?? ucfirst($current_page);

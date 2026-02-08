@@ -14,27 +14,33 @@ $title = 'Verzeichnis von Verarbeitungstätigkeiten (VVT)';
 <?php include __DIR__ . '/nav/top_nav.php'; ?>
 
   <main class="container" style="max-width:800px;margin:2rem auto;padding:1rem;">
-    <h1>📑 Verzeichnis von Verarbeitungstätigkeiten (VVT)</h1>
+    <h1>VVT</h1>
 
-    <p><strong>Verantwortlicher:</strong> Olaf Schneider</p>
+    <p class="page-intro">Verzeichnis von Verarbeitungstätigkeiten (Art. 30 DSGVO)</p>
 
     <h2>Verarbeitung: Bestellabwicklung</h2>
-    <p><strong>Zweck:</strong> Menübestellungen</p>
-    <p><strong>Betroffene Personen:</strong> Besteller</p>
-    <p><strong>Datenkategorien:</strong> Name, E‑Mail, Telefonnummer, Bestelldaten</p>
-    <p><strong>Rechtsgrundlage:</strong> Art. 6 Abs. 1 lit. b DSGVO</p>
-    <p><strong>Speicherfrist:</strong> projektbezogen bzw. gesetzliche Aufbewahrungspflichten</p>
+    <ul>
+      <li><strong>Zweck:</strong> Menübestellungen</li>
+      <li><strong>Betroffene Personen:</strong> Besteller</li>
+      <li><strong>Datenkategorien:</strong> Name, E‑Mail, Telefonnummer, Bestelldaten</li>
+      <li><strong>Rechtsgrundlage:</strong> Art. 6 Abs. 1 lit. b DSGVO</li>
+      <li><strong>Speicherfrist:</strong> projektbezogen bzw. gesetzliche Aufbewahrungspflichten</li>
+    </ul>
 
     <h2>Verarbeitung: Server‑Logfiles</h2>
-    <p><strong>Zweck:</strong> Sicherheit und Betrieb</p>
-    <p><strong>Datenkategorien:</strong> IP‑Adresse, Zugriffsdaten</p>
-    <p><strong>Rechtsgrundlage:</strong> Art. 6 Abs. 1 lit. f DSGVO</p>
-    <p><strong>Speicherfrist:</strong> gemäß Hosting‑Vorgaben</p>
+    <ul>
+      <li><strong>Zweck:</strong> Sicherheit und Betrieb</li>
+      <li><strong>Datenkategorien:</strong> IP‑Adresse, Zugriffsdaten</li>
+      <li><strong>Rechtsgrundlage:</strong> Art. 6 Abs. 1 lit. f DSGVO</li>
+      <li><strong>Speicherfrist:</strong> gemäß Hosting‑Vorgaben</li>
+    </ul>
 
     <h2>Verarbeitung: Sitzungsverwaltung</h2>
-    <p><strong>Zweck:</strong> Admin‑Login</p>
-    <p><strong>Datenkategorien:</strong> Session‑ID (PHPSESSID)</p>
-    <p><strong>Rechtsgrundlage:</strong> Art. 6 Abs. 1 lit. f DSGVO</p>
+    <ul>
+      <li><strong>Zweck:</strong> Admin‑Login</li>
+      <li><strong>Datenkategorien:</strong> Session‑ID (PHPSESSID)</li>
+      <li><strong>Rechtsgrundlage:</strong> Art. 6 Abs. 1 lit. f DSGVO</li>
+    </ul>
 
   </main>
 
