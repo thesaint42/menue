@@ -37,8 +37,10 @@ $display_name = $page_names[$current_page] ?? ucfirst($current_page);
                 ?>
 
                 <div class="navbar-brand fw-bold d-flex align-items-center">
-                    <img src="<?php echo $root; ?>img/logo.png" alt="Event Menue Order System (EMOS)" style="height:32px; width:auto; margin-right:10px;" />
-                    <a class="nav-home-link text-decoration-none text-light" href="<?php echo $home_href; ?>">Event Menue Order System (EMOS)</a>
+                    <a class="nav-home-link d-flex align-items-center text-decoration-none text-light" href="<?php echo $home_href; ?>" aria-label="Zur Startseite">
+                        <img src="<?php echo $root; ?>img/logo.png" alt="Event Menue Order System (EMOS)" style="height:32px; width:auto; margin-right:10px;" />
+                        <span class="fw-bold">Event Menue Order System (EMOS)</span>
+                    </a>
                     <span class="fw-normal text-secondary mx-2">|</span>
                     <span class="fw-semibold text-info"><?php echo $display_name; ?></span>
                 </div>

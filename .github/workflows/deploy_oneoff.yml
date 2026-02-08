@@ -35,6 +35,7 @@ jobs:
           REMOTE_ROOT="${DEPLOY_PATH:-.}"
           echo "Uploading files: $FILES to $URL:$REMOTE_ROOT"
 
+          cmds=""
           for file in $FILES; do
             # Protect critical files from accidental upload
             if [ "$file" = "script/config.yaml" ] || [ "$file" = "install.php" ]; then
@@ -44,8 +45,16 @@ jobs:
               echo "Warning: file does not exist in repo: $file"; continue
             fi
             remote_dir=$(dirname "$REMOTE_ROOT/$file")
-            echo "Creating remote dir $remote_dir and uploading $file"
-            lftp -c "set ssl:verify-certificate no; set ftp:passive-mode true; set net:timeout 20; set net:max-retries 1; set net:reconnect-interval-base 5; open -u \"${DEPLOY_USER}\",\"${DEPLOY_PASSWORD}\" \"${DEPLOY_HOST}\"; mkdir -p \"$remote_dir\"; put -O \"$remote_dir\" \"$file\"; bye"
+            echo "Queueing remote dir $remote_dir and uploading $file"
+            cmds="$cmds; mkdir -p \"$remote_dir\"; put -O \"$remote_dir\" \"$file\""
           done
+
+          # Remove leading semicolon/space
+          cmds="${cmds#; }"
+
+          LFTP_CMDS="set ssl:verify-certificate no; set ftp:passive-mode true; set net:timeout 60; set net:max-retries 2; set net:reconnect-interval-base 5; open -u \"${DEPLOY_USER}\",\"${DEPLOY_PASSWORD}\" \"${DEPLOY_HOST}\"; $cmds; bye"
+
+          echo "Running lftp once with queued commands"
+          lftp -c "$LFTP_CMDS"
 
           echo "One-off upload complete."
