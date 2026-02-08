@@ -1,0 +1,37 @@
+name: ftps_fetch_orders
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install lftp
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y lftp
+
+      - name: Fetch remote admin/orders.php
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_PASSWORD: ${{ secrets.DEPLOY_PASSWORD }}
+          REMOTE_PATH: ${{ secrets.REMOTE_PATH || '.' }}
+        run: |
+          set -ex
+          LFTP_CMDS="set ftp:ssl-force true; set ftp:ssl-protect-data true; set ssl:verify-certificate no; set ftp:passive-mode true; open -p 21 -u \"${DEPLOY_USER}\",\"${DEPLOY_PASSWORD}\" \"${DEPLOY_HOST}\"; get \"${REMOTE_PATH}/admin/orders.php\" -o orders_remote.php; bye"
+          echo "Running lftp: $LFTP_CMDS"
+          lftp -c "$LFTP_CMDS"
+
+      - name: Show hashes and diff
+        run: |
+          echo "--- Local admin/orders.php SHA256 ---"
+          sha256sum admin/orders.php || true
+          echo "--- Remote admin/orders.php SHA256 ---"
+          sha256sum orders_remote.php || true
+          echo "--- Diff (first 400 lines) ---"
+          diff -u admin/orders.php orders_remote.php | sed -n '1,400p' || true
