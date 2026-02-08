@@ -96,4 +96,3 @@ $display_name = $page_names[$current_page] ?? ucfirst($current_page);
             navLinks.forEach(link => link.addEventListener('click', function() { navCollapse.classList.remove('show'); navBackdrop.classList.remove('show'); }));
         });
         </script>
-            const navCollapse = document.querySelector('.navbar-collapse');
