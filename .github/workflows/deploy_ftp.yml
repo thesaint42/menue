@@ -50,30 +50,43 @@ jobs:
           # If no changed files found, fall back to mirror with --only-newer but DO NOT --delete (less disruptive)
           if [ -z "$CHANGED_FILES" ]; then
             echo "No changed-files list found; using conservative mirror (only newer, no delete)"
-            lftp -c "set ssl:verify-certificate no; set ftp:passive-mode true; set net:timeout 60; set net:max-retries 1; set net:reconnect-interval-base 5; open -u \"${DEPLOY_USER}\",\"${DEPLOY_PASSWORD}\" \"${DEPLOY_HOST}\"; mirror -R --verbose --only-newer --no-symlinks --parallel=1 ./ ${REMOTE_ROOT}; bye"
+            lftp -c "set ftp:ssl-force true; set ftp:ssl-protect-data true; set ssl:verify-certificate no; set ftp:passive-mode true; set net:timeout 60; set net:max-retries 1; set net:reconnect-interval-base 5; set mirror:parallel-transfer-count 1; set net:connection-limit 1; open -p 21 -u \"${DEPLOY_USER}\",\"${DEPLOY_PASSWORD}\" \"${DEPLOY_HOST}\"; mirror -R --verbose --only-newer --no-symlinks --parallel=1 ./ ${REMOTE_ROOT}; bye"
             exit 0
           fi
 
           # Upload only added/modified files. Do NOT perform deletions on the remote by default.
-          echo "$CHANGED_FILES" | while IFS= read -r file; do
-            # skip empty lines
+          cmds=""
+          for file in $CHANGED_FILES; do
             [ -z "$file" ] && continue
             # skip workflow files and local-only dirs
             case "$file" in
               .github/*|.git/*|tools/*) echo "Skipping $file"; continue ;;
               script/config.yaml|install.php) echo "Protected file, skipping $file"; continue ;;
             esac
+            # Protect storage directory
+            if [[ "$file" == storage/* ]] || [ "$file" = "storage" ]; then
+              echo "Skipping protected dir: $file"; continue
+            fi
 
             if [ -f "$file" ]; then
               remote_dir=$(dirname "$REMOTE_ROOT/$file")
-              echo "Uploading file: $file -> $remote_dir"
-              lftp -c "set ssl:verify-certificate no; set ftp:passive-mode true; set net:timeout 20; set net:max-retries 1; set net:reconnect-interval-base 5; open -u \"${DEPLOY_USER}\",\"${DEPLOY_PASSWORD}\" \"${DEPLOY_HOST}\"; mkdir -p \"$remote_dir\"; put -O \"$remote_dir\" \"$file\"; bye"
+              echo "Queueing upload: $file -> $remote_dir"
+              cmds="$cmds; mkdir -p \"$remote_dir\"; put -O \"$remote_dir\" \"$file\""
             elif [ -d "$file" ]; then
-              echo "Uploading directory: $file"
-              lftp -c "set ssl:verify-certificate no; set ftp:passive-mode true; set net:timeout 60; set net:max-retries 1; set net:reconnect-interval-base 5; open -u \"${DEPLOY_USER}\",\"${DEPLOY_PASSWORD}\" \"${DEPLOY_HOST}\"; mirror -R --verbose --only-newer --no-symlinks --parallel=1 \"$file\" \"${REMOTE_ROOT%/}/$file\"; bye"
+              echo "Queueing mirror for directory: $file"
+              # mirror command needs proper remote path
+              remote_dest="${REMOTE_ROOT%/}/$file"
+              cmds="$cmds; mirror -R --verbose --only-newer --no-symlinks --parallel=1 \"$file\" \"$remote_dest\""
             else
               echo "Skipping (deleted or unknown type): $file"
             fi
           done
+
+          cmds="${cmds#; }"
+
+          LFTP_CMDS="set ftp:ssl-force true; set ftp:ssl-protect-data true; set ssl:verify-certificate no; set ftp:passive-mode true; set net:timeout 60; set net:max-retries 2; set net:reconnect-interval-base 5; set mirror:parallel-transfer-count 1; set net:connection-limit 1; open -p 21 -u \"${DEPLOY_USER}\",\"${DEPLOY_PASSWORD}\" \"${DEPLOY_HOST}\"; $cmds; bye"
+
+          echo "Running lftp once with queued commands"
+          lftp -c "$LFTP_CMDS"
 
           echo "Upload finished."

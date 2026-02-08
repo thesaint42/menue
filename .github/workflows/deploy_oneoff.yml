@@ -38,7 +38,7 @@ jobs:
           cmds=""
           for file in $FILES; do
             # Protect critical files from accidental upload
-            if [ "$file" = "script/config.yaml" ] || [ "$file" = "install.php" ]; then
+            if [ "$file" = "script/config.yaml" ] || [ "$file" = "install.php" ] || [[ "$file" == storage/* ]] || [ "$file" = "storage" ]; then
               echo "Skipping protected file: $file"; continue
             fi
             if [ ! -e "$file" ]; then
@@ -52,7 +52,7 @@ jobs:
           # Remove leading semicolon/space
           cmds="${cmds#; }"
 
-          LFTP_CMDS="set ssl:verify-certificate no; set ftp:passive-mode true; set net:timeout 60; set net:max-retries 2; set net:reconnect-interval-base 5; open -u \"${DEPLOY_USER}\",\"${DEPLOY_PASSWORD}\" \"${DEPLOY_HOST}\"; $cmds; bye"
+          LFTP_CMDS="set ftp:ssl-force true; set ftp:ssl-protect-data true; set ssl:verify-certificate no; set ftp:passive-mode true; set net:timeout 60; set net:max-retries 2; set net:reconnect-interval-base 5; set mirror:parallel-transfer-count 1; set net:connection-limit 1; open -p 21 -u \"${DEPLOY_USER}\",\"${DEPLOY_PASSWORD}\" \"${DEPLOY_HOST}\"; $cmds; bye"
 
           echo "Running lftp once with queued commands"
           lftp -c "$LFTP_CMDS"
