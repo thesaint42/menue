@@ -44,7 +44,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <title>Admin Login - Event Menue Order System (EMOS)</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        body { min-height: 100vh; display: flex; align-items: center; }
+        /* Layout: ensure nav stays on top and content stacks below */
+        body { min-height: 100vh; display: flex; flex-direction: column; }
         .login-form { max-width: 400px; }
     </style>
 </head>
