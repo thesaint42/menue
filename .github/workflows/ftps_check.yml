@@ -1,0 +1,34 @@
+name: FTPS permission check
+
+on:
+  workflow_dispatch:
+    inputs:
+      remote_path:
+        description: 'Remote path to check (defaults to repo root)'
+        required: false
+        default: '.'
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install lftp
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y lftp
+
+      - name: FTPS list nav
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_PASSWORD: ${{ secrets.DEPLOY_PASSWORD }}
+          REMOTE_PATH: ${{ github.event.inputs.remote_path }}
+        run: |
+          set -ex
+          echo "Checking FTPS host: ${DEPLOY_HOST} (port 21, explicit FTPS, passive)"
+          LFTP_CMDS="set ftp:ssl-force true; set ftp:ssl-protect-data true; set ssl:verify-certificate no; set ftp:passive-mode true; open -p 21 -u \"${DEPLOY_USER}\",\"${DEPLOY_PASSWORD}\" \"${DEPLOY_HOST}\"; ls -l \"${REMOTE_PATH}/nav\"; ls -l \"${REMOTE_PATH}/nav/top_nav.php\"; bye"
+          echo "Running lftp: $LFTP_CMDS"
+          lftp -c "$LFTP_CMDS"
