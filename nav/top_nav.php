@@ -21,18 +21,8 @@ $page_names = [
 $display_name = $page_names[$current_page] ?? ucfirst($current_page);
 ?>
 
-<nav class="navbar navbar-expand-lg navbar-dark bg-dark border-bottom border-secondary mb-4">
-    <div class="container-fluid px-4">
-        
-        <a class="navbar-brand fw-bold d-flex align-items-center" href="<?php echo $root; ?>admin/admin.php"
->                                                                                                                       <span style="font-size: 1.5em; margin-right: 10px;">🍽️</span>
-            Menüwahl
-            <span class="fw-normal text-secondary mx-2">|</span>
-            <span class="fw-semibold text-info"><?php echo $display_name; ?></span>
-        </a>
-
-        <!-- Single EMOS-branded top navigation -->
-        <nav class="navbar navbar-dark bg-dark border-bottom border-secondary mb-4">
+<!-- Single EMOS-branded top navigation -->
+<nav class="navbar navbar-dark bg-dark border-bottom border-secondary mb-4">
             <div class="container-fluid px-4">
                 <?php
                 @include_once __DIR__ . '/../script/auth.php';
@@ -106,4 +96,4 @@ $display_name = $page_names[$current_page] ?? ucfirst($current_page);
             navLinks.forEach(link => link.addEventListener('click', function() { navCollapse.classList.remove('show'); navBackdrop.classList.remove('show'); }));
         });
         </script>
-                </ul>
+            const navCollapse = document.querySelector('.navbar-collapse');
