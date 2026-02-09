@@ -389,8 +389,57 @@ if (isset($_POST['run_migration']) && isset($_POST['migration_key'])) {
                         $pdo->beginTransaction();
                         $transaction_active = true;
                         
-                        // Speichere Migrations-Eintrag ERST nach erfolgreicher Migration
+                        try {
+                            // Führe die Migration aus
+                            call_user_func($migration['up'], $pdo, $prefix);
+                            
+                            // Stelle sicher, dass migrations-Tabelle existiert
+                            $pdo->query("CREATE TABLE IF NOT EXISTS `{$prefix}migrations` (
+                                `id` INT AUTO_INCREMENT PRIMARY KEY,
+                                `migration` VARCHAR(255) NOT NULL UNIQUE,
+                                `executed_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+                            
+                            // Nur wenn Migration erfolgreich war, speichere den Eintrag
+                            $stmt = $pdo->prepare("INSERT INTO `{$prefix}migrations` (migration) VALUES (?)");
+                            $stmt->execute([$migration_key]);
+                            
+                            $pdo->commit();
+                            $transaction_active = false;
+                            
+                            $message = "✅ Migration erfolgreich ausgeführt!";
+                            $messageType = "success";
+                            $executed_migrations[] = $migration_key;
+                        } catch (Exception $inner_e) {
+                            // Falls Migration oder INSERT fehlschlägt, rollback alles
+                            if ($transaction_active && $pdo) {
+                                try {
+                                    $pdo->rollBack();
+                                    $transaction_active = false;
+                                } catch (Exception $rb) {
+                                    @error_log("Rollback Error: " . $rb->getMessage());
+                                }
+                            }
+                            throw $inner_e; // Re-throw damit outer catch es fängt
+                        }
+                    }
+                }
+            } else {
+                // Keine Abhängigkeiten - führe aus
+                if ($pdo) {
+                    $pdo->beginTransaction();
+                    $transaction_active = true;
+                    
+                    try {
+                        // Führe die Migration aus
                         call_user_func($migration['up'], $pdo, $prefix);
+                        
+                        // Stelle sicher, dass migrations-Tabelle existiert
+                        $pdo->query("CREATE TABLE IF NOT EXISTS `{$prefix}migrations` (
+                            `id` INT AUTO_INCREMENT PRIMARY KEY,
+                            `migration` VARCHAR(255) NOT NULL UNIQUE,
+                            `executed_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
                         
                         // Nur wenn Migration erfolgreich war, speichere den Eintrag
                         $stmt = $pdo->prepare("INSERT INTO `{$prefix}migrations` (migration) VALUES (?)");
@@ -402,27 +451,18 @@ if (isset($_POST['run_migration']) && isset($_POST['migration_key'])) {
                         $message = "✅ Migration erfolgreich ausgeführt!";
                         $messageType = "success";
                         $executed_migrations[] = $migration_key;
+                    } catch (Exception $inner_e) {
+                        // Falls Migration oder INSERT fehlschlägt, rollback alles
+                        if ($transaction_active && $pdo) {
+                            try {
+                                $pdo->rollBack();
+                                $transaction_active = false;
+                            } catch (Exception $rb) {
+                                @error_log("Rollback Error: " . $rb->getMessage());
+                            }
+                        }
+                        throw $inner_e; // Re-throw damit outer catch es fängt
                     }
-                }
-            } else {
-                // Keine Abhängigkeiten - führe aus
-                if ($pdo) {
-                    $pdo->beginTransaction();
-                    $transaction_active = true;
-                    
-                    // Führe die Migration aus
-                    call_user_func($migration['up'], $pdo, $prefix);
-                    
-                    // Nur wenn Migration erfolgreich war, speichere den Eintrag
-                    $stmt = $pdo->prepare("INSERT INTO `{$prefix}migrations` (migration) VALUES (?)");
-                    $stmt->execute([$migration_key]);
-                    
-                    $pdo->commit();
-                    $transaction_active = false;
-                    
-                    $message = "✅ Migration erfolgreich ausgeführt!";
-                    $messageType = "success";
-                    $executed_migrations[] = $migration_key;
                 }
             }
         } catch (Exception $e) {
@@ -441,6 +481,16 @@ if (isset($_POST['run_migration']) && isset($_POST['migration_key'])) {
             
             // Logge auch in Datei für Debugging
             @error_log("Migration Error [$migration_key]: " . $e->getMessage());
+            
+            // Reload executed migrations from database to ensure consistency
+            try {
+                $stmt = $pdo->query("SELECT migration FROM `{$prefix}migrations`");
+                if ($stmt) {
+                    $executed_migrations = $stmt->fetchAll(PDO::FETCH_COLUMN, 0);
+                }
+            } catch (Exception $reload_error) {
+                // Silently fail, keep current executed_migrations list
+            }
         }
     }
 }
