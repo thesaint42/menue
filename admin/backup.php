@@ -225,20 +225,42 @@ function addDirToZip(&$zip, $dir, $base_path) {
                     Noch keine Backups vorhanden. Erstellen Sie Ihr erstes Backup!
                 </div>
             <?php else: ?>
+                <!-- Massenbearbeitung Buttons -->
+                <div class="p-3 bg-light border-bottom d-flex gap-2" id="bulkActions" style="display: none;">
+                    <button class="btn btn-sm btn-info" onclick="bulkDownload()">
+                        ⬇️ Ausgewählte herunterladen
+                    </button>
+                    <button class="btn btn-sm btn-danger" onclick="bulkDelete()">
+                        🗑️ Ausgewählte löschen
+                    </button>
+                    <button class="btn btn-sm btn-secondary" onclick="clearSelection()">
+                        Abbrechen
+                    </button>
+                    <small class="ms-auto align-self-center text-muted">
+                        <span id="selectionCount">0</span> ausgewählt
+                    </small>
+                </div>
+
                 <div class="table-responsive">
                     <table class="table table-hover mb-0">
                         <thead class="table-dark">
                             <tr>
+                                <th style="width: 40px;">
+                                    <input type="checkbox" class="form-check-input" id="selectAll" onchange="toggleSelectAll()">
+                                </th>
                                 <th>Dateiname</th>
                                 <th>Typ</th>
                                 <th>Größe</th>
                                 <th>Erstellt am</th>
-                                <th>Aktion</th>
+                                <th style="width: 240px;">Aktion</th>
                             </tr>
                         </thead>
                         <tbody>
                             <?php foreach ($backup_files as $file): ?>
                                 <tr>
+                                    <td>
+                                        <input type="checkbox" class="form-check-input backup-checkbox" data-filename="<?php echo htmlspecialchars($file['name']); ?>" onchange="updateBulkActions()">
+                                    </td>
                                     <td><strong><?php echo htmlspecialchars($file['name']); ?></strong></td>
                                     <td>
                                         <?php if ($file['type'] === 'Datenbank'): ?>
@@ -250,8 +272,8 @@ function addDirToZip(&$zip, $dir, $base_path) {
                                     <td><?php echo formatBytes($file['size']); ?></td>
                                     <td><small><?php echo date('d.m.Y H:i:s', $file['date']); ?></small></td>
                                     <td>
-                                        <a href="backup.php?download=<?php echo urlencode($file['name']); ?>" class="btn btn-sm btn-outline-info" download>⬇️ Download</a>
-                                        <a href="backup.php?delete=<?php echo urlencode($file['name']); ?>" class="btn btn-sm btn-outline-danger" onclick="return confirm('Sicher?')">🗑️ Löschen</a>
+                                        <a href="backup.php?download=<?php echo urlencode($file['name']); ?>" class="btn btn-sm btn-outline-info" download>⬇️</a>
+                                        <a href="backup.php?delete=<?php echo urlencode($file['name']); ?>" class="btn btn-sm btn-outline-danger" onclick="return confirm('Wirklich löschen?')">🗑️</a>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
@@ -519,4 +541,106 @@ function resetBackupForm() {
     backupStartTime = null;
     backupStartTimestamp = null;
 }
-</script>
+
+// Massenbearbeitung: Select All
+function toggleSelectAll() {
+    const selectAllCheckbox = document.getElementById('selectAll');
+    const backupCheckboxes = document.querySelectorAll('.backup-checkbox');
+    
+    backupCheckboxes.forEach(checkbox => {
+        checkbox.checked = selectAllCheckbox.checked;
+    });
+    
+    updateBulkActions();
+}
+
+// Massenbearbeitung: Update Buttons
+function updateBulkActions() {
+    const backupCheckboxes = document.querySelectorAll('.backup-checkbox:checked');
+    const bulkActionsDiv = document.getElementById('bulkActions');
+    const selectionCountSpan = document.getElementById('selectionCount');
+    
+    if (backupCheckboxes.length > 0) {
+        bulkActionsDiv.style.display = 'flex';
+        selectionCountSpan.textContent = backupCheckboxes.length;
+    } else {
+        bulkActionsDiv.style.display = 'none';
+        selectionCountSpan.textContent = '0';
+    }
+    
+    // Update Select All Checkbox
+    const allCheckboxes = document.querySelectorAll('.backup-checkbox');
+    const selectAllCheckbox = document.getElementById('selectAll');
+    selectAllCheckbox.checked = allCheckboxes.length === backupCheckboxes.length && allCheckboxes.length > 0;
+    selectAllCheckbox.indeterminate = backupCheckboxes.length > 0 && backupCheckboxes.length < allCheckboxes.length;
+}
+
+// Massenbearbeitung: Alle Download
+function bulkDownload() {
+    const selectedCheckboxes = document.querySelectorAll('.backup-checkbox:checked');
+    
+    if (selectedCheckboxes.length === 0) {
+        alert('Keine Backups ausgewählt!');
+        return;
+    }
+    
+    // Downloade eins nach dem anderen mit Delay
+    selectedCheckboxes.forEach((checkbox, index) => {
+        const filename = checkbox.getAttribute('data-filename');
+        setTimeout(() => {
+            const link = document.createElement('a');
+            link.href = `backup.php?download=${encodeURIComponent(filename)}`;
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }, index * 500); // 500ms Delay zwischen Downloads
+    });
+}
+
+// Massenbearbeitung: Alle Löschen
+function bulkDelete() {
+    const selectedCheckboxes = document.querySelectorAll('.backup-checkbox:checked');
+    
+    if (selectedCheckboxes.length === 0) {
+        alert('Keine Backups ausgewählt!');
+        return;
+    }
+    
+    if (!confirm(`Wirklich ${selectedCheckboxes.length} Backup(s) löschen? Dies kann nicht rückgängig gemacht werden.`)) {
+        return;
+    }
+    
+    const filesToDelete = [];
+    selectedCheckboxes.forEach(checkbox => {
+        filesToDelete.push(checkbox.getAttribute('data-filename'));
+    });
+    
+    // Lösche nacheinander
+    let deleted = 0;
+    filesToDelete.forEach((filename, index) => {
+        setTimeout(() => {
+            fetch(`backup.php?delete=${encodeURIComponent(filename)}`)
+                .then(() => {
+                    deleted++;
+                    if (deleted === filesToDelete.length) {
+                        // Alle gelöscht - neuladen
+                        alert(`✅ ${deleted} Backup(s) erfolgreich gelöscht!`);
+                        location.reload();
+                    }
+                })
+                .catch(err => {
+                    console.error('Fehler beim Löschen:', err);
+                });
+        }, index * 300);
+    });
+}
+
+// Massenbearbeitung: Abbrechen
+function clearSelection() {
+    document.querySelectorAll('.backup-checkbox').forEach(checkbox => {
+        checkbox.checked = false;
+    });
+    document.getElementById('selectAll').checked = false;
+    updateBulkActions();
+}
