@@ -354,7 +354,7 @@ if ($existing_order && isset($existing_order['orders'])) {
                             <input type="email" name="email" class="form-control" required
                                    value="<?php echo htmlspecialchars($form_data['email']); ?>">
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-12">
                             <label class="form-label">Telefon (optional)</label>
                             <input type="tel" id="phone_visible" class="form-control"
                                    value="<?php echo htmlspecialchars($form_data['phone_raw']); ?>">
