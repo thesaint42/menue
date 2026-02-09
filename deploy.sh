@@ -157,8 +157,20 @@ done
 
 LFTP_CMDS="$LFTP_CMDS bye"
 
-# Führe aus
-if lftp -c "$LFTP_CMDS"; then
+# Führe aus und cleanup Verbindung
+DEPLOY_EXIT_CODE=0
+lftp -c "$LFTP_CMDS" || DEPLOY_EXIT_CODE=$?
+
+# Cleanup: Stelle sicher dass Verbindungen geschlossen sind
+echo "🧹 Cleanup FTP-Verbindungen..."
+timeout 5 lftp -c "
+    set net:timeout 3;
+    set ftp:passive-mode true;
+    quit;
+" 2>/dev/null || true
+
+# Check Exit Code
+if [ $DEPLOY_EXIT_CODE -eq 0 ]; then
     echo ""
     echo -e "${GREEN}✅ Deployment erfolgreich!${NC}"
     echo ""
