@@ -27,7 +27,6 @@ if ($project_id > 0) {
                 g.email,
                 g.phone,
                 g.guest_type,
-                g.age_group,
                 g.family_size,
                 d.id as dish_id,
                 d.name as dish_name,
@@ -159,7 +158,7 @@ if ($project_id > 0) {
                                     <td>
                                         <?php if ($is_new_guest): ?>
                                             <span class="badge bg-secondary">
-                                                <?php echo ($order['age_group'] == 'child') ? 'Kind' : 'Erwachsener'; ?>
+                                                <?php $age = $order['age_group'] ?? ''; echo ($age === 'child') ? 'Kind' : 'Erwachsener'; ?>
                                             </span>
                                         <?php endif; ?>
                                     </td>
