@@ -212,10 +212,10 @@ $migrations = [
         'version' => '3.0.0',
         'up' => function($pdo, $prefix) {
             try {
-                $result = $pdo->query("SHOW COLUMNS FROM `{$prefix}projects`");
-                $columns = $result->fetchAll(PDO::FETCH_COLUMN, 0);
-                if (!in_array('show_prices', $columns)) {
-                    $pdo->exec("ALTER TABLE `{$prefix}projects` ADD COLUMN `show_prices` TINYINT(1) DEFAULT 0 AFTER `is_active`");
+                $stmt = $pdo->prepare("SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = 'show_prices'");
+                $stmt->execute(["{$prefix}projects"]);
+                if ($stmt->rowCount() === 0) {
+                    $pdo->prepare("ALTER TABLE `{$prefix}projects` ADD COLUMN `show_prices` TINYINT(1) DEFAULT 0 AFTER `is_active`")->execute();
                 }
                 return true;
             } catch (Exception $e) {
@@ -228,20 +228,20 @@ $migrations = [
         'description' => 'Fügt price Spalte zu dishes Tabelle hinzu (Brutto, 2 Dezimalstellen)',
         'version' => '3.0.0',
         'up' => function($pdo, $prefix) {
-            // Prüfe ob Spalte bereits existiert
+            // Prüfe ob Spalte bereits existiert mittels INFORMATION_SCHEMA
             try {
-                $pdo->query("SELECT price FROM `{$prefix}dishes` LIMIT 1");
-                // Spalte existiert bereits - kein Fehler
+                $stmt = $pdo->prepare("SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = 'price'");
+                $stmt->execute(["{$prefix}dishes"]);
+                if ($stmt->rowCount() > 0) {
+                    // Spalte existiert bereits - kein Fehler
+                    return true;
+                }
+                // Spalte existiert nicht - füge sie hinzu
+                $stmt = $pdo->prepare("ALTER TABLE `{$prefix}dishes` ADD COLUMN `price` DECIMAL(8,2) DEFAULT NULL AFTER `description`");
+                $stmt->execute();
                 return true;
             } catch (Exception $e) {
-                // Spalte existiert nicht - füge sie hinzu
-                try {
-                    $stmt = $pdo->prepare("ALTER TABLE `{$prefix}dishes` ADD COLUMN `price` DECIMAL(8,2) DEFAULT NULL AFTER `description`");
-                    $stmt->execute();
-                    return true;
-                } catch (Exception $e2) {
-                    throw new Exception("Fehler beim Hinzufügen der price-Spalte: " . $e2->getMessage());
-                }
+                throw new Exception("Fehler beim Hinzufügen der price-Spalte: " . $e->getMessage());
             }
         }
     ],
@@ -250,14 +250,16 @@ $migrations = [
         'description' => 'Erstellt order_sessions Tabelle für eindeutige Bestellvorgänge mit order_id',
         'version' => '3.0.0',
         'up' => function($pdo, $prefix) {
-            // Prüfe ob Tabelle bereits existiert
+            // Prüfe ob Tabelle bereits existiert mittels INFORMATION_SCHEMA
             try {
-                $pdo->query("SELECT 1 FROM `{$prefix}order_sessions` LIMIT 1");
-                // Tabelle existiert bereits
-                return true;
-            } catch (Exception $e) {
+                $stmt = $pdo->prepare("SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?");
+                $stmt->execute(["{$prefix}order_sessions"]);
+                if ($stmt->rowCount() > 0) {
+                    // Tabelle existiert bereits
+                    return true;
+                }
                 // Tabelle existiert nicht - erstelle sie
-                $sql = "CREATE TABLE IF NOT EXISTS `{$prefix}order_sessions` (
+                $sql = "CREATE TABLE `{$prefix}order_sessions` (
                     `id` INT AUTO_INCREMENT PRIMARY KEY,
                     `order_id` CHAR(36) NOT NULL,
                     `project_id` INT NOT NULL,
@@ -266,13 +268,10 @@ $migrations = [
                     UNIQUE KEY `unique_order_id` (`order_id`),
                     FOREIGN KEY (`project_id`) REFERENCES `{$prefix}projects`(`id`) ON DELETE CASCADE
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4";
-                try {
-                    $stmt = $pdo->prepare($sql);
-                    $stmt->execute();
-                    return true;
-                } catch (Exception $e2) {
-                    throw new Exception("Fehler beim Erstellen der order_sessions-Tabelle: " . $e2->getMessage());
-                }
+                $pdo->prepare($sql)->execute();
+                return true;
+            } catch (Exception $e) {
+                throw new Exception("Fehler beim Erstellen der order_sessions-Tabelle: " . $e->getMessage());
             }
         }
     ],
@@ -282,38 +281,38 @@ $migrations = [
         'version' => '3.0.0',
         'depends_on' => ['create_order_sessions_table'],
         'up' => function($pdo, $prefix) {
-            // Prüfe aktuelle Struktur
+            // Prüfe aktuelle Struktur mittels INFORMATION_SCHEMA
             try {
-                $pdo->query("SELECT order_id FROM `{$prefix}orders` LIMIT 1");
-                // Neue Struktur existiert bereits
+                $stmt = $pdo->prepare("SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = 'order_id'");
+                $stmt->execute(["{$prefix}orders"]);
+                if ($stmt->rowCount() > 0) {
+                    // Neue Struktur existiert bereits
+                    return true;
+                }
+                // Alte Struktur - migriere sie
+                // Backup der alten orders Tabelle erstellen
+                $pdo->prepare("CREATE TABLE IF NOT EXISTS `{$prefix}orders_backup_v2` LIKE `{$prefix}orders`")->execute();
+                $pdo->prepare("INSERT IGNORE INTO `{$prefix}orders_backup_v2` SELECT * FROM `{$prefix}orders`")->execute();
+                
+                // Alte Tabelle löschen
+                $pdo->prepare("DROP TABLE `{$prefix}orders`")->execute();
+                
+                // Neue Struktur erstellen
+                $pdo->prepare("CREATE TABLE `{$prefix}orders` (
+                    `id` INT AUTO_INCREMENT PRIMARY KEY,
+                    `order_id` CHAR(36) NOT NULL,
+                    `person_id` INT NOT NULL,
+                    `dish_id` INT NOT NULL,
+                    `category_id` INT NOT NULL,
+                    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (`dish_id`) REFERENCES `{$prefix}dishes`(`id`) ON DELETE RESTRICT,
+                    UNIQUE KEY `unique_order` (`order_id`, `person_id`, `category_id`),
+                    INDEX `idx_order_id` (`order_id`)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4")->execute();
+                
                 return true;
             } catch (Exception $e) {
-                // Alte Struktur - migriere sie
-                try {
-                    // Backup der alten orders Tabelle erstellen
-                    $pdo->query("CREATE TABLE IF NOT EXISTS `{$prefix}orders_backup_v2` LIKE `{$prefix}orders`");
-                    $pdo->query("INSERT IGNORE INTO `{$prefix}orders_backup_v2` SELECT * FROM `{$prefix}orders`");
-                    
-                    // Alte Tabelle löschen
-                    $pdo->query("DROP TABLE `{$prefix}orders`");
-                    
-                    // Neue Struktur erstellen
-                    $pdo->query("CREATE TABLE `{$prefix}orders` (
-                        `id` INT AUTO_INCREMENT PRIMARY KEY,
-                        `order_id` CHAR(36) NOT NULL,
-                        `person_id` INT NOT NULL,
-                        `dish_id` INT NOT NULL,
-                        `category_id` INT NOT NULL,
-                        `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                        FOREIGN KEY (`dish_id`) REFERENCES `{$prefix}dishes`(`id`) ON DELETE RESTRICT,
-                        UNIQUE KEY `unique_order` (`order_id`, `person_id`, `category_id`),
-                        INDEX `idx_order_id` (`order_id`)
-                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
-                    
-                    return true;
-                } catch (Exception $e2) {
-                    throw new Exception("Fehler bei orders Migration: " . $e2->getMessage());
-                }
+                throw new Exception("Fehler bei orders Migration: " . $e->getMessage());
             }
         }
     ]
