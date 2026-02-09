@@ -1,7 +1,9 @@
-# Environment
+# Environment & Deployment
 .env
 .env.local
 .env.*.local
+.deploy.env
+.deploy.sh
 
 # Configuration (wird bei Installation generiert)
 script/config.yaml
