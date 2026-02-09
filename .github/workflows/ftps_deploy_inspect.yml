@@ -23,19 +23,7 @@ jobs:
         run: |
           set -ex
           FILE=tools/inspect_db.php
-          # Candidate remote paths to try (relative to remote user's home or absolute)
-          CANDIDATES=("./" "public_html" "www" "html" "httpdocs" "/var/www/html" "/srv/www/htdocs")
-
-          for p in "${CANDIDATES[@]}"; do
-            echo "Trying upload to: $p"
-            LFTP_CMDS="set ftp:ssl-force true; set ftp:ssl-protect-data true; set ssl:verify-certificate no; set ftp:passive-mode true; open -p 21 -u \"${DEPLOY_USER}\",\"${DEPLOY_PASSWORD}\" \"${DEPLOY_HOST}\"; mkdir -p \"$p\" || true; put \"$FILE\" -o \"$p/$FILE\"; bye"
-            if lftp -c "$LFTP_CMDS"; then
-              echo "Upload succeeded to $p"
-              exit 0
-            else
-              echo "Upload to $p failed; trying next"
-            fi
-          done
-
-          echo "All candidate uploads failed"
-          exit 2
+          REMOTE_DIR="tools"
+          LFTP_CMDS="set ftp:ssl-force true; set ftp:ssl-protect-data true; set ssl:verify-certificate no; set ftp:passive-mode true; open -p 21 -u \"${DEPLOY_USER}\",\"${DEPLOY_PASSWORD}\" \"${DEPLOY_HOST}\"; mkdir -p \"${REMOTE_DIR}\" || true; put \"${FILE}\" -o \"${REMOTE_DIR}/inspect_db.php\"; bye"
+          echo "Running lftp: $LFTP_CMDS"
+          lftp -c "$LFTP_CMDS"
