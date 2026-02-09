@@ -53,8 +53,9 @@ $migrations = [
         'up' => function($pdo, $prefix) {
             try {
                 // Prüfe ob Tabelle schon existiert
-                $result = $pdo->query("SHOW TABLES LIKE '{$prefix}family_members'");
-                if ($result && $result->rowCount() > 0) {
+                $stmt = $pdo->prepare("SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?");
+                $stmt->execute(["{$prefix}family_members"]);
+                if ($stmt->rowCount() > 0) {
                     return true; // Tabelle existiert bereits
                 }
                 
@@ -146,36 +147,36 @@ $migrations = [
         'up' => function($pdo, $prefix) {
             try {
                 // Prüfe ob Spalte existiert
-                $result = $pdo->query("SHOW COLUMNS FROM `{$prefix}projects`");
-                $columns = $result->fetchAll(PDO::FETCH_COLUMN, 0);
+                $stmt = $pdo->prepare("SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = 'access_pin'");
+                $stmt->execute(["{$prefix}projects"]);
                 
-                if (in_array('access_pin', $columns)) {
+                if ($stmt->rowCount() > 0) {
                     return true; // Spalte existiert bereits
                 }
                 
                 $pdo->exec("ALTER TABLE `{$prefix}projects` ADD COLUMN `access_pin` VARCHAR(10) NOT NULL UNIQUE");
                 
                 // Generiere PINs für alle existierenden Projekte
-                $stmt = $pdo->query("SELECT id FROM `{$prefix}projects` WHERE access_pin IS NULL OR access_pin = ''");
-                if ($stmt) {
-                    $projects = $stmt->fetchAll(PDO::FETCH_ASSOC);
-                    
-                    foreach ($projects as $project) {
-                        $pin = str_pad(rand(0, 999999), 6, '0', STR_PAD_LEFT);
-                        // Stelle sicher dass PIN einzigartig ist
-                        $attempts = 0;
-                        while ($attempts < 100) {
-                            $check = $pdo->query("SELECT id FROM `{$prefix}projects` WHERE access_pin = '" . addslashes($pin) . "'");
-                            if ($check->rowCount() === 0) {
-                                break;
-                            }
-                            $pin = str_pad(rand(0, 999999), 6, '0', STR_PAD_LEFT);
-                            $attempts++;
+                $select_stmt = $pdo->prepare("SELECT id FROM `{$prefix}projects`");
+                $select_stmt->execute();
+                $projects = $select_stmt->fetchAll(PDO::FETCH_ASSOC);
+                
+                foreach ($projects as $project) {
+                    $pin = str_pad(rand(0, 999999), 6, '0', STR_PAD_LEFT);
+                    // Stelle sicher dass PIN einzigartig ist
+                    $attempts = 0;
+                    while ($attempts < 100) {
+                        $check_stmt = $pdo->prepare("SELECT id FROM `{$prefix}projects` WHERE access_pin = ?");
+                        $check_stmt->execute([$pin]);
+                        if ($check_stmt->rowCount() === 0) {
+                            break;
                         }
-                        
-                        $update_stmt = $pdo->prepare("UPDATE `{$prefix}projects` SET access_pin = ? WHERE id = ?");
-                        $update_stmt->execute([$pin, $project['id']]);
+                        $pin = str_pad(rand(0, 999999), 6, '0', STR_PAD_LEFT);
+                        $attempts++;
                     }
+                    
+                    $update_stmt = $pdo->prepare("UPDATE `{$prefix}projects` SET access_pin = ? WHERE id = ?");
+                    $update_stmt->execute([$pin, $project['id']]);
                 }
                 return true;
             } catch (Exception $e) {
@@ -191,13 +192,17 @@ $migrations = [
         'up' => function($pdo, $prefix) {
             try {
                 // Prüfe ob Spalten existieren
-                $result = $pdo->query("SHOW COLUMNS FROM `{$prefix}guests`");
-                $columns = $result->fetchAll(PDO::FETCH_COLUMN, 0);
+                $stmt_age = $pdo->prepare("SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = 'age_group'");
+                $stmt_age->execute(["{$prefix}guests"]);
                 
-                if (in_array('age_group', $columns)) {
+                if ($stmt_age->rowCount() > 0) {
                     $pdo->exec("ALTER TABLE `{$prefix}guests` DROP COLUMN `age_group`");
                 }
-                if (in_array('child_age', $columns)) {
+                
+                $stmt_child = $pdo->prepare("SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = 'child_age'");
+                $stmt_child->execute(["{$prefix}guests"]);
+                
+                if ($stmt_child->rowCount() > 0) {
                     $pdo->exec("ALTER TABLE `{$prefix}guests` DROP COLUMN `child_age`");
                 }
                 return true;
