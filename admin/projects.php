@@ -60,6 +60,7 @@ if (isset($_POST['create_project'])) {
     $contact_email = trim($_POST['contact_email']);
     $max_guests = (int)$_POST['max_guests'];
     $admin_email = trim($_POST['admin_email']);
+    $show_prices = isset($_POST['show_prices']) ? 1 : 0;
 
     if (empty($name) || empty($admin_email) || $max_guests < 1) {
         $message = "Bitte füllen Sie alle erforderlichen Felder aus.";
@@ -79,11 +80,11 @@ if (isset($_POST['create_project'])) {
             }
             
             $stmt = $pdo->prepare("INSERT INTO {$prefix}projects 
-                (name, description, location, contact_person, contact_phone, contact_email, max_guests, admin_email, access_pin, created_by) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                (name, description, location, contact_person, contact_phone, contact_email, max_guests, admin_email, access_pin, created_by, show_prices) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
             
             $stmt->execute([
-                $name, $description, $location, $contact_person, $contact_phone, $contact_email, $max_guests, $admin_email, $pin, $_SESSION['user_id']
+                $name, $description, $location, $contact_person, $contact_phone, $contact_email, $max_guests, $admin_email, $pin, $_SESSION['user_id'], $show_prices
             ]);
 
             $message = "✓ Projekt erfolgreich erstellt! PIN: <strong>$pin</strong>";
@@ -109,6 +110,7 @@ if (isset($_POST['update_project'])) {
     $contact_email = trim($_POST['contact_email']);
     $max_guests = (int)$_POST['max_guests'];
     $admin_email = trim($_POST['admin_email']);
+    $show_prices = isset($_POST['show_prices']) ? 1 : 0;
 
     if (empty($name) || empty($admin_email) || $max_guests < 1) {
         $message = "Bitte füllen Sie alle erforderlichen Felder aus.";
@@ -123,11 +125,11 @@ if (isset($_POST['update_project'])) {
         try {
             $stmt = $pdo->prepare("UPDATE {$prefix}projects SET 
                 name = ?, description = ?, location = ?, contact_person = ?, 
-                contact_phone = ?, contact_email = ?, max_guests = ?, admin_email = ?
+                contact_phone = ?, contact_email = ?, max_guests = ?, admin_email = ?, show_prices = ?
                 WHERE id = ?");
             
             $stmt->execute([
-                $name, $description, $location, $contact_person, $contact_phone, $contact_email, $max_guests, $admin_email, $id
+                $name, $description, $location, $contact_person, $contact_phone, $contact_email, $max_guests, $admin_email, $show_prices, $id
             ]);
 
             $message = "✓ Projekt erfolgreich aktualisiert!";
@@ -451,6 +453,13 @@ $projects = $pdo->query("SELECT * FROM {$prefix}projects ORDER BY created_at DES
                             <label class="form-label">Admin E-Mail (für BCC) *</label>
                             <input type="email" name="admin_email" id="edit_admin_email" class="form-control" required>
                         </div>
+                        <div class="col-12">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="edit_show_prices" name="show_prices" value="1">
+                                <label class="form-check-label" for="edit_show_prices">Preise in der Gästemaske anzeigen</label>
+                            </div>
+                            <div class="form-text text-muted">Wenn aktiv, werden die Gerichtspreise für Gäste sichtbar.</div>
+                        </div>
                     </div>
                 </div>
                 <div class="modal-footer border-secondary">
@@ -508,6 +517,13 @@ $projects = $pdo->query("SELECT * FROM {$prefix}projects ORDER BY created_at DES
                         <div class="col-12">
                             <label class="form-label">Admin E-Mail (für BCC) *</label>
                             <input type="email" name="admin_email" class="form-control" required>
+                        </div>
+                        <div class="col-12">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="add_show_prices" name="show_prices" value="1">
+                                <label class="form-check-label" for="add_show_prices">Preise in der Gästemaske anzeigen</label>
+                            </div>
+                            <div class="form-text text-muted">Wenn aktiv, werden die Gerichtspreise für Gäste sichtbar.</div>
                         </div>
                     </div>
                 </div>
@@ -651,6 +667,10 @@ function loadProjectData(project) {
     document.getElementById('edit_contact_email').value = project.contact_email || '';
     document.getElementById('edit_max_guests').value = project.max_guests;
     document.getElementById('edit_admin_email').value = project.admin_email;
+    var showPricesEl = document.getElementById('edit_show_prices');
+    if (showPricesEl) {
+        showPricesEl.checked = !!parseInt(project.show_prices || 0, 10);
+    }
 }
 </script>
 <script src="https://cdn.jsdelivr.net/npm/intl-tel-input@24.5.0/build/js/intlTelInput.min.js"></script>

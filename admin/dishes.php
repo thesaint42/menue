@@ -101,15 +101,17 @@ if (isset($_POST['create_dish'])) {
     $description = trim($_POST['description']);
     $category_id = (int)$_POST['category_id'];
     $sort_order = (int)$_POST['sort_order'];
+    $price_raw = trim($_POST['price'] ?? '');
+    $price = $price_raw === '' ? null : (float)str_replace(',', '.', $price_raw);
 
     if (empty($name) || $category_id < 1) {
         $message = "Bitte füllen Sie alle erforderlichen Felder aus.";
         $messageType = "danger";
     } else {
         try {
-            $stmt = $pdo->prepare("INSERT INTO {$prefix}dishes (project_id, category_id, name, description, sort_order, is_active) 
-                                  VALUES (?, ?, ?, ?, ?, 1)");
-            $stmt->execute([$project_id, $category_id, $name, $description, $sort_order]);
+            $stmt = $pdo->prepare("INSERT INTO {$prefix}dishes (project_id, category_id, name, description, sort_order, price, is_active) 
+                                  VALUES (?, ?, ?, ?, ?, ?, 1)");
+            $stmt->execute([$project_id, $category_id, $name, $description, $sort_order, $price]);
 
             $message = "✓ Gericht erfolgreich hinzugefügt!";
             $messageType = "success";
@@ -230,6 +232,9 @@ $projects = $pdo->query("SELECT * FROM {$prefix}projects WHERE is_active = 1 ORD
                                                 <?php if ($d['description']): ?>
                                                     <br><small class="text-muted"><?php echo htmlspecialchars($d['description']); ?></small>
                                                 <?php endif; ?>
+                                                <?php if (!is_null($d['price'])): ?>
+                                                    <br><small class="text-info">Preis: <?php echo number_format((float)$d['price'], 2, ',', '.'); ?> €</small>
+                                                <?php endif; ?>
                                             </td>
                                             <td class="text-end">
                                                 <span class="badge bg-secondary me-2"><?php echo $d['sort_order']; ?></span>
@@ -273,6 +278,11 @@ $projects = $pdo->query("SELECT * FROM {$prefix}projects WHERE is_active = 1 ORD
                     <div class="mb-3">
                         <label class="form-label">Beschreibung</label>
                         <textarea name="description" class="form-control" rows="2" placeholder="z.B. Allergene, Zusatzstoffe"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Preis (optional)</label>
+                        <input type="text" name="price" class="form-control" placeholder="z.B. 12,50">
+                        <div class="form-text text-muted">Brutto-Preis in € (Format: 12,50)</div>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Sortierung</label>
