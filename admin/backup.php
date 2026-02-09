@@ -663,3 +663,4 @@ function clearSelection() {
     document.getElementById('selectAll').checked = false;
     updateBulkActions();
 }
+</script>
