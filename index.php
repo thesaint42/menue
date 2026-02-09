@@ -126,10 +126,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     
     // Personen-Array aufbauen
+    $main_person_type = $_POST['main_person_type'] ?? 'adult';
+    $main_person_age = ($main_person_type === 'child') ? ($_POST['main_person_age'] ?? null) : null;
+    $main_person_highchair = ($main_person_type === 'child' && isset($_POST['main_person_highchair'])) ? 1 : 0;
+    
+    // Hauptperson validieren
+    if ($main_person_type === 'child') {
+        if (!$main_person_age || $main_person_age < 1 || $main_person_age > 12) {
+            $errors[] = "Ihr Alter muss zwischen 1 und 12 Jahren liegen.";
+        }
+    }
+    
     $persons = [[
-        'type' => 'guest',
+        'type' => $main_person_type,
         'name' => $firstname . ' ' . $lastname,
-        'age_group' => null
+        'age_group' => $main_person_age,
+        'highchair_needed' => $main_person_highchair
     ]];
     
     if ($guest_type === 'family') {
@@ -138,6 +150,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $member_name = trim($_POST["member_{$i}_name"] ?? '');
             $member_type = $_POST["member_{$i}_type"] ?? 'adult';
             $member_age = $_POST["member_{$i}_age"] ?? null;
+            $member_highchair = ($member_type === 'child' && isset($_POST["member_{$i}_highchair"])) ? 1 : 0;
             
             if (empty($member_name)) {
                 $errors[] = "Name von Person #{$i} ist erforderlich.";
@@ -153,7 +166,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $persons[] = [
                 'type' => $member_type,
                 'name' => $member_name,
-                'age_group' => $member_age
+                'age_group' => $member_age,
+                'highchair_needed' => $member_highchair
             ];
         }
     }
@@ -223,6 +237,9 @@ $form_data = [
     'email' => $_POST['email'] ?? ($existing_order['email'] ?? ''),
     'phone_raw' => $_POST['phone_raw'] ?? ($existing_order['guest']['phone_raw'] ?? ''),
     'guest_type' => $_POST['guest_type'] ?? ($existing_order['guest']['guest_type'] ?? 'individual'),
+    'main_type' => $_POST['main_person_type'] ?? ($existing_order['persons'][0]['type'] ?? 'adult'),
+    'main_age' => $_POST['main_person_age'] ?? ($existing_order['persons'][0]['age_group'] ?? ''),
+    'main_highchair' => isset($_POST['main_person_highchair']) ? 1 : ($existing_order['persons'][0]['highchair_needed'] ?? 0),
     'members' => []
 ];
 
@@ -232,7 +249,8 @@ if ($existing_order && isset($existing_order['persons'])) {
         $form_data['members'][] = [
             'name' => $person['name'],
             'type' => $person['type'],
-            'age_group' => $person['age_group']
+            'age_group' => $person['age_group'],
+            'highchair' => $person['highchair_needed'] ?? 0
         ];
     }
 } elseif (isset($_POST['member_count'])) {
@@ -241,7 +259,8 @@ if ($existing_order && isset($existing_order['persons'])) {
         $form_data['members'][] = [
             'name' => $_POST["member_{$i}_name"] ?? '',
             'type' => $_POST["member_{$i}_type"] ?? 'adult',
-            'age_group' => $_POST["member_{$i}_age"] ?? null
+            'age_group' => $_POST["member_{$i}_age"] ?? null,
+            'highchair' => isset($_POST["member_{$i}_highchair"]) ? 1 : 0
         ];
     }
 }
@@ -361,6 +380,30 @@ if ($existing_order && isset($existing_order['orders'])) {
                             <input type="hidden" id="phone_full" name="phone_full">
                             <div id="phone-error" class="invalid-feedback d-none">Ungültige Telefonnummer</div>
                         </div>
+                        
+                        <div class="col-12">
+                            <label class="form-label">Ich bin *</label>
+                            <select id="main_person_type" name="main_person_type" class="form-select form-select-lg">
+                                <option value="adult" <?php echo (!isset($form_data['main_type']) || $form_data['main_type'] === 'adult') ? 'selected' : ''; ?>>Erwachsener</option>
+                                <option value="child" <?php echo (isset($form_data['main_type']) && $form_data['main_type'] === 'child') ? 'selected' : ''; ?>>Kind (≤12 Jahre)</option>
+                            </select>
+                        </div>
+                        
+                        <div class="col-8 <?php echo (isset($form_data['main_type']) && $form_data['main_type'] === 'child') ? '' : 'd-none'; ?>" id="main_person_age_col">
+                            <label class="form-label">Alter *</label>
+                            <input type="number" id="main_person_age" name="main_person_age" class="form-control form-control-lg" 
+                                   placeholder="Alter" min="1" max="12" value="<?php echo $form_data['main_age'] ?? ''; ?>">
+                        </div>
+                        
+                        <div class="col-12 <?php echo (isset($form_data['main_type']) && $form_data['main_type'] === 'child') ? '' : 'd-none'; ?>" id="main_person_highchair_col">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="main_person_highchair" name="main_person_highchair" value="1"
+                                    <?php echo (isset($form_data['main_highchair']) && $form_data['main_highchair']) ? 'checked' : ''; ?>>
+                                <label class="form-check-label" for="main_person_highchair">
+                                    🪑 Hochstuhl benötigt
+                                </label>
+                            </div>
+                        </div>
                     </div>
                     
                     <hr class="my-4">
@@ -406,6 +449,17 @@ if ($existing_order && isset($existing_order['orders'])) {
                                 <div class="col-4 member-age-col <?php echo ($member['type'] === 'child') ? '' : 'd-none'; ?>">
                                     <input type="number" name="member_<?php echo $idx + 1; ?>_age" class="form-control form-control-lg member-age-input" 
                                            placeholder="Alter" min="1" max="12" value="<?php echo $member['age_group'] ?? ''; ?>">
+                                </div>
+                                <div class="col-12 member-highchair-col <?php echo ($member['type'] === 'child') ? '' : 'd-none'; ?>">
+                                    <div class="form-check">
+                                        <input class="form-check-input member-highchair-input" type="checkbox" 
+                                               name="member_<?php echo $idx + 1; ?>_highchair" value="1"
+                                               id="member_<?php echo $idx + 1; ?>_highchair"
+                                               <?php echo (isset($member['highchair']) && $member['highchair']) ? 'checked' : ''; ?>>
+                                        <label class="form-check-label" for="member_<?php echo $idx + 1; ?>_highchair">
+                                            🪑 Hochstuhl benötigt
+                                        </label>
+                                    </div>
                                 </div>
                                 <div class="col-12 mt-2">
                                     <button type="button" class="btn btn-outline-danger w-100 remove-member-btn">Entfernen</button>
@@ -500,6 +554,26 @@ if ($existing_order && isset($existing_order['orders'])) {
     });
 })();
 
+// Hauptperson Typ Toggle
+document.getElementById('main_person_type').addEventListener('change', function(){
+    var ageCol = document.getElementById('main_person_age_col');
+    var highchairCol = document.getElementById('main_person_highchair_col');
+    var ageInput = document.getElementById('main_person_age');
+    
+    if (this.value === 'child') {
+        ageCol.classList.remove('d-none');
+        highchairCol.classList.remove('d-none');
+        ageInput.required = true;
+    } else {
+        ageCol.classList.add('d-none');
+        highchairCol.classList.add('d-none');
+        ageInput.required = false;
+        ageInput.value = '';
+        document.getElementById('main_person_highchair').checked = false;
+    }
+    updateMenuSections();
+});
+
 // Gast-Typ Toggle
 document.querySelectorAll('[name="guest_type"]').forEach(function(radio){
     radio.addEventListener('change', function(){
@@ -532,6 +606,15 @@ document.getElementById('addMemberBtn').addEventListener('click', function(){
                 <div class="col-4 member-age-col d-none">
                     <input type="number" name="member_${memberCounter}_age" class="form-control form-control-lg member-age-input" placeholder="Alter" min="1" max="12">
                 </div>
+                <div class="col-12 member-highchair-col d-none">
+                    <div class="form-check">
+                        <input class="form-check-input member-highchair-input" type="checkbox" 
+                               name="member_${memberCounter}_highchair" value="1" id="member_${memberCounter}_highchair">
+                        <label class="form-check-label" for="member_${memberCounter}_highchair">
+                            🪑 Hochstuhl benötigt
+                        </label>
+                    </div>
+                </div>
                 <div class="col-12 mt-2">
                     <button type="button" class="btn btn-outline-danger w-100 remove-member-btn">Entfernen</button>
                 </div>
@@ -562,12 +645,16 @@ function attachMemberListeners() {
 function handleMemberTypeChange(e) {
     var row = e.target.closest('.member-row');
     var ageCol = row.querySelector('.member-age-col');
+    var highchairCol = row.querySelector('.member-highchair-col');
     if (e.target.value === 'child') {
         ageCol.classList.remove('d-none');
+        highchairCol.classList.remove('d-none');
         ageCol.querySelector('.member-age-input').required = true;
     } else {
         ageCol.classList.add('d-none');
+        highchairCol.classList.add('d-none');
         ageCol.querySelector('.member-age-input').required = false;
+        row.querySelector('.member-highchair-input').checked = false;
     }
     updateMenuSections();
 }
