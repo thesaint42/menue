@@ -1,0 +1,38 @@
+name: ftps_fetch_orders_error_log
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install lftp
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y lftp
+
+      - name: Fetch remote storage/logs/orders_error.log
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_PASSWORD: ${{ secrets.DEPLOY_PASSWORD }}
+          REMOTE_PATH: ${{ secrets.REMOTE_PATH || '.' }}
+        run: |
+          set -ex
+          LFTP_CMDS="set ftp:ssl-force true; set ftp:ssl-protect-data true; set ssl:verify-certificate no; set ftp:passive-mode true; open -p 21 -u \"${DEPLOY_USER}\",\"${DEPLOY_PASSWORD}\" \"${DEPLOY_HOST}\"; get \"${REMOTE_PATH}/storage/logs/orders_error.log\" -o orders_error_remote.log; bye"
+          echo "Running lftp: $LFTP_CMDS"
+          lftp -c "$LFTP_CMDS"
+
+      - name: Show remote log (truncated)
+        run: |
+          echo "--- Remote storage/logs/orders_error.log (first 500 lines) ---"
+          if [ -s orders_error_remote.log ]; then
+            sed -n '1,500p' orders_error_remote.log || true
+          else
+            echo "(file not found or empty)"
+          fi
+          echo "--- End of file ---"
