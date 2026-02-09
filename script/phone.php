@@ -52,3 +52,24 @@ function is_valid_e164($number) {
     if (!is_string($number) || $number === '') return false;
     return (bool)preg_match('/^\+\d{7,15}$/', $number);
 }
+
+function parsePhone($rawNumber, $defaultCountry = 'DE') {
+    /**
+     * Parse and validate a phone number
+     * Returns array with 'valid' and 'e164' keys
+     */
+    $s = trim((string)$rawNumber);
+    
+    if ($s === '') {
+        return ['valid' => false, 'e164' => null];
+    }
+    
+    // Normalize to E.164
+    $e164 = normalize_phone_e164($s, $defaultCountry);
+    
+    if ($e164 === false) {
+        return ['valid' => false, 'e164' => null];
+    }
+    
+    return ['valid' => true, 'e164' => $e164];
+}
