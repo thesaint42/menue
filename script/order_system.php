@@ -96,6 +96,9 @@ function save_order($pdo, $prefix, $data) {
         $order_id = $data['order_id'] ?? generate_order_id();
         $project_id = $data['project_id'];
         $email = $data['email'];
+        $firstname = $data['firstname'] ?? ($data['guest']['firstname'] ?? '');
+        $lastname = $data['lastname'] ?? ($data['guest']['lastname'] ?? '');
+        $phone = $data['phone'] ?? ($data['guest']['phone'] ?? ($data['guest']['phone_raw'] ?? ''));
         
         // 1. Order Session erstellen/prüfen
         $stmt = $pdo->prepare("SELECT id FROM {$prefix}order_sessions WHERE order_id = ?");
@@ -119,9 +122,9 @@ function save_order($pdo, $prefix, $data) {
             $guest_id = $existing_guest['id'];
             $stmt = $pdo->prepare("UPDATE {$prefix}guests SET firstname = ?, lastname = ?, phone = ?, guest_type = ?, family_size = ? WHERE id = ?");
             $stmt->execute([
-                $data['firstname'],
-                $data['lastname'],
-                $data['phone'] ?? '',
+                $firstname,
+                $lastname,
+                $phone,
                 $guest_type,
                 $family_size,
                 $guest_id
@@ -130,10 +133,10 @@ function save_order($pdo, $prefix, $data) {
             $stmt = $pdo->prepare("INSERT INTO {$prefix}guests (project_id, firstname, lastname, email, phone, guest_type, family_size) VALUES (?, ?, ?, ?, ?, ?, ?)");
             $stmt->execute([
                 $project_id,
-                $data['firstname'],
-                $data['lastname'],
+                $firstname,
+                $lastname,
                 $email,
-                $data['phone'] ?? '',
+                $phone,
                 $guest_type,
                 $family_size
             ]);
@@ -146,12 +149,16 @@ function save_order($pdo, $prefix, $data) {
         
         if ($guest_type === 'family' && !empty($data['persons'])) {
             $stmt = $pdo->prepare("INSERT INTO {$prefix}family_members (guest_id, name, member_type, child_age, highchair_needed) VALUES (?, ?, ?, ?, ?)");
-            foreach ($data['persons'] as $person) {
+            foreach ($data['persons'] as $idx => $person) {
+                if ($idx === 0) {
+                    continue; // Hauptperson wird nicht als Family Member gespeichert
+                }
+                $age = $person['age'] ?? $person['age_group'] ?? null;
                 $stmt->execute([
                     $guest_id,
                     $person['name'],
                     $person['type'],
-                    $person['age'] ?? null,
+                    $age,
                     $person['highchair'] ?? 0
                 ]);
             }
@@ -177,11 +184,82 @@ function save_order($pdo, $prefix, $data) {
         }
         
         $pdo->commit();
-        
+
+        // Bestätigungs-Mail (v3.0) versenden
+        $mail_message = 'Bestellung erfolgreich gespeichert.';
+        try {
+            if (!empty($email) && isset($_SERVER['HTTP_HOST'])) {
+                require_once __DIR__ . '/mailer.php';
+                require_once __DIR__ . '/mailer_templates.php';
+
+                // Projekt laden
+                $stmt = $pdo->prepare("SELECT * FROM {$prefix}projects WHERE id = ?");
+                $stmt->execute([$project_id]);
+                $project = $stmt->fetch(PDO::FETCH_ASSOC);
+
+                // Orders inkl. Namen laden
+                $stmt = $pdo->prepare("
+                    SELECT o.person_id, o.category_id, o.dish_id, d.name as dish_name, d.price, mc.name as category_name
+                    FROM {$prefix}orders o
+                    JOIN {$prefix}dishes d ON d.id = o.dish_id
+                    JOIN {$prefix}menu_categories mc ON mc.id = o.category_id
+                    WHERE o.order_id = ?
+                    ORDER BY o.person_id, mc.sort_order
+                ");
+                $stmt->execute([$order_id]);
+                $order_rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+                $persons = [];
+                foreach (($data['persons'] ?? []) as $idx => $person) {
+                    $persons[] = [
+                        'name' => $person['name'] ?? '',
+                        'type' => $person['type'] ?? 'adult',
+                        'age_group' => $person['age_group'] ?? ($person['age'] ?? null)
+                    ];
+                }
+
+                $order_items = [];
+                foreach ($order_rows as $row) {
+                    $order_items[] = [
+                        'person_index' => (int)$row['person_id'],
+                        'category_id' => (int)$row['category_id'],
+                        'dish_id' => (int)$row['dish_id'],
+                        'dish_name' => $row['dish_name'],
+                        'category_name' => $row['category_name'],
+                        'price' => $row['price']
+                    ];
+                }
+
+                $order_data = [
+                    'order_id' => $order_id,
+                    'guest' => [
+                        'firstname' => $firstname,
+                        'lastname' => $lastname
+                    ],
+                    'persons' => $persons,
+                    'orders' => $order_items
+                ];
+
+                $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+                $base = $scheme . '://' . $_SERVER['HTTP_HOST'];
+                $base_path = rtrim(dirname($_SERVER['PHP_SELF']), '/\\');
+                $base_path = $base_path === '/' ? '' : $base_path;
+                $edit_url = $base . $base_path . '/index.php?pin=' . urlencode($project['access_pin']) . '&action=edit&order_id=' . urlencode($order_id);
+
+                $mail_result = sendOrderConfirmationV3($pdo, $prefix, $order_data, $project, $edit_url, $email);
+                if (!$mail_result['status']) {
+                    $mail_message = 'Bestellung gespeichert. Hinweis: Bestätigungs-E-Mail konnte nicht gesendet werden.';
+                }
+            }
+        } catch (Exception $e) {
+            $mail_message = 'Bestellung gespeichert. Hinweis: Bestätigungs-E-Mail konnte nicht gesendet werden.';
+            error_log('Mail send error: ' . $e->getMessage());
+        }
+
         return [
             'success' => true,
             'order_id' => $order_id,
-            'message' => 'Bestellung erfolgreich gespeichert.'
+            'message' => $mail_message
         ];
         
     } catch (Exception $e) {

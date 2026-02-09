@@ -144,6 +144,59 @@ function sendOrderConfirmation($pdo, $prefix, $guest_id) {
 }
 
 /**
+ * Versendet E-Mail für Bestellungen im v3.0 System (order-id)
+ */
+function sendOrderConfirmationV3($pdo, $prefix, $order_data, $project, $edit_url, $recipient_email) {
+    global $config;
+
+    // SMTP Config laden
+    $stmt = $pdo->query("SELECT * FROM {$prefix}smtp_config WHERE id = 1");
+    $smtp = $stmt->fetch();
+
+    if (!$smtp || empty($smtp['smtp_host'])) {
+        return ["status" => false, "error" => "SMTP nicht konfiguriert."];
+    }
+
+    $mail = new PHPMailer(true);
+
+    try {
+        $mail->isSMTP();
+        $mail->Host       = $smtp['smtp_host'];
+        $mail->SMTPAuth   = true;
+        $mail->Username   = $smtp['smtp_user'];
+        $mail->Password   = $smtp['smtp_pass'];
+        $mail->SMTPSecure = $smtp['smtp_secure'] !== 'none' ? $smtp['smtp_secure'] : false;
+        $mail->Port       = (int)$smtp['smtp_port'];
+        $mail->CharSet    = 'UTF-8';
+
+        $mail->setFrom($smtp['sender_email'], $smtp['sender_name']);
+        $mail->addAddress($recipient_email, $order_data['guest']['firstname'] . ' ' . $order_data['guest']['lastname']);
+        
+        // BCC an Admin
+        if (!empty($project['admin_email'])) {
+            $mail->addBCC($project['admin_email']);
+        }
+
+        $template = generate_order_confirmation_email($order_data, $project, $edit_url);
+
+        $mail->isHTML(true);
+        $mail->Subject = $template['subject'];
+        $mail->Body = $template['body_html'];
+        $mail->AltBody = $template['body_text'];
+
+        $mail->send();
+
+        logMailSent($pdo, $prefix, $smtp['sender_email'], $recipient_email, $mail->Subject, 'success');
+
+        return ["status" => true];
+
+    } catch (Exception $e) {
+        logMailSent($pdo, $prefix, $smtp['sender_email'], $recipient_email, $mail->Subject ?? 'Bestellbestätigung', 'failed', $mail->ErrorInfo);
+        return ["status" => false, "error" => $mail->ErrorInfo];
+    }
+}
+
+/**
  * Testzugriff für SMTP
  */
 function sendTestMail($pdo, $prefix, $recipient_email) {
