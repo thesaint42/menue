@@ -1,0 +1,41 @@
+name: ftps_deploy_inspect
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install lftp
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y lftp
+
+      - name: Upload tools/inspect_db.php to candidate webroots
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_PASSWORD: ${{ secrets.DEPLOY_PASSWORD }}
+        run: |
+          set -ex
+          FILE=tools/inspect_db.php
+          # Candidate remote paths to try (relative to remote user's home or absolute)
+          CANDIDATES=("./" "public_html" "www" "html" "httpdocs" "/var/www/html" "/srv/www/htdocs")
+
+          for p in "${CANDIDATES[@]}"; do
+            echo "Trying upload to: $p"
+            LFTP_CMDS="set ftp:ssl-force true; set ftp:ssl-protect-data true; set ssl:verify-certificate no; set ftp:passive-mode true; open -p 21 -u \"${DEPLOY_USER}\",\"${DEPLOY_PASSWORD}\" \"${DEPLOY_HOST}\"; mkdir -p \"$p\" || true; put \"$FILE\" -o \"$p/$FILE\"; bye"
+            if lftp -c "$LFTP_CMDS"; then
+              echo "Upload succeeded to $p"
+              exit 0
+            else
+              echo "Upload to $p failed; trying next"
+            fi
+          done
+
+          echo "All candidate uploads failed"
+          exit 2
