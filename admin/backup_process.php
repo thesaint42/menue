@@ -155,78 +155,90 @@ if ($action === 'start') {
             
             $files_file = $backup_dir . '/files_backup_' . $timestamp . '.zip';
             
-            // Prüfe ob ZipArchive verfügbar ist
-            if (!class_exists('ZipArchive')) {
-                throw new Exception('ZipArchive-Klasse nicht verfügbar. PHP muss mit ZIP-Unterstützung kompiliert sein.');
-            }
-            
-            $zip = new ZipArchive();
-            $zip_result = $zip->open($files_file, ZipArchive::CREATE | ZipArchive::OVERWRITE);
-            
-            if ($zip_result !== true) {
-                throw new Exception('ZIP-Datei konnte nicht erstellt werden (Code: ' . $zip_result . ')');
-            }
-            
-            $dirs_to_backup = [
-                ['path' => '../admin', 'name' => 'admin'],
-                ['path' => '../script', 'name' => 'script'],
-                ['path' => '../assets', 'name' => 'assets'],
-                ['path' => '../views', 'name' => 'views'],
-                ['path' => '../nav', 'name' => 'nav'],
-            ];
-            
-            $file_count = 0;
-            $error_dirs = [];
-            
-            foreach ($dirs_to_backup as $item) {
-                $full_path = __DIR__ . '/' . $item['path'];
-                if (!file_exists($full_path)) {
-                    $error_dirs[] = $item['path'];
-                    continue;
+            try {
+                // Prüfe ob ZipArchive verfügbar ist
+                if (!class_exists('ZipArchive')) {
+                    throw new Exception('ZipArchive-Klasse nicht verfügbar. PHP muss mit ZIP-Unterstützung kompiliert sein.');
                 }
                 
-                if (is_file($full_path)) {
-                    try {
-                        $zip->addFile($full_path, $item['name']);
-                        $file_count++;
-                    } catch (Exception $e) {
-                        // Einzelne Datei-Fehler nicht kritisch
+                $zip = new ZipArchive();
+                $zip_result = $zip->open($files_file, ZipArchive::CREATE | ZipArchive::OVERWRITE);
+                
+                if ($zip_result !== true) {
+                    throw new Exception('ZIP-Datei konnte nicht erstellt werden (Code: ' . $zip_result . ')');
+                }
+                
+                $dirs_to_backup = [
+                    ['path' => '../admin', 'name' => 'admin'],
+                    ['path' => '../script', 'name' => 'script'],
+                    ['path' => '../assets', 'name' => 'assets'],
+                    ['path' => '../views', 'name' => 'views'],
+                    ['path' => '../nav', 'name' => 'nav'],
+                ];
+                
+                $file_count = 0;
+                $error_dirs = [];
+                
+                foreach ($dirs_to_backup as $item) {
+                    $full_path = __DIR__ . '/' . $item['path'];
+                    if (!file_exists($full_path)) {
+                        $error_dirs[] = $item['path'];
+                        continue;
                     }
-                } elseif (is_dir($full_path)) {
-                    try {
-                        $added = addDirToZip($zip, $full_path, $item['name']);
-                        $file_count += $added;
-                    } catch (Exception $e) {
-                        // Verzichnis-Fehler nicht kritisch
+                    
+                    if (is_file($full_path)) {
+                        try {
+                            $zip->addFile($full_path, $item['name']);
+                            $file_count++;
+                        } catch (Exception $e) {
+                            // Einzelne Datei-Fehler nicht kritisch
+                        }
+                    } elseif (is_dir($full_path)) {
+                        try {
+                            $added = addDirToZip($zip, $full_path, $item['name']);
+                            $file_count += $added;
+                        } catch (Exception $e) {
+                            // Verzichnis-Fehler nicht kritisch
+                        }
                     }
                 }
+                
+                $zip->close();
+                
+                // Prüfe ob ZIP erstellt und nicht leer ist
+                if (!file_exists($files_file) || filesize($files_file) <= 0) {
+                    if (file_exists($files_file)) {
+                        @unlink($files_file);
+                    }
+                    // ZIP-Fehler bei "full" ist nicht kritisch - nur warnen
+                    if ($backup_type === 'full') {
+                        $status['details'][] = "⚠️ ZIP-Backup konnte nicht erstellt werden (wird bei 'Nur Dateien' nicht benötigt)";
+                    } else {
+                        throw new Exception('ZIP-Datei ist leer oder konnte nicht erstellt werden');
+                    }
+                } else {
+                    if ($file_count === 0) {
+                        $status['details'][] = "⚠️ Keine Dateien in ZIP hinzugefügt. Verzeichnisse: " . implode(', ', $error_dirs);
+                    } else {
+                        $files_size = formatBytes(filesize($files_file));
+                        $status['details'][] = "✅ Dateien komprimiert: " . basename($files_file) . " ($files_size, $file_count Dateien)";
+                        if (!empty($error_dirs)) {
+                            $status['details'][] = "⚠️ Fehlende Verzeichnisse (übersprungen): " . implode(', ', $error_dirs);
+                        }
+                        $status['files_created'][] = 'files_backup_' . $timestamp . '.zip';
+                    }
+                }
+                $status['progress'] = 90;
+                
+            } catch (Exception $e) {
+                // Bei "full" Backup ist ZIP optional - nur warnen
+                if ($backup_type === 'full') {
+                    $status['details'][] = "⚠️ ZIP-Fehler: " . $e->getMessage() . " (SQL-Backup wurde erstellt)";
+                    $status['progress'] = 90;
+                } else {
+                    throw $e;
+                }
             }
-            
-            $zip->close();
-            
-            // Prüfe ob ZIP erstellt und nicht leer ist
-            if (!file_exists($files_file)) {
-                throw new Exception('ZIP-Datei konnte nicht erstellt werden - Datei existiert nicht');
-            }
-            
-            $zip_size = filesize($files_file);
-            if ($zip_size <= 0) {
-                @unlink($files_file);
-                throw new Exception('ZIP-Datei ist leer. Verzeichnisse zu Backup: ' . implode(', ', $error_dirs) . '. Dateien: ' . $file_count);
-            }
-            
-            if ($file_count === 0) {
-                @unlink($files_file);
-                throw new Exception('Keine Dateien zur ZIP hinzugefügt. Überprüfen Sie Dateiberechtigungen. Verzeichnisse: ' . implode(', ', $error_dirs));
-            }
-            
-            $files_size = formatBytes($zip_size);
-            $status['details'][] = "✅ Dateien komprimiert: " . basename($files_file) . " ($files_size, $file_count Dateien)";
-            if (!empty($error_dirs)) {
-                $status['details'][] = "⚠️ Fehlende Verzeichnisse (übersprungen): " . implode(', ', $error_dirs);
-            }
-            $status['files_created'][] = 'files_backup_' . $timestamp . '.zip';
-            $status['progress'] = 90;
         }
         
         // === FERTIGSTELLUNG ===
