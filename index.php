@@ -276,7 +276,7 @@ if ($existing_order && isset($existing_order['orders'])) {
 <body>
 <?php include 'nav/top_nav.php'; ?>
 
-<div class="container py-4">
+<div class="container py-3 py-md-4" style="max-width: 800px;">
     
     <?php if ($order_success): ?>
         <!-- Erfolgsseite -->
@@ -339,24 +339,24 @@ if ($existing_order && isset($existing_order['orders'])) {
                 </div>
                 <div class="card-body">
                     <div class="row g-3">
-                        <div class="col-md-6">
+                        <div class="col-12 col-sm-6">
                             <label class="form-label">Vorname *</label>
-                            <input type="text" name="firstname" class="form-control" required
+                            <input type="text" name="firstname" class="form-control form-control-lg" required
                                    value="<?php echo htmlspecialchars($form_data['firstname']); ?>">
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-12 col-sm-6">
                             <label class="form-label">Nachname *</label>
-                            <input type="text" name="lastname" class="form-control" required
+                            <input type="text" name="lastname" class="form-control form-control-lg" required
                                    value="<?php echo htmlspecialchars($form_data['lastname']); ?>">
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-12">
                             <label class="form-label d-block">E-Mail *</label>
-                            <input type="email" name="email" class="form-control" required
+                            <input type="email" name="email" class="form-control form-control-lg" required
                                    value="<?php echo htmlspecialchars($form_data['email']); ?>">
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-12">
                             <label class="form-label d-block">Telefon (optional)</label>
-                            <input type="tel" id="phone_visible" class="form-control"
+                            <input type="tel" id="phone_visible" class="form-control form-control-lg"
                                    value="<?php echo htmlspecialchars($form_data['phone_raw']); ?>">
                             <input type="hidden" id="phone_full" name="phone_full">
                             <div id="phone-error" class="invalid-feedback d-none">Ungültige Telefonnummer</div>
@@ -365,46 +365,50 @@ if ($existing_order && isset($existing_order['orders'])) {
                     
                     <hr class="my-4">
                     
-                    <div class="form-check form-check-inline">
-                        <input class="form-check-input" type="radio" name="guest_type" id="type_individual" 
-                               value="individual" <?php echo ($form_data['guest_type'] === 'individual') ? 'checked' : ''; ?>>
-                        <label class="form-check-label" for="type_individual">Nur für mich</label>
-                    </div>
-                    <div class="form-check form-check-inline">
-                        <input class="form-check-input" type="radio" name="guest_type" id="type_family" 
-                               value="family" <?php echo ($form_data['guest_type'] === 'family') ? 'checked' : ''; ?>>
-                        <label class="form-check-label" for="type_family">Für mich und weitere Personen</label>
+                    <div class="d-grid gap-2">
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="guest_type" id="type_individual" 
+                                   value="individual" <?php echo ($form_data['guest_type'] === 'individual') ? 'checked' : ''; ?>>
+                            <label class="form-check-label" for="type_individual">Nur für mich</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="guest_type" id="type_family" 
+                                   value="family" <?php echo ($form_data['guest_type'] === 'family') ? 'checked' : ''; ?>>
+                            <label class="form-check-label" for="type_family">Für mich und weitere Personen</label>
+                        </div>
                     </div>
                 </div>
             </div>
             
             <!-- Familienmitglieder -->
             <div class="card mb-4 <?php echo ($form_data['guest_type'] === 'family') ? '' : 'd-none'; ?>" id="familySection">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0">👥 Weitere Personen</h5>
-                    <button type="button" class="btn btn-sm btn-outline-primary" id="addMemberBtn">+ Person hinzufügen</button>
+                <div class="card-header">
+                    <h5 class="mb-3">👥 Weitere Personen</h5>
+                    <div class="d-grid">
+                        <button type="button" class="btn btn-outline-primary" id="addMemberBtn">+ Person hinzufügen</button>
+                    </div>
                 </div>
                 <div class="card-body">
                     <div id="membersContainer">
                         <?php foreach ($form_data['members'] as $idx => $member): ?>
                         <div class="member-row border-bottom pb-3 mb-3">
                             <div class="row g-2">
-                                <div class="col-md-4">
-                                    <input type="text" name="member_<?php echo $idx + 1; ?>_name" class="form-control" 
+                                <div class="col-12">
+                                    <input type="text" name="member_<?php echo $idx + 1; ?>_name" class="form-control form-control-lg" 
                                            placeholder="Name" value="<?php echo htmlspecialchars($member['name']); ?>" required>
                                 </div>
-                                <div class="col-md-3">
-                                    <select name="member_<?php echo $idx + 1; ?>_type" class="form-select member-type-select">
+                                <div class="col-8">
+                                    <select name="member_<?php echo $idx + 1; ?>_type" class="form-select form-select-lg member-type-select">
                                         <option value="adult" <?php echo ($member['type'] === 'adult') ? 'selected' : ''; ?>>Erwachsener</option>
                                         <option value="child" <?php echo ($member['type'] === 'child') ? 'selected' : ''; ?>>Kind (≤12)</option>
                                     </select>
                                 </div>
-                                <div class="col-md-2 member-age-col <?php echo ($member['type'] === 'child') ? '' : 'd-none'; ?>">
-                                    <input type="number" name="member_<?php echo $idx + 1; ?>_age" class="form-control member-age-input" 
+                                <div class="col-4 member-age-col <?php echo ($member['type'] === 'child') ? '' : 'd-none'; ?>">
+                                    <input type="number" name="member_<?php echo $idx + 1; ?>_age" class="form-control form-control-lg member-age-input" 
                                            placeholder="Alter" min="1" max="12" value="<?php echo $member['age_group'] ?? ''; ?>">
                                 </div>
-                                <div class="col-md-3">
-                                    <button type="button" class="btn btn-outline-danger btn-sm remove-member-btn">Entfernen</button>
+                                <div class="col-12 mt-2">
+                                    <button type="button" class="btn btn-outline-danger w-100 remove-member-btn">Entfernen</button>
                                 </div>
                             </div>
                         </div>
@@ -429,8 +433,8 @@ if ($existing_order && isset($existing_order['orders'])) {
                         </h6>
                         <?php foreach ($categories as $cat): ?>
                         <div class="mb-3">
-                            <label class="form-label"><?php echo htmlspecialchars($cat['name']); ?></label>
-                            <select name="person_0_cat_<?php echo $cat['id']; ?>" class="form-select">
+                            <label class="form-label fw-bold"><?php echo htmlspecialchars($cat['name']); ?></label>
+                            <select name="person_0_cat_<?php echo $cat['id']; ?>" class="form-select form-select-lg">
                                 <option value="">-- Bitte wählen --</option>
                                 <?php foreach ($cat['dishes'] as $dish): ?>
                                 <option value="<?php echo $dish['id']; ?>" 
@@ -516,20 +520,20 @@ document.getElementById('addMemberBtn').addEventListener('click', function(){
     var html = `
         <div class="member-row border-bottom pb-3 mb-3">
             <div class="row g-2">
-                <div class="col-md-4">
-                    <input type="text" name="member_${memberCounter}_name" class="form-control member-name-input" placeholder="Name" required>
+                <div class="col-12">
+                    <input type="text" name="member_${memberCounter}_name" class="form-control form-control-lg member-name-input" placeholder="Name" required>
                 </div>
-                <div class="col-md-3">
-                    <select name="member_${memberCounter}_type" class="form-select member-type-select">
+                <div class="col-8">
+                    <select name="member_${memberCounter}_type" class="form-select form-select-lg member-type-select">
                         <option value="adult">Erwachsener</option>
                         <option value="child">Kind (≤12)</option>
                     </select>
                 </div>
-                <div class="col-md-2 member-age-col d-none">
-                    <input type="number" name="member_${memberCounter}_age" class="form-control member-age-input" placeholder="Alter" min="1" max="12">
+                <div class="col-4 member-age-col d-none">
+                    <input type="number" name="member_${memberCounter}_age" class="form-control form-control-lg member-age-input" placeholder="Alter" min="1" max="12">
                 </div>
-                <div class="col-md-3">
-                    <button type="button" class="btn btn-outline-danger btn-sm remove-member-btn">Entfernen</button>
+                <div class="col-12 mt-2">
+                    <button type="button" class="btn btn-outline-danger w-100 remove-member-btn">Entfernen</button>
                 </div>
             </div>
         </div>
@@ -617,8 +621,8 @@ function updateMenuSections() {
         
         categoriesData.forEach(function(cat){
             sectionHtml += `<div class="mb-3">
-                <label class="form-label">${escapeHtml(cat.name)}</label>
-                <select name="person_${person.idx}_cat_${cat.id}" class="form-select">
+                <label class="form-label fw-bold">${escapeHtml(cat.name)}</label>
+                <select name="person_${person.idx}_cat_${cat.id}" class="form-select form-select-lg">
                     <option value="">-- Bitte wählen --</option>`;
             
             cat.dishes.forEach(function(dish){
