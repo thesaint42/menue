@@ -381,17 +381,43 @@ function updateBackupUI(data) {
     
     // Update Status Message
     if (data.status === 'completed') {
-        statusMessage.className = 'alert alert-success mt-3 p-3 small';
+        statusMessage.className = 'alert alert-success mt-3 p-3';
         statusMessage.style.display = 'block';
-        statusText.innerHTML = '✅ ' + data.message;
+        statusText.innerHTML = `
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <strong>✅ Backup erfolgreich erstellt!</strong>
+                    <div class="small text-muted mt-2">${data.message}</div>
+                </div>
+                <button class="btn btn-success ms-3" onclick="location.reload()">
+                    🔄 Seite neu laden
+                </button>
+            </div>
+        `;
         
         // Change Button
         progressBar.classList.add('bg-success');
         progressBar.classList.remove('progress-bar-striped', 'progress-bar-animated');
+        
+        // Auto-reload nach 4 Sekunden wenn nicht geklickt
+        setTimeout(() => {
+            fetch('backup_process.php?action=cleanup');
+            location.reload();
+        }, 4000);
     } else if (data.status === 'error') {
-        statusMessage.className = 'alert alert-danger mt-3 p-3 small';
+        statusMessage.className = 'alert alert-danger mt-3 p-3';
         statusMessage.style.display = 'block';
-        statusText.innerHTML = '❌ ' + data.message;
+        statusText.innerHTML = `
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <strong>❌ Backup-Fehler</strong>
+                    <div class="small text-muted mt-2">${data.message}</div>
+                </div>
+                <button class="btn btn-warning ms-3" onclick="location.reload()">
+                    🔄 Seite neu laden
+                </button>
+            </div>
+        `;
         
         progressBar.classList.add('bg-danger');
         progressBar.classList.remove('progress-bar-animated');
