@@ -541,13 +541,12 @@ function resetBackupForm() {
     backupStartTime = null;
     backupStartTimestamp = null;
 }
-
 // Massenbearbeitung: Select All
 function toggleSelectAll() {
     const selectAllCheckbox = document.getElementById('selectAll');
     const backupCheckboxes = document.querySelectorAll('tbody .backup-checkbox');
     
-    console.log('toggleSelectAll called, checked:', selectAllCheckbox.checked, 'count:', backupCheckboxes.length);
+    console.log('✅ toggleSelectAll() - checked:', selectAllCheckbox.checked, 'count:', backupCheckboxes.length);
     
     backupCheckboxes.forEach(checkbox => {
         checkbox.checked = selectAllCheckbox.checked;
@@ -558,30 +557,41 @@ function toggleSelectAll() {
 
 // Massenbearbeitung: Update Buttons
 function updateBulkActions() {
-    const backupCheckboxes = document.querySelectorAll('tbody .backup-checkbox:checked');
     const bulkActionsDiv = document.getElementById('bulkActions');
     const selectionCountSpan = document.getElementById('selectionCount');
+    const selectAllCheckbox = document.getElementById('selectAll');
     
-    if (backupCheckboxes.length > 0) {
+    if (!bulkActionsDiv || !selectionCountSpan || !selectAllCheckbox) {
+        console.warn('⚠️  Missing DOM elements');
+        return;
+    }
+    
+    // Zähle nur Checkboxen in tbody (nicht checked, alle!)
+    const allCheckboxes = document.querySelectorAll('tbody .backup-checkbox');
+    const checkedCheckboxes = document.querySelectorAll('tbody .backup-checkbox:checked');
+    
+    console.log('📊 updateBulkActions() - total:', allCheckboxes.length, 'checked:', checkedCheckboxes.length);
+    
+    // Update Selection Count
+    selectionCountSpan.textContent = checkedCheckboxes.length;
+    
+    // Show/Hide Bulk Actions
+    if (checkedCheckboxes.length > 0) {
         bulkActionsDiv.style.display = 'flex';
-        selectionCountSpan.textContent = backupCheckboxes.length;
     } else {
         bulkActionsDiv.style.display = 'none';
-        selectionCountSpan.textContent = '0';
     }
     
     // Update Select All Checkbox
-    const allCheckboxes = document.querySelectorAll('tbody .backup-checkbox');
-    const selectAllCheckbox = document.getElementById('selectAll');
-    
     if (allCheckboxes.length > 0) {
-        const allChecked = backupCheckboxes.length === allCheckboxes.length;
-        const someChecked = backupCheckboxes.length > 0;
+        const allChecked = checkedCheckboxes.length === allCheckboxes.length;
+        const someChecked = checkedCheckboxes.length > 0 && checkedCheckboxes.length < allCheckboxes.length;
         
         selectAllCheckbox.checked = allChecked;
-        selectAllCheckbox.indeterminate = someChecked && !allChecked;
+        selectAllCheckbox.indeterminate = someChecked;
+        
+        console.log('  selectAll.checked =', selectAllCheckbox.checked, ', indeterminate =', selectAllCheckbox.indeterminate);
     }
-}
 }
 
 // Massenbearbeitung: Alle Download
