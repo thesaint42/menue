@@ -73,11 +73,13 @@ $stmt = $pdo->prepare("
     SELECT mc.id as category_id, mc.name as category_name, mc.sort_order,
            d.id as dish_id, d.name as dish_name, d.description, d.price, d.sort_order as dish_sort
     FROM {$prefix}menu_categories mc
-    LEFT JOIN {$prefix}dishes d ON mc.id = d.category_id
-    WHERE mc.project_id = ?
+    LEFT JOIN {$prefix}dishes d ON mc.id = d.category_id AND d.project_id = ?
+    WHERE d.project_id = ? OR mc.id IN (
+        SELECT DISTINCT category_id FROM {$prefix}dishes WHERE project_id = ?
+    )
     ORDER BY mc.sort_order, d.sort_order
 ");
-$stmt->execute([$project_id]);
+$stmt->execute([$project_id, $project_id, $project_id]);
 $menu_items = $stmt->fetchAll();
 
 $categories = [];
