@@ -327,11 +327,11 @@ function checkBackupStatus() {
                 }
                 
                 if (data.status === 'completed') {
-                    // Refresh Seite nach kurzer Verzögerung für neue Backup-Liste
+                    // Refresh Seite nach 4 Sekunden für neue Backup-Liste
                     setTimeout(() => {
-                        fetch('backup_process.php?action=cleanup');
+                        fetch('backup_process.php?action=cleanup').catch(() => {});
                         location.reload();
-                    }, 2000);
+                    }, 4000);
                 }
             }
         })
@@ -430,37 +430,61 @@ function updateBackupUI(data) {
                     <strong>❌ Backup-Fehler</strong>
                     <div class="small text-muted mt-2">${data.message}</div>
                 </div>
-                <button class="btn btn-warning ms-3" onclick="location.reload()">
-                    🔄 Seite neu laden
+                <button class="btn btn-warning ms-3" onclick="resetBackupForm()">
+                    🔄 Zurück
                 </button>
             </div>
         `;
         
         progressBar.classList.add('bg-danger');
         progressBar.classList.remove('progress-bar-animated');
-        
-        // Zeige Formular erneut nach Fehler
-        setTimeout(() => {
-            document.getElementById('backupForm').style.display = 'block';
-            document.getElementById('backupProgress').style.display = 'none';
-        }, 3000);
     }
 }
 
 function showBackupError(message) {
     const statusMessage = document.getElementById('statusMessage');
-    statusMessage.className = 'alert alert-danger mt-3 p-3 small';
+    statusMessage.className = 'alert alert-danger mt-3 p-3';
     statusMessage.style.display = 'block';
-    document.getElementById('statusText').innerHTML = '❌ ' + message;
+    document.getElementById('statusText').innerHTML = `
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <strong>❌ Fehler</strong>
+                <div class="small text-muted mt-2">${message}</div>
+            </div>
+            <button class="btn btn-warning ms-3" onclick="resetBackupForm()">
+                🔄 Zurück
+            </button>
+        </div>
+    `;
     
     const progressBar = document.getElementById('progressBar');
     progressBar.classList.add('bg-danger');
     progressBar.classList.remove('progress-bar-animated');
+}
+
+function resetBackupForm() {
+    // Reset UI
+    document.getElementById('backupForm').style.display = 'block';
+    document.getElementById('backupProgress').style.display = 'none';
     
-    // Zeige Formular erneut nach kurzer Verzögerung
-    setTimeout(() => {
-        document.getElementById('backupForm').style.display = 'block';
-        document.getElementById('backupProgress').style.display = 'none';
-    }, 4000);
+    // Reset Progress Bar
+    const progressBar = document.getElementById('progressBar');
+    progressBar.style.width = '0%';
+    progressBar.setAttribute('aria-valuenow', '0');
+    progressBar.classList.remove('bg-success', 'bg-danger');
+    progressBar.classList.add('progress-bar-striped', 'progress-bar-animated');
+    
+    // Reset Prozent
+    document.getElementById('progressPercent').textContent = '0%';
+    
+    // Reset Status
+    document.getElementById('currentStep').textContent = 'Backup wird vorbereitet...';
+    document.getElementById('detailsList').innerHTML = '<div class="text-muted">Warte auf Start...</div>';
+    document.getElementById('progressEta').textContent = '';
+    document.getElementById('statusMessage').style.display = 'none';
+    
+    // Reset Zeitvariablen
+    backupStartTime = null;
+    backupStartTimestamp = null;
 }
 </script>
