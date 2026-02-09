@@ -350,12 +350,12 @@ if ($existing_order && isset($existing_order['orders'])) {
                                    value="<?php echo htmlspecialchars($form_data['lastname']); ?>">
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label">E-Mail *</label>
+                            <label class="form-label d-block">E-Mail *</label>
                             <input type="email" name="email" class="form-control" required
                                    value="<?php echo htmlspecialchars($form_data['email']); ?>">
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label">Telefon (optional)</label>
+                            <label class="form-label d-block">Telefon (optional)</label>
                             <input type="tel" id="phone_visible" class="form-control"
                                    value="<?php echo htmlspecialchars($form_data['phone_raw']); ?>">
                             <input type="hidden" id="phone_full" name="phone_full">
