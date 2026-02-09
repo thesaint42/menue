@@ -10,6 +10,7 @@ require_once 'script/phone.php';
 $prefix = $config['database']['prefix'] ?? 'menu_';
 $message = "";
 $messageType = "info";
+$order_success = false;
 
 // Projekt-ID aus URL-Parameter (pin) abrufen
 $pin_input = isset($_GET['pin']) ? trim($_GET['pin']) : null;
@@ -273,13 +274,16 @@ $guest_count = $stmt->fetch()['count'] ?? 0;
 
 // Formularverarbeitung
 if (isset($_POST['submit_order'])) {
-    $firstname = trim($_POST['firstname']);
-    $lastname = trim($_POST['lastname']);
-    $email = trim($_POST['email']);
-    $phone_raw = trim($_POST['phone']);
+    // Preserve submitted values
+    $firstname = trim($_POST['firstname'] ?? '');
+    $lastname = trim($_POST['lastname'] ?? '');
+    $email = trim($_POST['email'] ?? '');
+    $phone_raw = trim($_POST['phone'] ?? '');
     $phone = normalize_phone_e164($phone_raw, 'DE');
-    $guest_type = $_POST['guest_type']; // 'individual' oder 'family'
-    $family_size = ($guest_type === 'family') ? (int)$_POST['family_size'] : 1;
+    $guest_type = $_POST['guest_type'] ?? 'individual';
+    $family_size = ($guest_type === 'family') ? (int)($_POST['family_size'] ?? 2) : 1;
+    $submitted_members = $_POST['members'] ?? [];
+    $submitted_orders = $_POST['orders'] ?? [];
 
     // Validierung
     if (empty($firstname) || empty($lastname) || empty($email)) {
@@ -295,70 +299,88 @@ if (isset($_POST['submit_order'])) {
         $message = "Maximale Anzahl von Gästen erreicht.";
         $messageType = "danger";
     } else {
-        try {
-            $pdo->beginTransaction();
-
-            // Gast eintragen (oder Update falls bereits vorhanden)
-            $stmt = $pdo->prepare("INSERT INTO {$prefix}guests 
-                (project_id, firstname, lastname, email, phone, guest_type, family_size, order_status) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, 'pending') 
-                ON DUPLICATE KEY UPDATE 
-                phone = ?, guest_type = ?, family_size = ?, order_status = 'pending'");
-            
-            $stmt->execute([
-                $project_id, $firstname, $lastname, $email, $phone, $guest_type, $family_size,
-                $phone, $guest_type, $family_size
-            ]);
-
-            // Gast-ID abrufen
-            $stmt = $pdo->prepare("SELECT id FROM {$prefix}guests WHERE project_id = ? AND email = ?");
-            $stmt->execute([$project_id, $email]);
-            $guest_id = $stmt->fetch()['id'];
-
-            // Familienmitglieder löschen (beim Update)
-            $stmt = $pdo->prepare("DELETE FROM {$prefix}family_members WHERE guest_id = ?");
-            $stmt->execute([$guest_id]);
-
-            // Familienmitglieder eintragen (falls Familie)
-            if ($guest_type === 'family' && isset($_POST['members'])) {
-                foreach ($_POST['members'] as $idx => $member) {
-                    $member_name = trim($member['name'] ?? '');
-                    $member_type = $member['type'] ?? 'adult';
-                    $child_age = ($member_type === 'child') ? (int)($member['age'] ?? 0) : null;
-                    $highchair = ($member_type === 'child') ? ((int)($member['highchair'] ?? 0)) : 0;
-
-                    if (!empty($member_name)) {
-                        $stmt = $pdo->prepare("INSERT INTO {$prefix}family_members 
-                            (guest_id, name, member_type, child_age, highchair_needed) 
-                            VALUES (?, ?, ?, ?, ?)");
-                        $stmt->execute([$guest_id, $member_name, $member_type, $child_age, $highchair]);
+        // Validate family members: children must be <= 12 years
+        $invalid_child_age = false;
+        if ($guest_type === 'family' && !empty($submitted_members)) {
+            foreach ($submitted_members as $m) {
+                $type = $m['type'] ?? 'adult';
+                if ($type === 'child') {
+                    $age = isset($m['age']) ? (int)$m['age'] : 0;
+                    if ($age > 12) {
+                        $invalid_child_age = true;
+                        break;
                     }
                 }
             }
+        }
 
-            // Bestellungen speichern
-            foreach ($_POST['orders'] as $dish_id => $quantity) {
-                if ($quantity > 0) {
-                    $stmt = $pdo->prepare("INSERT INTO {$prefix}orders (guest_id, dish_id, quantity) 
-                                          VALUES (?, ?, ?) 
-                                          ON DUPLICATE KEY UPDATE quantity = ?");
-                    $stmt->execute([$guest_id, $dish_id, $quantity, $quantity]);
-                }
-            }
-
-            $pdo->commit();
-
-            // Email versenden
-            require_once 'script/mailer.php';
-            $mail_result = sendOrderConfirmation($pdo, $prefix, $guest_id);
-
-            $message = "✓ Ihre Bestellung wurde erfolgreich aufgegeben! Eine Bestätigungsemail wird in Kürze versendet.";
-            $messageType = "success";
-
-        } catch (Exception $e) {
-            $pdo->rollBack();
-            $message = "Fehler beim Speichern: " . $e->getMessage();
+        if ($invalid_child_age) {
+            $message = "Fehler: Für ein als 'Kind' markiertes Familienmitglied wurde ein Alter > 12 Jahre angegeben. Bitte wählen Sie 'Erwachsener' oder korrigieren Sie das Alter.";
             $messageType = "danger";
+        } else {
+            try {
+                $pdo->beginTransaction();
+
+                // Guest: if exists (project+email) update, otherwise insert new
+                $stmt = $pdo->prepare("SELECT id FROM {$prefix}guests WHERE project_id = ? AND email = ?");
+                $stmt->execute([$project_id, $email]);
+                $row = $stmt->fetch();
+                if ($row && !empty($row['id'])) {
+                    $guest_id = (int)$row['id'];
+                    $stmt = $pdo->prepare("UPDATE {$prefix}guests SET firstname = ?, lastname = ?, phone = ?, guest_type = ?, family_size = ?, order_status = 'pending' WHERE id = ?");
+                    $stmt->execute([$firstname, $lastname, $phone, $guest_type, $family_size, $guest_id]);
+                } else {
+                    $stmt = $pdo->prepare("INSERT INTO {$prefix}guests 
+                        (project_id, firstname, lastname, email, phone, guest_type, family_size, order_status) 
+                        VALUES (?, ?, ?, ?, ?, ?, ?, 'pending')");
+                    $stmt->execute([$project_id, $firstname, $lastname, $email, $phone, $guest_type, $family_size]);
+                    $guest_id = (int)$pdo->lastInsertId();
+                }
+
+                // Familienmitglieder: clear and re-insert if family
+                $stmt = $pdo->prepare("DELETE FROM {$prefix}family_members WHERE guest_id = ?");
+                $stmt->execute([$guest_id]);
+                if ($guest_type === 'family' && !empty($submitted_members)) {
+                    foreach ($submitted_members as $idx => $member) {
+                        $member_name = trim($member['name'] ?? '');
+                        $member_type = $member['type'] ?? 'adult';
+                        $child_age = ($member_type === 'child') ? (int)($member['age'] ?? 0) : null;
+                        $highchair = ($member_type === 'child') ? ((int)($member['highchair'] ?? 0)) : 0;
+                        if (!empty($member_name)) {
+                            $stmt = $pdo->prepare("INSERT INTO {$prefix}family_members 
+                                (guest_id, name, member_type, child_age, highchair_needed) 
+                                VALUES (?, ?, ?, ?, ?)");
+                            $stmt->execute([$guest_id, $member_name, $member_type, $child_age, $highchair]);
+                        }
+                    }
+                }
+
+                // Bestellungen speichern
+                foreach ($submitted_orders as $dish_id => $quantity) {
+                    $q = (int)$quantity;
+                    if ($q > 0) {
+                        $stmt = $pdo->prepare("INSERT INTO {$prefix}orders (guest_id, dish_id, quantity) 
+                                              VALUES (?, ?, ?) 
+                                              ON DUPLICATE KEY UPDATE quantity = ?");
+                        $stmt->execute([$guest_id, $dish_id, $q, $q]);
+                    }
+                }
+
+                $pdo->commit();
+
+                // Email versenden
+                require_once 'script/mailer.php';
+                $mail_result = sendOrderConfirmation($pdo, $prefix, $guest_id);
+
+                $message = "✓ Ihre Bestellung wurde erfolgreich aufgegeben! Eine Bestätigungsemail wird in Kürze versendet.";
+                $messageType = "success";
+                $order_success = true;
+
+            } catch (Exception $e) {
+                $pdo->rollBack();
+                $message = "Fehler beim Speichern: " . $e->getMessage();
+                $messageType = "danger";
+            }
         }
     }
 }
@@ -432,6 +454,18 @@ foreach ($categories as $cat) {
             <?php endif; ?>
 
             <!-- Bestellformular -->
+            <?php if ($order_success): ?>
+                <div class="card border-0 shadow mb-4">
+                    <div class="card-body p-4 text-center">
+                        <h3 class="text-success">✓ Ihre Bestellung wurde erfolgreich aufgegeben!</h3>
+                        <p class="mb-3">Eine Bestätigungsemail wird in Kürze versendet.</p>
+                        <div class="d-flex justify-content-center gap-2">
+                            <a href="index.php?pin=<?php echo urlencode($pin_input); ?>" class="btn btn-primary">Neue Bestellung auslösen</a>
+                            <a href="index.php" class="btn btn-secondary">Zurück zur Startseite (PIN eingeben)</a>
+                        </div>
+                    </div>
+                </div>
+            <?php else: ?>
             <form method="post" id="orderForm">
                 <!-- PERSÖNLICHE DATEN -->
                 <div class="card border-0 shadow mb-4">
@@ -442,20 +476,20 @@ foreach ($categories as $cat) {
                         <div class="row g-3">
                             <div class="col-md-6">
                                 <label class="form-label">Vorname *</label>
-                                <input type="text" name="firstname" class="form-control" required>
+                                <input type="text" name="firstname" class="form-control" required value="<?php echo htmlspecialchars($firstname ?? ''); ?>">
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Nachname *</label>
-                                <input type="text" name="lastname" class="form-control" required>
+                                <input type="text" name="lastname" class="form-control" required value="<?php echo htmlspecialchars($lastname ?? ''); ?>">
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">E-Mail *</label>
-                                <input type="email" name="email" class="form-control" required>
+                                <input type="email" name="email" class="form-control" required value="<?php echo htmlspecialchars($email ?? ''); ?>">
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Telefon</label>
-                                <input type="tel" id="phone_visible" class="form-control">
-                                <input type="hidden" name="phone" id="phone_full">
+                                <input type="tel" id="phone_visible" name="phone_visible" class="form-control" value="<?php echo htmlspecialchars($phone_raw ?? ''); ?>">
+                                <input type="hidden" name="phone" id="phone_full" value="<?php echo htmlspecialchars($phone ?? ''); ?>">
                                 <div id="phone-error" class="text-danger small mt-1 d-none">Ungültige Telefonnummer. Bitte prüfen Sie die Eingabe (z.B. Ländervorwahl).</div>
                             </div>
                         </div>
@@ -466,21 +500,64 @@ foreach ($categories as $cat) {
                             <div class="col-md-6">
                                 <label class="form-label">Art der Bestellung *</label>
                                 <select name="guest_type" id="guestType" class="form-select" required onchange="updateFamilySize()">
-                                    <option value="individual">Einzelperson</option>
-                                    <option value="family">Familie/Haushalt</option>
+                                    <option value="individual" <?php echo (($guest_type ?? '') !== 'family') ? 'selected' : ''; ?>>Einzelperson</option>
+                                    <option value="family" <?php echo (($guest_type ?? '') === 'family') ? 'selected' : ''; ?>>Familie/Haushalt</option>
                                 </select>
                             </div>
-                            <div class="col-md-6" id="familySizeContainer" style="display: none;">
+                            <div class="col-md-6" id="familySizeContainer" style="display: <?php echo (($guest_type ?? '') === 'family') ? 'block' : 'none'; ?>;">
                                 <label class="form-label">Anzahl Personen *</label>
-                                <input type="number" name="family_size" id="familySize" class="form-control" min="2" value="2" onchange="updateFamilyForm()">
+                                <input type="number" name="family_size" id="familySize" class="form-control" min="2" value="<?php echo intval($family_size ?? 2); ?>" onchange="updateFamilyForm()">
                             </div>
                         </div>
 
                         <!-- Familienmitglieder Details -->
-                        <div id="familyMembersContainer" style="display: none; margin-top: 20px;">
+                        <div id="familyMembersContainer" style="display: <?php echo (($guest_type ?? '') === 'family') ? 'block' : 'none'; ?>; margin-top: 20px;">
                             <hr class="my-4">
                             <h6 class="mb-3">Familienmitglieder Details</h6>
-                            <div id="membersForm"></div>
+                            <div id="childInfo" class="alert alert-warning small d-none">Hinweis: Kinder gelten nur bis zum Alter von 12 Jahren. Bei älteren Personen bitte 'Erwachsener' wählen.</div>
+                            <div id="membersForm">
+                                <?php
+                                // If form was submitted, render members server-side to preserve inputs
+                                if (($guest_type ?? '') === 'family') {
+                                    $cnt = max(1, intval($family_size ?? 2));
+                                    for ($i = 0; $i < $cnt; $i++) {
+                                        $m = $submitted_members[$i] ?? [];
+                                        $mname = htmlspecialchars($m['name'] ?? '');
+                                        $mtype = $m['type'] ?? 'adult';
+                                        $mage = isset($m['age']) ? intval($m['age']) : '';
+                                        $mhigh = !empty($m['highchair']) ? 'checked' : '';
+                                        ?>
+                                        <div class="card bg-dark border-secondary mb-3" style="padding: 15px;">
+                                            <h6 class="mb-3">Person <?php echo ($i + 1); ?></h6>
+                                            <div class="row g-3">
+                                                <div class="col-md-6">
+                                                    <label class="form-label">Name *</label>
+                                                    <input type="text" name="members[<?php echo $i; ?>][name]" class="form-control" required value="<?php echo $mname; ?>">
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <label class="form-label">Typ *</label>
+                                                    <select name="members[<?php echo $i; ?>][type]" class="form-select member-type" onchange="updateMemberFields(<?php echo $i; ?>)">
+                                                        <option value="adult" <?php echo ($mtype !== 'child') ? 'selected' : ''; ?>>Erwachsener</option>
+                                                        <option value="child" <?php echo ($mtype === 'child') ? 'selected' : ''; ?>>Kind</option>
+                                                    </select>
+                                                </div>
+                                                <div class="col-md-6 member-age-<?php echo $i; ?>" style="display: <?php echo ($mtype === 'child') ? 'block' : 'none'; ?>;">
+                                                    <label class="form-label">Alter (Jahre)</label>
+                                                    <input type="number" name="members[<?php echo $i; ?>][age]" class="form-control" min="1" max="120" value="<?php echo ($mage === '') ? '' : intval($mage); ?>">
+                                                </div>
+                                                <div class="col-md-6 member-highchair-<?php echo $i; ?>" style="display: <?php echo ($mtype === 'child') ? 'block' : 'none'; ?>;">
+                                                    <label class="form-label">
+                                                        <input type="checkbox" name="members[<?php echo $i; ?>][highchair]" value="1" class="form-check-input" <?php echo $mhigh; ?>>
+                                                        Hochstuhl benötigt
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <?php
+                                    }
+                                }
+                                ?>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -510,7 +587,7 @@ foreach ($categories as $cat) {
                                             </div>
                                             <div class="quantity-selector">
                                                 <button type="button" class="qty-minus" onclick="changeQty(this, -1)">−</button>
-                                                <input type="number" name="orders[<?php echo $dish['id']; ?>]" class="qty-input" value="0" min="0" max="99">
+                                                <input type="number" name="orders[<?php echo $dish['id']; ?>]" class="qty-input" value="<?php echo intval($submitted_orders[$dish['id']] ?? 0); ?>" min="0" max="99">
                                                 <button type="button" class="qty-plus" onclick="changeQty(this, 1)">+</button>
                                             </div>
                                         </div>
@@ -527,6 +604,7 @@ foreach ($categories as $cat) {
                     <button type="submit" name="submit_order" class="btn btn-success btn-lg fw-bold">Bestellung aufgeben</button>
                 </div>
             </form>
+            <?php endif; ?>
 
             <!-- Gäste-Statistik -->
             <div class="alert alert-secondary small">
@@ -660,7 +738,42 @@ function updateMemberFields(index) {
         ageField.style.display = 'none';
         highchairField.style.display = 'none';
     }
+    checkChildInfo();
 }
+
+function checkChildInfo() {
+    const selects = document.querySelectorAll('.member-type');
+    let anyChild = false;
+    selects.forEach(s => { if (s.value === 'child') anyChild = true; });
+    const info = document.getElementById('childInfo');
+    if (!info) return;
+    if (anyChild) info.classList.remove('d-none'); else info.classList.add('d-none');
+}
+
+// Validate on submit: child ages must be <= 12
+document.addEventListener('DOMContentLoaded', function(){
+    const form = document.getElementById('orderForm');
+    if (!form) return;
+    form.addEventListener('submit', function(e){
+        const selects = document.querySelectorAll('.member-type');
+        for (let i = 0; i < selects.length; i++) {
+            if (selects[i].value === 'child') {
+                const ageInput = document.querySelector(`input[name="members[${i}][age]"]`);
+                if (ageInput) {
+                    const age = parseInt(ageInput.value) || 0;
+                    if (age > 12) {
+                        e.preventDefault();
+                        alert('Fehler: Für ein als Kind markiertes Familienmitglied wurde ein Alter > 12 Jahre angegeben. Bitte wählen Sie "Erwachsener" oder korrigieren Sie das Alter.');
+                        ageInput.focus();
+                        return false;
+                    }
+                }
+            }
+        }
+    });
+    // run once to show child info when server-rendered members exist
+    if (typeof checkChildInfo === 'function') checkChildInfo();
+});
 </script>
 <?php include 'nav/footer.php'; ?>
 </body>
