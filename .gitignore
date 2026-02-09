@@ -4,6 +4,7 @@
 .env.*.local
 .deploy.env
 .deploy.sh
+.last-deploy-hash
 
 # Configuration (wird bei Installation generiert)
 script/config.yaml

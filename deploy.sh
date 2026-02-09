@@ -35,9 +35,32 @@ echo ""
 
 # Bestimme Dateien zum Deployen
 if [ $# -eq 0 ]; then
-    echo "📁 Modus: Alle veränderten Dateien"
-    # Git-Status: geänderte und neue Dateien
-    FILES=$(git diff --name-only HEAD; git ls-files --others --exclude-standard)
+    echo "📁 Modus: Nur geänderte Dateien seit letztem Deploy"
+    
+    # Lese letzten Deploy-Hash wenn vorhanden
+    LAST_DEPLOY_HASH=""
+    if [ -f ".last-deploy-hash" ]; then
+        LAST_DEPLOY_HASH=$(cat .last-deploy-hash)
+    fi
+    
+    # Wenn wir einen letzten Hash haben, deploye nur Änderungen seit damals
+    if [ -z "$LAST_DEPLOY_HASH" ]; then
+        # Kein Hash: Deploye alles seit HEAD~1
+        FILES=$(git diff --name-only HEAD~1..HEAD 2>/dev/null || echo "")
+        if [ -z "$FILES" ]; then
+            # Falls nur 1 Commit: Deploye alles seit letzten Push
+            FILES=$(git diff --name-only @{u}..HEAD 2>/dev/null || git diff --name-only)
+        fi
+    else
+        # Deploye nur seit dem letzten Deploy
+        FILES=$(git diff --name-only $LAST_DEPLOY_HASH..HEAD 2>/dev/null || echo "")
+    fi
+    
+    # Auch neue (untracked) Dateien
+    UNTRACKED=$(git ls-files --others --exclude-standard 2>/dev/null)
+    if [ ! -z "$UNTRACKED" ]; then
+        FILES="$FILES"$'\n'"$UNTRACKED"
+    fi
 else
     echo "📁 Modus: Spezifische Dateien"
     FILES="$@"
@@ -143,6 +166,12 @@ if lftp -c "$LFTP_CMDS"; then
     echo "📊 Statistik:"
     echo "   Deployed: $DEPLOYED_COUNT Dateien"
     echo "   Übersprungen: $SKIPPED_COUNT Dateien"
+    echo ""
+    
+    # Speichere Deploy-Hash für nächstes Mal
+    CURRENT_HASH=$(git rev-parse HEAD)
+    echo "$CURRENT_HASH" > .last-deploy-hash
+    echo "💾 Deploy-Hash gespeichert für nächstesmal"
     echo ""
 else
     echo ""
