@@ -114,11 +114,29 @@ function addDirToZip(&$zip, $dir, $base_path) {
 <?php include '../nav/top_nav.php'; ?>
 
 <div class="container py-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2>Backup-Verwaltung</h2>
-        <a href="restore.php" class="btn btn-warning">
-            📥 Backups wiederherstellen
-        </a>
+    <div class="mb-5">
+        <div class="text-center mb-4">
+            <h1 class="mb-1">🔒 Backup-Verwaltung</h1>
+            <p class="text-muted">Sichern und Wiederherstellen Ihrer Daten</p>
+        </div>
+
+        <!-- HAUPT-BUTTONS NEBENEINANDER -->
+        <div class="row g-3 mb-4">
+            <div class="col-md-6">
+                <div class="d-grid gap-2">
+                    <button type="button" class="btn btn-success btn-lg fw-bold py-3" data-bs-toggle="collapse" data-bs-target="#backupCreateSection" aria-expanded="false">
+                        📦 Neues Backup erstellen
+                    </button>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="d-grid gap-2">
+                    <a href="restore.php" class="btn btn-warning btn-lg fw-bold py-3">
+                        📥 Backup wiederherstellen
+                    </a>
+                </div>
+            </div>
+        </div>
     </div>
 
     <?php if ($message): ?>
@@ -128,72 +146,76 @@ function addDirToZip(&$zip, $dir, $base_path) {
         </div>
     <?php endif; ?>
 
-    <!-- BACKUP ERSTELLEN -->
-    <div class="card border-0 shadow mb-4">
-        <div class="card-header bg-primary text-white py-3">
-            <h5 class="mb-0">📦 Neues Backup erstellen</h5>
-        </div>
-        <div class="card-body p-4">
-            <div id="backupForm">
-                <form id="createBackupForm" onsubmit="startBackup(event)">
-                    <div class="row g-3 align-items-end">
-                        <div class="col-md-6">
-                            <label class="form-label">Backup-Typ *</label>
-                            <select id="backupType" name="backup_type" class="form-select" required>
-                                <option value="full" selected>✓ Vollständig (Datenbank + Dateien)</option>
-                                <option value="database">📊 Nur Datenbank</option>
-                                <option value="files">📁 Nur Dateien</option>
-                            </select>
-                            <small class="text-muted d-block mt-2">
-                                💡 Vollständig empfohlen für vollständige Wiederherstellung
-                            </small>
-                        </div>
-                        <div class="col-md-6">
-                            <button type="submit" class="btn btn-success btn-lg w-100 fw-bold">
-                                🔒 Backup jetzt erstellen
-                            </button>
-                        </div>
-                    </div>
-                </form>
+    <!-- BACKUP ERSTELLEN (Collapsible) -->
+    <div class="collapse mb-4" id="backupCreateSection">
+        <div class="card border-0 shadow">
+            <div class="card-header bg-primary text-white py-3">
+                <h5 class="mb-0">📦 Neues Backup erstellen</h5>
             </div>
+            <div class="card-body p-4">
+                <div id="backupForm">
+                    <form id="createBackupForm" onsubmit="startBackup(event)">
+                        <div class="row g-3">
+                            <div class="col-lg-4">
+                                <label class="form-label fw-bold">Backup-Typ *</label>
+                                <select id="backupType" name="backup_type" class="form-select" required>
+                                    <option value="full" selected>✓ Vollständig (Datenbank + Dateien)</option>
+                                    <option value="database">📊 Nur Datenbank</option>
+                                    <option value="files">📁 Nur Dateien</option>
+                                </select>
+                                <small class="text-muted d-block mt-2">
+                                    💡 Vollständig empfohlen für vollständige Wiederherstellung
+                                </small>
+                            </div>
+                            <div class="col-lg-8">
+                                <label class="form-label fw-bold d-block">Aktion</label>
+                                <button type="submit" class="btn btn-success btn-lg fw-bold w-100">
+                                    🔒 Jetzt Backup erstellen
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
 
-            <!-- PROGRESS ANZEIGE -->
-            <div id="backupProgress" style="display: none;" class="mt-4">
-                <div class="mb-3">
-                    <div class="d-flex justify-content-between align-items-center mb-2">
-                        <h6 class="mb-0" id="currentStep">Backup wird vorbereitet...</h6>
-                        <div>
-                            <small class="text-success" id="progressPercent">0%</small>
-                            <small class="text-muted ms-3" id="progressEta"></small>
+                <!-- PROGRESS ANZEIGE -->
+                <div id="backupProgress" style="display: none;" class="mt-4">
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h6 class="mb-0" id="currentStep">Backup wird vorbereitet...</h6>
+                            <div>
+                                <small class="text-success" id="progressPercent">0%</small>
+                                <small class="text-muted ms-3" id="progressEta"></small>
+                            </div>
+                        </div>
+                        <div class="progress" style="height: 25px;">
+                            <div id="progressBar" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
                         </div>
                     </div>
-                    <div class="progress" style="height: 25px;">
-                        <div id="progressBar" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+
+                    <!-- DETAIL INFORMATIONEN -->
+                    <div class="alert alert-info mt-3 p-3 small">
+                        <strong>📋 Backup Details:</strong>
+                        <div id="detailsList" style="margin-top: 10px; line-height: 1.8;">
+                            <div class="text-muted">Warte auf Update...</div>
+                        </div>
+                    </div>
+
+                    <!-- STATUS MESSAGE -->
+                    <div id="statusMessage" class="alert alert-secondary mt-3 p-3 small" style="display: none;">
+                        <span id="statusText"></span>
                     </div>
                 </div>
 
-                <!-- DETAIL INFORMATIONEN -->
-                <div class="alert alert-info mt-3 p-3 small">
-                    <strong>📋 Backup Details:</strong>
-                    <div id="detailsList" style="margin-top: 10px; line-height: 1.8;">
-                        <div class="text-muted">Warte auf Update...</div>
-                    </div>
+                <div class="alert alert-info mt-4 mb-0">
+                    <strong>⏱️ Hinweis:</strong> Große Datenbanken benötigen möglicherweise eine Weile. Bitte nicht die Seite schließen während der Erstellung.
                 </div>
-
-                <!-- STATUS MESSAGE -->
-                <div id="statusMessage" class="alert alert-secondary mt-3 p-3 small" style="display: none;">
-                    <span id="statusText"></span>
-                </div>
-            </div>
-
-            <div class="alert alert-info mt-4 mb-0">
-                <strong>⏱️ Hinweis:</strong> Große Datenbanken benötigen möglicherweise eine Weile. Bitte nicht die Seite schließen während der Erstellung.
             </div>
         </div>
     </div>
+</div>
 
     <!-- BACKUP LISTE -->
-    <div class="card border-0 shadow">
+    <div class="card border-0 shadow mt-4">
         <div class="card-header bg-info text-white py-3">
             <h5 class="mb-0">💾 Existierende Backups</h5>
         </div>
