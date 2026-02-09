@@ -261,6 +261,7 @@ function addDirToZip(&$zip, $dir, $base_path) {
 let backupProgressInterval = null;
 let backupStartTime = null;
 let backupStartTimestamp = null;
+let autoReloadScheduled = false;
 
 function startBackup(e) {
     e.preventDefault();
@@ -406,8 +407,8 @@ function updateBackupUI(data) {
                     <strong>✅ Backup erfolgreich erstellt!</strong>
                     <div class="small text-muted mt-2">${data.message}</div>
                 </div>
-                <button class="btn btn-success ms-3" onclick="location.reload()">
-                    🔄 Seite neu laden
+                <button class="btn btn-success ms-3" onclick="resetBackupForm()">
+                    🔄 Zurück
                 </button>
             </div>
         `;
@@ -417,9 +418,12 @@ function updateBackupUI(data) {
         progressBar.classList.remove('progress-bar-striped', 'progress-bar-animated');
         
         // Auto-reload nach 4 Sekunden wenn nicht geklickt
+        autoReloadScheduled = true;
         setTimeout(() => {
-            fetch('backup_process.php?action=cleanup');
-            location.reload();
+            if (autoReloadScheduled) {
+                fetch('backup_process.php?action=cleanup').catch(() => {});
+                location.reload();
+            }
         }, 4000);
     } else if (data.status === 'error') {
         statusMessage.className = 'alert alert-danger mt-3 p-3';
@@ -463,6 +467,9 @@ function showBackupError(message) {
 }
 
 function resetBackupForm() {
+    // Verhindere Auto-Reload
+    autoReloadScheduled = false;
+    
     // Reset UI
     document.getElementById('backupForm').style.display = 'block';
     document.getElementById('backupProgress').style.display = 'none';
