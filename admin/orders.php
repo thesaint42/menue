@@ -19,30 +19,42 @@ $projects = $stmt->fetchAll();
 // Bestellungen abrufen
 $orders = [];
 if ($project_id > 0) {
-    $stmt = $pdo->prepare("
-        SELECT 
-            g.id as guest_id,
-            g.firstname,
-            g.lastname,
-            g.email,
-            g.phone,
-            g.guest_type,
-            g.age_group,
-            g.family_size,
-            d.id as dish_id,
-            d.name as dish_name,
-            dc.name as category_name,
-            o.quantity,
-            o.created_at
-        FROM `{$config['database']['prefix']}guests` g
-        LEFT JOIN `{$config['database']['prefix']}orders` o ON g.id = o.guest_id
-        LEFT JOIN `{$config['database']['prefix']}dishes` d ON o.dish_id = d.id
-        LEFT JOIN `{$config['database']['prefix']}menu_categories` dc ON d.category_id = dc.id
-        WHERE g.project_id = ?
-        ORDER BY g.firstname, g.lastname, dc.name, d.name
-    ");
-    $stmt->execute([$project_id]);
-    $orders = $stmt->fetchAll();
+    try {
+        $sql = "SELECT
+                g.id as guest_id,
+                g.firstname,
+                g.lastname,
+                g.email,
+                g.phone,
+                g.guest_type,
+                g.age_group,
+                g.family_size,
+                d.id as dish_id,
+                d.name as dish_name,
+                dc.name as category_name,
+                o.quantity,
+                o.created_at
+            FROM `{$config['database']['prefix']}guests` g
+            LEFT JOIN `{$config['database']['prefix']}orders` o ON g.id = o.guest_id
+            LEFT JOIN `{$config['database']['prefix']}dishes` d ON o.dish_id = d.id
+            LEFT JOIN `{$config['database']['prefix']}menu_categories` dc ON d.category_id = dc.id
+            WHERE g.project_id = ?
+            ORDER BY g.firstname, g.lastname, dc.name, d.name";
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute([$project_id]);
+        $orders = $stmt->fetchAll();
+    } catch (Throwable $e) {
+        // Write debug information to storage/logs/orders_error.log
+        $logDir = __DIR__ . '/../storage/logs';
+        if (!is_dir($logDir)) {
+            @mkdir($logDir, 0755, true);
+        }
+        $msg = "[" . date('c') . "] Exception fetching orders for project {$project_id}: " . $e->getMessage() . "\n" . $e->getTraceAsString() . "\n\n";
+        @file_put_contents($logDir . '/orders_error.log', $msg, FILE_APPEND | LOCK_EX);
+        http_response_code(500);
+        echo '<h2>Interner Serverfehler</h2><p>Fehler beim Laden der Bestellungen. Bitte prüfe die Logs: storage/logs/orders_error.log</p>';
+        exit;
+    }
 }
 ?>
 
