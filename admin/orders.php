@@ -20,25 +20,31 @@ $projects = $stmt->fetchAll();
 $orders = [];
 if ($project_id > 0) {
     try {
+        // v3.0 Schema: order_sessions + family_members + orders
         $sql = "SELECT
-                g.id as guest_id,
+                os.order_id,
+                os.email,
+                os.created_at as order_date,
                 g.firstname,
                 g.lastname,
-                g.email,
                 g.phone,
                 g.guest_type,
-                g.family_size,
-                d.id as dish_id,
+                fm.name as person_name,
+                fm.member_type,
+                fm.child_age,
+                fm.highchair_needed,
+                o.person_id,
                 d.name as dish_name,
-                dc.name as category_name,
-                o.quantity,
-                o.created_at
-            FROM `{$config['database']['prefix']}guests` g
-            LEFT JOIN `{$config['database']['prefix']}orders` o ON g.id = o.guest_id
+                mc.name as category_name,
+                mc.sort_order as category_sort
+            FROM `{$config['database']['prefix']}order_sessions` os
+            JOIN `{$config['database']['prefix']}guests` g ON os.email = g.email AND os.project_id = g.project_id
+            LEFT JOIN `{$config['database']['prefix']}orders` o ON os.order_id = o.order_id
+            LEFT JOIN `{$config['database']['prefix']}family_members` fm ON g.id = fm.guest_id AND o.person_id = fm.id
             LEFT JOIN `{$config['database']['prefix']}dishes` d ON o.dish_id = d.id
-            LEFT JOIN `{$config['database']['prefix']}menu_categories` dc ON d.category_id = dc.id
-            WHERE g.project_id = ?
-            ORDER BY g.firstname, g.lastname, dc.name, d.name";
+            LEFT JOIN `{$config['database']['prefix']}menu_categories` mc ON o.category_id = mc.id
+            WHERE os.project_id = ?
+            ORDER BY os.created_at DESC, os.order_id, o.person_id, mc.sort_order";
         $stmt = $pdo->prepare($sql);
         $stmt->execute([$project_id]);
         $orders = $stmt->fetchAll();
@@ -100,88 +106,99 @@ if ($project_id > 0) {
         <?php if (empty($orders)): ?>
             <div class="alert alert-info">Keine Bestellungen für dieses Projekt vorhanden.</div>
         <?php else: ?>
-            <!-- Bestellungen Tabelle -->
-            <div class="card border-0 shadow">
-                <div class="table-responsive">
-                    <table class="table table-hover mb-0">
-                        <thead class="table-light">
-                            <tr>
-                                <th>Gast</th>
-                                <th>E-Mail</th>
-                                <th>Telefon</th>
-                                <th>Gast-Typ</th>
-                                <th>Altersgruppe</th>
-                                <th>Kategorie</th>
-                                <th>Gericht</th>
-                                <th class="text-center">Menge</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php 
-                            $current_guest = null;
-                            foreach ($orders as $order): 
-                                $guest_name = htmlspecialchars($order['firstname']) . ' ' . htmlspecialchars($order['lastname']);
-                                $is_new_guest = ($current_guest !== $order['guest_id']);
-                                
-                                if ($is_new_guest) {
-                                    $current_guest = $order['guest_id'];
-                                }
-                            ?>
-                                <tr>
-                                    <td>
-                                        <?php if ($is_new_guest): ?>
-                                            <strong><?php echo $guest_name; ?></strong>
-                                        <?php endif; ?>
-                                    </td>
-                                    <td>
-                                        <?php if ($is_new_guest): ?>
-                                            <a href="mailto:<?php echo htmlspecialchars($order['email']); ?>">
-                                                <?php echo htmlspecialchars($order['email']); ?>
-                                            </a>
-                                        <?php endif; ?>
-                                    </td>
-                                    <td>
-                                        <?php if ($is_new_guest): ?>
-                                            <?php echo htmlspecialchars($order['phone']); ?>
-                                        <?php endif; ?>
-                                    </td>
-                                    <td>
-                                        <?php if ($is_new_guest): ?>
-                                            <span class="badge bg-info">
-                                                <?php echo ($order['guest_type'] == 'family') ? 'Familie' : 'Einzeln'; ?>
-                                                <?php if ($order['guest_type'] == 'family' && $order['family_size']): ?>
-                                                    (<?php echo intval($order['family_size']); ?> P.)
-                                                <?php endif; ?>
-                                            </span>
-                                        <?php endif; ?>
-                                    </td>
-                                    <td>
-                                        <?php if ($is_new_guest): ?>
-                                            <span class="badge bg-secondary">
-                                                <?php $age = $order['age_group'] ?? ''; echo ($age === 'child') ? 'Kind' : 'Erwachsener'; ?>
-                                            </span>
-                                        <?php endif; ?>
-                                    </td>
-                                    <td><?php echo htmlspecialchars($order['category_name'] ?? ''); ?></td>
-                                    <td><?php echo htmlspecialchars($order['dish_name'] ?? '(keine Bestellung)'); ?></td>
-                                    <td class="text-center">
-                                        <?php echo ($order['quantity'] ?? 0); ?>
-                                    </td>
-                                </tr>
+            <!-- Bestellungen gruppiert nach Order-ID -->
+            <?php 
+            // Gruppiere Bestellungen nach Order-ID
+            $grouped_orders = [];
+            foreach ($orders as $order) {
+                $order_id = $order['order_id'];
+                if (!isset($grouped_orders[$order_id])) {
+                    $grouped_orders[$order_id] = [
+                        'email' => $order['email'],
+                        'firstname' => $order['firstname'],
+                        'lastname' => $order['lastname'],
+                        'phone' => $order['phone'],
+                        'guest_type' => $order['guest_type'],
+                        'order_date' => $order['order_date'],
+                        'persons' => []
+                    ];
+                }
+                
+                // Gruppiere nach Person
+                $person_id = $order['person_id'] ?? 0;
+                if (!isset($grouped_orders[$order_id]['persons'][$person_id])) {
+                    $grouped_orders[$order_id]['persons'][$person_id] = [
+                        'name' => $order['person_name'] ?? ($order['firstname'] . ' ' . $order['lastname']),
+                        'type' => $order['member_type'] ?? 'adult',
+                        'age' => $order['child_age'] ?? null,
+                        'highchair' => $order['highchair_needed'] ?? 0,
+                        'dishes' => []
+                    ];
+                }
+                
+                if ($order['dish_name']) {
+                    $grouped_orders[$order_id]['persons'][$person_id]['dishes'][] = [
+                        'category' => $order['category_name'],
+                        'dish' => $order['dish_name']
+                    ];
+                }
+            }
+            ?>
+            
+            <?php foreach ($grouped_orders as $order_id => $order_data): ?>
+            <div class="card border-0 shadow mb-4">
+                <div class="card-header bg-primary text-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h5 class="mb-0">
+                                <?php echo htmlspecialchars($order_data['firstname'] . ' ' . $order_data['lastname']); ?>
+                            </h5>
+                            <small>
+                                <?php echo htmlspecialchars($order_data['email']); ?>
+                                <?php if ($order_data['phone']): ?>
+                                    | Tel: <?php echo htmlspecialchars($order_data['phone']); ?>
+                                <?php endif; ?>
+                            </small>
+                        </div>
+                        <div class="text-end">
+                            <small class="d-block">Order-ID: <code><?php echo htmlspecialchars($order_id); ?></code></small>
+                            <small><?php echo date('d.m.Y H:i', strtotime($order_data['order_date'])); ?></small>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <?php foreach ($order_data['persons'] as $person): ?>
+                    <div class="mb-3 pb-3 border-bottom">
+                        <h6 class="fw-bold">
+                            👤 <?php echo htmlspecialchars($person['name']); ?>
+                            <?php if ($person['type'] === 'child'): ?>
+                                <span class="badge bg-info">Kind (<?php echo $person['age']; ?> Jahre)</span>
+                                <?php if ($person['highchair']): ?>
+                                    <span class="badge bg-warning text-dark">🪑 Hochstuhl</span>
+                                <?php endif; ?>
+                            <?php else: ?>
+                                <span class="badge bg-secondary">Erwachsener</span>
+                            <?php endif; ?>
+                        </h6>
+                        <ul class="list-unstyled mb-0 ms-3">
+                            <?php foreach ($person['dishes'] as $dish): ?>
+                            <li>
+                                <strong><?php echo htmlspecialchars($dish['category']); ?>:</strong>
+                                <?php echo htmlspecialchars($dish['dish']); ?>
+                            </li>
                             <?php endforeach; ?>
-                        </tbody>
-                    </table>
+                        </ul>
+                    </div>
+                    <?php endforeach; ?>
                 </div>
             </div>
+            <?php endforeach; ?>
 
             <!-- Export-Buttons -->
             <div class="mt-4 d-flex gap-2">
                 <button class="btn btn-primary" onclick="window.print()">
-                    <i class="bi bi-printer"></i> Drucken
+                    🖨️ Drucken
                 </button>
-                <a href="export_pdf.php?project=<?php echo $project_id; ?>" class="btn btn-success">
-                    <i class="bi bi-file-pdf"></i> PDF exportieren
-                </a>
             </div>
         <?php endif; ?>
     <?php else: ?>
