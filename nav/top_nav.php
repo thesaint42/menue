@@ -13,7 +13,7 @@ $page_names = [
     'dishes' => 'Menüs',
     'guests' => 'Gäste',
     'orders' => 'Bestellungen',
-    'export_pdf' => 'PDF Export',
+    'reports' => 'Reporting',
     'settings_mail' => 'Mail Einstellungen',
     'profile' => 'Mein Profil'
     , 'vvt' => 'VVT'
@@ -85,7 +85,7 @@ $display_name = $page_names[$current_page] ?? ucfirst($current_page);
                             <li class="nav-item"><a class="nav-link text-end" href="<?php echo $root; ?>admin/dishes.php">Menüs</a></li>
                             <li class="nav-item"><a class="nav-link text-end" href="<?php echo $root; ?>admin/guests.php">Gäste</a></li>
                             <li class="nav-item"><a class="nav-link text-end" href="<?php echo $root; ?>admin/orders.php">Bestellungen</a></li>
-                            <li class="nav-item"><a class="nav-link text-end" href="<?php echo $root; ?>admin/export_pdf.php">Reporting</a></li>
+                            <li class="nav-item"><a class="nav-link text-end" href="<?php echo $root; ?>admin/reports.php">Reporting</a></li>
 
                             <li class="nav-item">
                                 <div class="nav-separator my-2"></div>
