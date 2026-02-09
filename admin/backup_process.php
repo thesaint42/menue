@@ -155,38 +155,78 @@ if ($action === 'start') {
             
             $files_file = $backup_dir . '/files_backup_' . $timestamp . '.zip';
             
+            // Prüfe ob ZipArchive verfügbar ist
+            if (!class_exists('ZipArchive')) {
+                throw new Exception('ZipArchive-Klasse nicht verfügbar. PHP muss mit ZIP-Unterstützung kompiliert sein.');
+            }
+            
             $zip = new ZipArchive();
-            if ($zip->open($files_file, ZipArchive::CREATE | ZipArchive::OVERWRITE) === true) {
-                $dirs_to_backup = [
-                    ['path' => '../admin', 'name' => 'admin'],
-                    ['path' => '../script', 'name' => 'script'],
-                    ['path' => '../assets', 'name' => 'assets'],
-                ];
+            $zip_result = $zip->open($files_file, ZipArchive::CREATE | ZipArchive::OVERWRITE);
+            
+            if ($zip_result !== true) {
+                throw new Exception('ZIP-Datei konnte nicht erstellt werden (Code: ' . $zip_result . ')');
+            }
+            
+            $dirs_to_backup = [
+                ['path' => '../admin', 'name' => 'admin'],
+                ['path' => '../script', 'name' => 'script'],
+                ['path' => '../assets', 'name' => 'assets'],
+                ['path' => '../views', 'name' => 'views'],
+                ['path' => '../nav', 'name' => 'nav'],
+            ];
+            
+            $file_count = 0;
+            $error_dirs = [];
+            
+            foreach ($dirs_to_backup as $item) {
+                $full_path = __DIR__ . '/' . $item['path'];
+                if (!file_exists($full_path)) {
+                    $error_dirs[] = $item['path'];
+                    continue;
+                }
                 
-                $file_count = 0;
-                foreach ($dirs_to_backup as $item) {
-                    $full_path = __DIR__ . '/' . $item['path'];
-                    if (is_file($full_path)) {
+                if (is_file($full_path)) {
+                    try {
                         $zip->addFile($full_path, $item['name']);
                         $file_count++;
-                    } elseif (is_dir($full_path)) {
-                        $file_count += addDirToZip($zip, $full_path, $item['name']);
+                    } catch (Exception $e) {
+                        // Einzelne Datei-Fehler nicht kritisch
+                    }
+                } elseif (is_dir($full_path)) {
+                    try {
+                        $added = addDirToZip($zip, $full_path, $item['name']);
+                        $file_count += $added;
+                    } catch (Exception $e) {
+                        // Verzichnis-Fehler nicht kritisch
                     }
                 }
-                
-                $zip->close();
-                
-                if (file_exists($files_file) && filesize($files_file) > 0) {
-                    $files_size = formatBytes(filesize($files_file));
-                    $status['details'][] = "✅ Dateien komprimiert: " . basename($files_file) . " ($files_size, $file_count Dateien)";
-                    $status['files_created'][] = 'files_backup_' . $timestamp . '.zip';
-                    $status['progress'] = 90;
-                } else {
-                    throw new Exception('ZIP-Datei ist leer oder konnte nicht erstellt werden');
-                }
-            } else {
-                throw new Exception('ZIP-Datei konnte nicht erstellt werden');
             }
+            
+            $zip->close();
+            
+            // Prüfe ob ZIP erstellt und nicht leer ist
+            if (!file_exists($files_file)) {
+                throw new Exception('ZIP-Datei konnte nicht erstellt werden - Datei existiert nicht');
+            }
+            
+            $zip_size = filesize($files_file);
+            if ($zip_size <= 0) {
+                @unlink($files_file);
+                throw new Exception('ZIP-Datei ist leer. Verzeichnisse zu Backup: ' . implode(', ', $error_dirs) . '. Dateien: ' . $file_count);
+            }
+            
+            if ($file_count === 0) {
+                @unlink($files_file);
+                throw new Exception('Keine Dateien zur ZIP hinzugefügt. Überprüfen Sie Dateiberechtigungen. Verzeichnisse: ' . implode(', ', $error_dirs));
+            }
+            
+            $files_size = formatBytes($zip_size);
+            $status['details'][] = "✅ Dateien komprimiert: " . basename($files_file) . " ($files_size, $file_count Dateien)";
+            if (!empty($error_dirs)) {
+                $status['details'][] = "⚠️ Fehlende Verzeichnisse (übersprungen): " . implode(', ', $error_dirs);
+            }
+            $status['files_created'][] = 'files_backup_' . $timestamp . '.zip';
+            $status['progress'] = 90;
         }
         
         // === FERTIGSTELLUNG ===
@@ -326,15 +366,27 @@ function addDirToZip(&$zip, $dir, $base_path) {
     $count = 0;
     foreach ($files as $file) {
         if ($file === '.' || $file === '..') continue;
+        
         $file_path = $dir . '/' . $file;
         $zip_path = $base_path . '/' . $file;
         
-        if (is_file($file_path)) {
-            @$zip->addFile($file_path, $zip_path);
-            $count++;
-        } elseif (is_dir($file_path)) {
-            @$zip->addEmptyDir($zip_path);
-            $count += addDirToZip($zip, $file_path, $zip_path);
+        // Ignoriere bestimmte Dateien/Verzeichnisse
+        if (basename($file_path) === '.git' || basename($file_path) === 'node_modules') {
+            continue;
+        }
+        
+        try {
+            if (is_file($file_path)) {
+                if (@$zip->addFile($file_path, $zip_path)) {
+                    $count++;
+                }
+            } elseif (is_dir($file_path)) {
+                @$zip->addEmptyDir($zip_path);
+                $count += addDirToZip($zip, $file_path, $zip_path);
+            }
+        } catch (Exception $e) {
+            // Einzelne Fehler nicht kritisch
+            continue;
         }
     }
     return $count;
