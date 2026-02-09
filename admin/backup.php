@@ -116,6 +116,9 @@ function addDirToZip(&$zip, $dir, $base_path) {
 <div class="container py-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2>Backup-Verwaltung</h2>
+        <a href="restore.php" class="btn btn-warning">
+            📥 Backups wiederherstellen
+        </a>
     </div>
 
     <?php if ($message): ?>
