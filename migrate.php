@@ -215,7 +215,7 @@ $migrations = [
                 $stmt = $pdo->prepare("SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = 'show_prices'");
                 $stmt->execute(["{$prefix}projects"]);
                 if ($stmt->rowCount() === 0) {
-                    $pdo->prepare("ALTER TABLE `{$prefix}projects` ADD COLUMN `show_prices` TINYINT(1) DEFAULT 0 AFTER `is_active`")->execute();
+                    $pdo->exec("ALTER TABLE `{$prefix}projects` ADD COLUMN `show_prices` TINYINT(1) DEFAULT 0 AFTER `is_active`");
                 }
                 return true;
             } catch (Exception $e) {
@@ -228,17 +228,12 @@ $migrations = [
         'description' => 'Fügt price Spalte zu dishes Tabelle hinzu (Brutto, 2 Dezimalstellen)',
         'version' => '3.0.0',
         'up' => function($pdo, $prefix) {
-            // Prüfe ob Spalte bereits existiert mittels INFORMATION_SCHEMA
             try {
                 $stmt = $pdo->prepare("SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = 'price'");
                 $stmt->execute(["{$prefix}dishes"]);
-                if ($stmt->rowCount() > 0) {
-                    // Spalte existiert bereits - kein Fehler
-                    return true;
+                if ($stmt->rowCount() === 0) {
+                    $pdo->exec("ALTER TABLE `{$prefix}dishes` ADD COLUMN `price` DECIMAL(8,2) DEFAULT NULL AFTER `description`");
                 }
-                // Spalte existiert nicht - füge sie hinzu
-                $stmt = $pdo->prepare("ALTER TABLE `{$prefix}dishes` ADD COLUMN `price` DECIMAL(8,2) DEFAULT NULL AFTER `description`");
-                $stmt->execute();
                 return true;
             } catch (Exception $e) {
                 throw new Exception("Fehler beim Hinzufügen der price-Spalte: " . $e->getMessage());
@@ -250,25 +245,20 @@ $migrations = [
         'description' => 'Erstellt order_sessions Tabelle für eindeutige Bestellvorgänge mit order_id',
         'version' => '3.0.0',
         'up' => function($pdo, $prefix) {
-            // Prüfe ob Tabelle bereits existiert mittels INFORMATION_SCHEMA
             try {
                 $stmt = $pdo->prepare("SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?");
                 $stmt->execute(["{$prefix}order_sessions"]);
-                if ($stmt->rowCount() > 0) {
-                    // Tabelle existiert bereits
-                    return true;
+                if ($stmt->rowCount() === 0) {
+                    $pdo->exec("CREATE TABLE `{$prefix}order_sessions` (
+                        `id` INT AUTO_INCREMENT PRIMARY KEY,
+                        `order_id` CHAR(36) NOT NULL,
+                        `project_id` INT NOT NULL,
+                        `email` VARCHAR(150) NOT NULL,
+                        `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        UNIQUE KEY `unique_order_id` (`order_id`),
+                        FOREIGN KEY (`project_id`) REFERENCES `{$prefix}projects`(`id`) ON DELETE CASCADE
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
                 }
-                // Tabelle existiert nicht - erstelle sie
-                $sql = "CREATE TABLE `{$prefix}order_sessions` (
-                    `id` INT AUTO_INCREMENT PRIMARY KEY,
-                    `order_id` CHAR(36) NOT NULL,
-                    `project_id` INT NOT NULL,
-                    `email` VARCHAR(150) NOT NULL,
-                    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    UNIQUE KEY `unique_order_id` (`order_id`),
-                    FOREIGN KEY (`project_id`) REFERENCES `{$prefix}projects`(`id`) ON DELETE CASCADE
-                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4";
-                $pdo->prepare($sql)->execute();
                 return true;
             } catch (Exception $e) {
                 throw new Exception("Fehler beim Erstellen der order_sessions-Tabelle: " . $e->getMessage());
@@ -281,7 +271,6 @@ $migrations = [
         'version' => '3.0.0',
         'depends_on' => ['create_order_sessions_table'],
         'up' => function($pdo, $prefix) {
-            // Prüfe aktuelle Struktur mittels INFORMATION_SCHEMA
             try {
                 $stmt = $pdo->prepare("SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = 'order_id'");
                 $stmt->execute(["{$prefix}orders"]);
@@ -291,14 +280,14 @@ $migrations = [
                 }
                 // Alte Struktur - migriere sie
                 // Backup der alten orders Tabelle erstellen
-                $pdo->prepare("CREATE TABLE IF NOT EXISTS `{$prefix}orders_backup_v2` LIKE `{$prefix}orders`")->execute();
-                $pdo->prepare("INSERT IGNORE INTO `{$prefix}orders_backup_v2` SELECT * FROM `{$prefix}orders`")->execute();
+                $pdo->exec("CREATE TABLE IF NOT EXISTS `{$prefix}orders_backup_v2` LIKE `{$prefix}orders`");
+                $pdo->exec("INSERT IGNORE INTO `{$prefix}orders_backup_v2` SELECT * FROM `{$prefix}orders`");
                 
                 // Alte Tabelle löschen
-                $pdo->prepare("DROP TABLE `{$prefix}orders`")->execute();
+                $pdo->exec("DROP TABLE `{$prefix}orders`");
                 
                 // Neue Struktur erstellen
-                $pdo->prepare("CREATE TABLE `{$prefix}orders` (
+                $pdo->exec("CREATE TABLE `{$prefix}orders` (
                     `id` INT AUTO_INCREMENT PRIMARY KEY,
                     `order_id` CHAR(36) NOT NULL,
                     `person_id` INT NOT NULL,
@@ -308,7 +297,7 @@ $migrations = [
                     FOREIGN KEY (`dish_id`) REFERENCES `{$prefix}dishes`(`id`) ON DELETE RESTRICT,
                     UNIQUE KEY `unique_order` (`order_id`, `person_id`, `category_id`),
                     INDEX `idx_order_id` (`order_id`)
-                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4")->execute();
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
                 
                 return true;
             } catch (Exception $e) {
@@ -371,8 +360,6 @@ if (isset($_POST['run_migration']) && isset($_POST['migration_key'])) {
         $message = "⚠️ Diese Migration wurde bereits ausgeführt.";
         $messageType = "warning";
     } else {
-        $transaction_active = false;
-        
         try {
             $migration = $migrations[$migration_key];
             
@@ -383,113 +370,59 @@ if (isset($_POST['run_migration']) && isset($_POST['migration_key'])) {
                     $message = "❌ Diese Migration hat noch ausstehende Abhängigkeiten: " . implode(', ', $missing_deps);
                     $messageType = "danger";
                 } else {
-                    // Führe Migration aus mit Transaction
-                    if ($pdo) {
-                        $pdo->beginTransaction();
-                        $transaction_active = true;
-                        
-                        try {
-                            // Führe die Migration aus
-                            call_user_func($migration['up'], $pdo, $prefix);
-                            
-                            // Stelle sicher, dass migrations-Tabelle existiert
-                            $pdo->query("CREATE TABLE IF NOT EXISTS `{$prefix}migrations` (
-                                `id` INT AUTO_INCREMENT PRIMARY KEY,
-                                `migration` VARCHAR(255) NOT NULL UNIQUE,
-                                `executed_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
-                            
-                            // Nur wenn Migration erfolgreich war, speichere den Eintrag
-                            $stmt = $pdo->prepare("INSERT INTO `{$prefix}migrations` (migration) VALUES (?)");
-                            $stmt->execute([$migration_key]);
-                            
-                            $pdo->commit();
-                            $transaction_active = false;
-                            
-                            $message = "✅ Migration erfolgreich ausgeführt!";
-                            $messageType = "success";
-                            $executed_migrations[] = $migration_key;
-                        } catch (Exception $inner_e) {
-                            // Falls Migration oder INSERT fehlschlägt, rollback alles
-                            if ($transaction_active && $pdo) {
-                                try {
-                                    $pdo->rollBack();
-                                    $transaction_active = false;
-                                } catch (Exception $rb) {
-                                    @error_log("Rollback Error: " . $rb->getMessage());
-                                }
-                            }
-                            throw $inner_e; // Re-throw damit outer catch es fängt
-                        }
-                    }
-                }
-            } else {
-                // Keine Abhängigkeiten - führe aus
-                if ($pdo) {
-                    $pdo->beginTransaction();
-                    $transaction_active = true;
-                    
+                    // Führe Migration aus OHNE Transaction (DDL kann nicht in Transaction sein)
                     try {
-                        // Führe die Migration aus
                         call_user_func($migration['up'], $pdo, $prefix);
                         
                         // Stelle sicher, dass migrations-Tabelle existiert
-                        $pdo->query("CREATE TABLE IF NOT EXISTS `{$prefix}migrations` (
+                        $pdo->exec("CREATE TABLE IF NOT EXISTS `{$prefix}migrations` (
                             `id` INT AUTO_INCREMENT PRIMARY KEY,
                             `migration` VARCHAR(255) NOT NULL UNIQUE,
                             `executed_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
                         
-                        // Nur wenn Migration erfolgreich war, speichere den Eintrag
-                        $stmt = $pdo->prepare("INSERT INTO `{$prefix}migrations` (migration) VALUES (?)");
+                        // Markiere Migration als ausgeführt
+                        $stmt = $pdo->prepare("INSERT IGNORE INTO `{$prefix}migrations` (migration) VALUES (?)");
                         $stmt->execute([$migration_key]);
-                        
-                        $pdo->commit();
-                        $transaction_active = false;
                         
                         $message = "✅ Migration erfolgreich ausgeführt!";
                         $messageType = "success";
                         $executed_migrations[] = $migration_key;
-                    } catch (Exception $inner_e) {
-                        // Falls Migration oder INSERT fehlschlägt, rollback alles
-                        if ($transaction_active && $pdo) {
-                            try {
-                                $pdo->rollBack();
-                                $transaction_active = false;
-                            } catch (Exception $rb) {
-                                @error_log("Rollback Error: " . $rb->getMessage());
-                            }
-                        }
-                        throw $inner_e; // Re-throw damit outer catch es fängt
+                    } catch (Exception $mig_error) {
+                        $message = "❌ Fehler bei Migration: " . htmlspecialchars($mig_error->getMessage());
+                        $messageType = "danger";
+                        @error_log("Migration Error [$migration_key]: " . $mig_error->getMessage());
                     }
+                }
+            } else {
+                // Keine Abhängigkeiten - führe aus
+                try {
+                    call_user_func($migration['up'], $pdo, $prefix);
+                    
+                    // Stelle sicher, dass migrations-Tabelle existiert
+                    $pdo->exec("CREATE TABLE IF NOT EXISTS `{$prefix}migrations` (
+                        `id` INT AUTO_INCREMENT PRIMARY KEY,
+                        `migration` VARCHAR(255) NOT NULL UNIQUE,
+                        `executed_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+                    
+                    // Markiere Migration als ausgeführt
+                    $stmt = $pdo->prepare("INSERT IGNORE INTO `{$prefix}migrations` (migration) VALUES (?)");
+                    $stmt->execute([$migration_key]);
+                    
+                    $message = "✅ Migration erfolgreich ausgeführt!";
+                    $messageType = "success";
+                    $executed_migrations[] = $migration_key;
+                } catch (Exception $mig_error) {
+                    $message = "❌ Fehler bei Migration: " . htmlspecialchars($mig_error->getMessage());
+                    $messageType = "danger";
+                    @error_log("Migration Error [$migration_key]: " . $mig_error->getMessage());
                 }
             }
         } catch (Exception $e) {
-            // Nur rollback wenn Transaction noch aktiv ist
-            if ($transaction_active && $pdo) {
-                try {
-                    $pdo->rollBack();
-                } catch (Exception $rollback_error) {
-                    // Rollback selbst fehlgeschlagen, aber wir loggen es
-                    @error_log("Rollback Error: " . $rollback_error->getMessage());
-                }
-            }
-            
-            $message = "❌ Fehler bei Migration: " . htmlspecialchars($e->getMessage());
+            $message = "❌ Fehler: " . htmlspecialchars($e->getMessage());
             $messageType = "danger";
-            
-            // Logge auch in Datei für Debugging
-            @error_log("Migration Error [$migration_key]: " . $e->getMessage());
-            
-            // Reload executed migrations from database to ensure consistency
-            try {
-                $stmt = $pdo->query("SELECT migration FROM `{$prefix}migrations`");
-                if ($stmt) {
-                    $executed_migrations = $stmt->fetchAll(PDO::FETCH_COLUMN, 0);
-                }
-            } catch (Exception $reload_error) {
-                // Silently fail, keep current executed_migrations list
-            }
+            @error_log("Migration Error: " . $e->getMessage());
         }
     }
 }
