@@ -260,6 +260,7 @@ function addDirToZip(&$zip, $dir, $base_path) {
 <script>
 let backupProgressInterval = null;
 let backupStartTime = null;
+let backupStartTimestamp = null;
 
 function startBackup(e) {
     e.preventDefault();
@@ -271,6 +272,7 @@ function startBackup(e) {
     document.getElementById('backupProgress').style.display = 'block';
     
     backupStartTime = Date.now();
+    backupStartTimestamp = Math.floor(Date.now() / 1000);
     
     // Starte das Backup
     fetch('backup_process.php?action=execute', {
@@ -370,7 +372,22 @@ function updateBackupUI(data) {
         if (minutes > 0) etaText += minutes + 'm ';
         etaText += seconds + 's';
         progressEta.textContent = 'ETA: ' + etaText;
-    } else if (data.duration) {
+    } else {
+        // Berechne verstrichene Zeit basierend auf lokaler Uhr
+        if (backupStartTimestamp) {
+            const currentTime = Math.floor(Date.now() / 1000);
+            const elapsed = currentTime - backupStartTimestamp;
+            const minutes = Math.floor(elapsed / 60);
+            const seconds = elapsed % 60;
+            let durationText = '';
+            if (minutes > 0) durationText += minutes + 'm ';
+            durationText += seconds + 's';
+            progressEta.textContent = 'Zeit: ' + durationText;
+        }
+    }
+    
+    // Bei Fertigstellung: Zeige finale Zeit
+    if (data.status === 'completed' && data.duration) {
         const minutes = Math.floor(data.duration / 60);
         const seconds = data.duration % 60;
         let durationText = '';
