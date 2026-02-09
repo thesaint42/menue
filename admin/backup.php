@@ -545,7 +545,9 @@ function resetBackupForm() {
 // Massenbearbeitung: Select All
 function toggleSelectAll() {
     const selectAllCheckbox = document.getElementById('selectAll');
-    const backupCheckboxes = document.querySelectorAll('.backup-checkbox');
+    const backupCheckboxes = document.querySelectorAll('tbody .backup-checkbox');
+    
+    console.log('toggleSelectAll called, checked:', selectAllCheckbox.checked, 'count:', backupCheckboxes.length);
     
     backupCheckboxes.forEach(checkbox => {
         checkbox.checked = selectAllCheckbox.checked;
@@ -556,7 +558,7 @@ function toggleSelectAll() {
 
 // Massenbearbeitung: Update Buttons
 function updateBulkActions() {
-    const backupCheckboxes = document.querySelectorAll('.backup-checkbox:checked');
+    const backupCheckboxes = document.querySelectorAll('tbody .backup-checkbox:checked');
     const bulkActionsDiv = document.getElementById('bulkActions');
     const selectionCountSpan = document.getElementById('selectionCount');
     
@@ -569,15 +571,22 @@ function updateBulkActions() {
     }
     
     // Update Select All Checkbox
-    const allCheckboxes = document.querySelectorAll('.backup-checkbox');
+    const allCheckboxes = document.querySelectorAll('tbody .backup-checkbox');
     const selectAllCheckbox = document.getElementById('selectAll');
-    selectAllCheckbox.checked = allCheckboxes.length === backupCheckboxes.length && allCheckboxes.length > 0;
-    selectAllCheckbox.indeterminate = backupCheckboxes.length > 0 && backupCheckboxes.length < allCheckboxes.length;
+    
+    if (allCheckboxes.length > 0) {
+        const allChecked = backupCheckboxes.length === allCheckboxes.length;
+        const someChecked = backupCheckboxes.length > 0;
+        
+        selectAllCheckbox.checked = allChecked;
+        selectAllCheckbox.indeterminate = someChecked && !allChecked;
+    }
+}
 }
 
 // Massenbearbeitung: Alle Download
 function bulkDownload() {
-    const selectedCheckboxes = document.querySelectorAll('.backup-checkbox:checked');
+    const selectedCheckboxes = document.querySelectorAll('tbody .backup-checkbox:checked');
     
     if (selectedCheckboxes.length === 0) {
         alert('Keine Backups ausgewählt!');
@@ -600,7 +609,7 @@ function bulkDownload() {
 
 // Massenbearbeitung: Alle Löschen
 function bulkDelete() {
-    const selectedCheckboxes = document.querySelectorAll('.backup-checkbox:checked');
+    const selectedCheckboxes = document.querySelectorAll('tbody .backup-checkbox:checked');
     
     if (selectedCheckboxes.length === 0) {
         alert('Keine Backups ausgewählt!');
@@ -638,7 +647,7 @@ function bulkDelete() {
 
 // Massenbearbeitung: Abbrechen
 function clearSelection() {
-    document.querySelectorAll('.backup-checkbox').forEach(checkbox => {
+    document.querySelectorAll('tbody .backup-checkbox').forEach(checkbox => {
         checkbox.checked = false;
     });
     document.getElementById('selectAll').checked = false;
