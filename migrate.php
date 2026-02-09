@@ -205,6 +205,105 @@ $migrations = [
                 throw new Exception("Fehler bei age_group Migration: " . $e->getMessage());
             }
         }
+    ],
+    'add_show_prices_to_projects' => [
+        'name' => 'Preisanzeige-Flag zu Projekten hinzufügen',
+        'description' => 'Fügt show_prices Spalte zu projects Tabelle hinzu (0=verborgen, 1=sichtbar)',
+        'version' => '3.0.0',
+        'up' => function($pdo, $prefix) {
+            try {
+                $result = $pdo->query("SHOW COLUMNS FROM `{$prefix}projects`");
+                $columns = $result->fetchAll(PDO::FETCH_COLUMN, 0);
+                if (!in_array('show_prices', $columns)) {
+                    $pdo->exec("ALTER TABLE `{$prefix}projects` ADD COLUMN `show_prices` TINYINT(1) DEFAULT 0 AFTER `is_active`");
+                }
+                return true;
+            } catch (Exception $e) {
+                throw new Exception("Fehler bei show_prices Migration: " . $e->getMessage());
+            }
+        }
+    ],
+    'add_price_to_dishes' => [
+        'name' => 'Preisfeld zu Gerichten hinzufügen',
+        'description' => 'Fügt price Spalte zu dishes Tabelle hinzu (Brutto, 2 Dezimalstellen)',
+        'version' => '3.0.0',
+        'up' => function($pdo, $prefix) {
+            try {
+                $result = $pdo->query("SHOW COLUMNS FROM `{$prefix}dishes`");
+                $columns = $result->fetchAll(PDO::FETCH_COLUMN, 0);
+                if (!in_array('price', $columns)) {
+                    $pdo->exec("ALTER TABLE `{$prefix}dishes` ADD COLUMN `price` DECIMAL(8,2) DEFAULT NULL AFTER `description`");
+                }
+                return true;
+            } catch (Exception $e) {
+                throw new Exception("Fehler bei price Migration: " . $e->getMessage());
+            }
+        }
+    ],
+    'create_order_sessions_table' => [
+        'name' => 'Order-Sessions Tabelle erstellen',
+        'description' => 'Erstellt order_sessions Tabelle für eindeutige Bestellvorgänge mit order_id',
+        'version' => '3.0.0',
+        'up' => function($pdo, $prefix) {
+            try {
+                $result = $pdo->query("SHOW TABLES LIKE '{$prefix}order_sessions'");
+                if ($result && $result->rowCount() > 0) {
+                    return true;
+                }
+                $pdo->exec("CREATE TABLE IF NOT EXISTS `{$prefix}order_sessions` (
+                    `id` INT AUTO_INCREMENT PRIMARY KEY,
+                    `order_id` CHAR(36) NOT NULL,
+                    `project_id` INT NOT NULL,
+                    `email` VARCHAR(150) NOT NULL,
+                    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE KEY `unique_order_id` (`order_id`),
+                    FOREIGN KEY (`project_id`) REFERENCES `{$prefix}projects`(`id`) ON DELETE CASCADE
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+                return true;
+            } catch (Exception $e) {
+                throw new Exception("Fehler beim Erstellen order_sessions: " . $e->getMessage());
+            }
+        }
+    ],
+    'migrate_orders_to_person_based' => [
+        'name' => 'Orders auf personenspezifische Struktur migrieren',
+        'description' => 'Strukturiert orders Tabelle um: order_id, person_id, category_id statt guest_id+quantity',
+        'version' => '3.0.0',
+        'depends_on' => ['create_order_sessions_table'],
+        'up' => function($pdo, $prefix) {
+            try {
+                // Backup der alten orders Tabelle erstellen
+                $pdo->exec("CREATE TABLE IF NOT EXISTS `{$prefix}orders_backup_v2` LIKE `{$prefix}orders`");
+                $pdo->exec("INSERT IGNORE INTO `{$prefix}orders_backup_v2` SELECT * FROM `{$prefix}orders`");
+                
+                // Prüfe aktuelle Struktur
+                $result = $pdo->query("SHOW COLUMNS FROM `{$prefix}orders`");
+                $columns = $result->fetchAll(PDO::FETCH_COLUMN, 0);
+                
+                // Wenn schon neue Struktur, überspringe
+                if (in_array('order_id', $columns) && in_array('person_id', $columns) && in_array('category_id', $columns)) {
+                    return true;
+                }
+                
+                // Alte Tabelle löschen und neue Struktur erstellen
+                $pdo->exec("DROP TABLE `{$prefix}orders`");
+                $pdo->exec("CREATE TABLE `{$prefix}orders` (
+                    `id` INT AUTO_INCREMENT PRIMARY KEY,
+                    `order_id` CHAR(36) NOT NULL,
+                    `person_id` INT NOT NULL,
+                    `dish_id` INT NOT NULL,
+                    `category_id` INT NOT NULL,
+                    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (`dish_id`) REFERENCES `{$prefix}dishes`(`id`) ON DELETE RESTRICT,
+                    UNIQUE KEY `unique_order` (`order_id`, `person_id`, `category_id`),
+                    INDEX `idx_order_id` (`order_id`)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+                
+                return true;
+            } catch (Exception $e) {
+                throw new Exception("Fehler bei orders Migration: " . $e->getMessage());
+            }
+        }
     ]
 ];
 

@@ -49,6 +49,7 @@ function getMenuSelectionSchema($prefix) {
             `admin_email` VARCHAR(150) NOT NULL,
             `access_pin` VARCHAR(10) NOT NULL,
             `is_active` TINYINT(1) DEFAULT 1,
+            `show_prices` TINYINT(1) DEFAULT 0,
             `created_by` INT,
             `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             UNIQUE KEY `unique_pin` (`access_pin`),
@@ -70,11 +71,22 @@ function getMenuSelectionSchema($prefix) {
             `category_id` INT NOT NULL,
             `name` VARCHAR(200) NOT NULL,
             `description` TEXT,
+            `price` DECIMAL(8,2) DEFAULT NULL,
             `sort_order` INT DEFAULT 0,
             `is_active` TINYINT(1) DEFAULT 1,
             `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (`project_id`) REFERENCES `{$prefix}projects`(`id`) ON DELETE CASCADE,
             FOREIGN KEY (`category_id`) REFERENCES `{$prefix}menu_categories`(`id`) ON DELETE RESTRICT
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4",
+        // 7b. ORDER SESSIONS (Bestellvorgänge)
+        "CREATE TABLE IF NOT EXISTS `{$prefix}order_sessions` (
+            `id` INT AUTO_INCREMENT PRIMARY KEY,
+            `order_id` CHAR(36) NOT NULL,
+            `project_id` INT NOT NULL,
+            `email` VARCHAR(150) NOT NULL,
+            `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE KEY `unique_order_id` (`order_id`),
+            FOREIGN KEY (`project_id`) REFERENCES `{$prefix}projects`(`id`) ON DELETE CASCADE
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4",
 
         // 7. GÄSTE
@@ -105,16 +117,17 @@ function getMenuSelectionSchema($prefix) {
             FOREIGN KEY (`guest_id`) REFERENCES `{$prefix}guests`(`id`) ON DELETE CASCADE
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4",
 
-        // 8. BESTELLUNGEN (Gast-Menüauswahl)
+        // 8. BESTELLUNGEN (Personen-Menüauswahl, pro Gang)
         "CREATE TABLE IF NOT EXISTS `{$prefix}orders` (
             `id` INT AUTO_INCREMENT PRIMARY KEY,
-            `guest_id` INT NOT NULL,
+            `order_id` CHAR(36) NOT NULL,
+            `person_id` INT NOT NULL,
             `dish_id` INT NOT NULL,
-            `quantity` INT DEFAULT 1,
+            `category_id` INT NOT NULL,
             `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (`guest_id`) REFERENCES `{$prefix}guests`(`id`) ON DELETE CASCADE,
+            FOREIGN KEY (`order_id`) REFERENCES `{$prefix}order_sessions`(`order_id`) ON DELETE CASCADE,
             FOREIGN KEY (`dish_id`) REFERENCES `{$prefix}dishes`(`id`) ON DELETE RESTRICT,
-            UNIQUE KEY `unique_order` (`guest_id`, `dish_id`)
+            UNIQUE KEY `unique_order` (`order_id`, `person_id`, `category_id`)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4",
 
         // 9. SMTP KONFIGURATION
