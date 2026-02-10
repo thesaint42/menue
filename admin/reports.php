@@ -79,14 +79,12 @@ foreach ($guests as $g) {
             
             // Gruppe alle Gerichte pro Kategorie zusammen
             $dishes_by_category = [];
-            if (!empty($dishes)) {
-                foreach ($dishes as $d) {
-                    if ($d['dish']) {
-                        if (!isset($dishes_by_category[$d['category']])) {
-                            $dishes_by_category[$d['category']] = [];
-                        }
-                        $dishes_by_category[$d['category']][] = $d['dish'];
+            foreach ($dishes as $d) {
+                if ($d['dish']) {
+                    if (!isset($dishes_by_category[$d['category']])) {
+                        $dishes_by_category[$d['category']] = [];
                     }
+                    $dishes_by_category[$d['category']][] = $d['dish'];
                 }
             }
             
@@ -119,14 +117,12 @@ foreach ($guests as $g) {
             $main_dishes = $stmt->fetchAll();
             
             $main_dishes_by_category = [];
-            if (!empty($main_dishes)) {
-                foreach ($main_dishes as $d) {
-                    if ($d['dish']) {
-                        if (!isset($main_dishes_by_category[$d['category']])) {
-                            $main_dishes_by_category[$d['category']] = [];
-                        }
-                        $main_dishes_by_category[$d['category']][] = $d['dish'];
+            foreach ($main_dishes as $d) {
+                if ($d['dish']) {
+                    if (!isset($main_dishes_by_category[$d['category']])) {
+                        $main_dishes_by_category[$d['category']] = [];
                     }
+                    $main_dishes_by_category[$d['category']][] = $d['dish'];
                 }
             }
             
@@ -164,14 +160,12 @@ foreach ($guests as $g) {
                 $member_dishes = $stmt->fetchAll();
                 
                 $member_dishes_by_category = [];
-                if (!empty($member_dishes)) {
-                    foreach ($member_dishes as $d) {
-                        if ($d['dish']) {
-                            if (!isset($member_dishes_by_category[$d['category']])) {
-                                $member_dishes_by_category[$d['category']] = [];
-                            }
-                            $member_dishes_by_category[$d['category']][] = $d['dish'];
+                foreach ($member_dishes as $d) {
+                    if ($d['dish']) {
+                        if (!isset($member_dishes_by_category[$d['category']])) {
+                            $member_dishes_by_category[$d['category']] = [];
                         }
+                        $member_dishes_by_category[$d['category']][] = $d['dish'];
                     }
                 }
                 
