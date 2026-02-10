@@ -36,23 +36,30 @@ $guests = $stmt->fetchAll();
 // Alle Bestellungen laden (für Website-Anzeige)
 $guests_with_dishes = [];
 foreach ($guests as $g) {
+    // Lade die letzte/aktuelle Bestellnummer für diesen Gast
     $stmt = $pdo->prepare("
-        SELECT mc.name as category, d.name as dish, mc.sort_order
+        SELECT os.order_id, mc.name as category, d.name as dish, mc.sort_order
         FROM {$prefix}order_sessions os
         LEFT JOIN {$prefix}orders o ON o.order_id = os.order_id
         LEFT JOIN {$prefix}dishes d ON o.dish_id = d.id
         LEFT JOIN {$prefix}menu_categories mc ON d.category_id = mc.id
         WHERE os.email = ? AND os.project_id = ?
-        ORDER BY mc.sort_order, d.name
+        ORDER BY os.id DESC, mc.sort_order, d.name
     ");
     $stmt->execute([$g['email'], $project_id]);
-    $dishes = $stmt->fetchAll();
+    $order_data = $stmt->fetchAll();
+    
+    // Extrahiere die order_id (alle sind gleich, da wir nach os.id DESC sortieren)
+    $order_id = '';
+    if (!empty($order_data)) {
+        $order_id = $order_data[0]['order_id'];
+    }
     
     // Format dishes by category with newlines
     $dishes_text = '';
-    if (!empty($dishes)) {
+    if (!empty($order_data)) {
         $prev_category = null;
-        foreach ($dishes as $d) {
+        foreach ($order_data as $d) {
             if ($d['dish']) {
                 if ($prev_category !== $d['category'] && $prev_category !== null) {
                     $dishes_text .= "\n";
@@ -63,7 +70,7 @@ foreach ($guests as $g) {
         }
     }
     
-    $guests_with_dishes[] = array_merge($g, ['dishes_text' => trim($dishes_text) ?: '–']);
+    $guests_with_dishes[] = array_merge($g, ['dishes_text' => trim($dishes_text) ?: '–', 'order_id' => $order_id]);
 }
 
 // PDF Download oder Anzeige
@@ -74,6 +81,7 @@ if (isset($_GET['download']) && $_GET['download'] === 'pdf') {
     // Gäste mit Bestellungen laden
     $stmt = $pdo->prepare("
         SELECT g.id, g.firstname, g.lastname, g.email, g.phone, g.guest_type, g.family_size,
+               os.order_id,
                GROUP_CONCAT(DISTINCT CONCAT(mc.name, ': ', d.name) ORDER BY mc.sort_order, d.name SEPARATOR '\n') as dishes
         FROM {$prefix}guests g
         LEFT JOIN {$prefix}order_sessions os ON os.email = g.email AND os.project_id = ?
@@ -133,6 +141,9 @@ if (isset($_GET['download']) && $_GET['download'] === 'pdf') {
         $pdf->SetFillColor($fill ? 245 : 255, $fill ? 245 : 255, $fill ? 245 : 255);
         
         $name = $g['firstname'] . ' ' . $g['lastname'];
+        if ($g['order_id']) {
+            $name .= "\n(" . $g['order_id'] . ")";
+        }
         $email = $g['email'];
         $phone = $g['phone'] ?? '–';
         $type = $g['guest_type'] === 'family' ? 'Familie' : 'Einzeln';
@@ -315,11 +326,11 @@ $projects = $pdo->query("SELECT * FROM {$prefix}projects WHERE is_active = 1 ORD
                         <table class="table table-hover table-sm" style="margin-bottom: 0; line-height: 0.95;">
                             <thead class="table-light">
                                 <tr style="line-height: 1.3;">
-                                    <th style="width: 15%; padding: 0.35rem 0.2rem;">Name</th>
+                                    <th style="width: 18%; padding: 0.35rem 0.2rem;">Name</th>
                                     <th style="width: 20%; padding: 0.35rem 0.2rem;">Email</th>
-                                    <th class="d-none d-md-table-cell" style="width: 12%; padding: 0.35rem 0.2rem;">Tel.</th>
+                                    <th class="d-none d-md-table-cell" style="width: 15%; padding: 0.35rem 0.2rem;">Tel.</th>
                                     <th style="width: 10%; padding: 0.35rem 0.2rem;">Typ</th>
-                                    <th style="width: 43%; padding: 0.35rem 0.2rem;">Bestellungen</th>
+                                    <th style="width: 37%; padding: 0.35rem 0.2rem;">Bestellungen</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -328,7 +339,12 @@ $projects = $pdo->query("SELECT * FROM {$prefix}projects WHERE is_active = 1 ORD
                                 <?php else: ?>
                                     <?php foreach ($guests_with_dishes as $g): ?>
                                         <tr style="line-height: 0.95;">
-                                            <td style="padding: 0.35rem 0.3rem; vertical-align: top;"><?php echo htmlspecialchars($g['firstname'] . ' ' . $g['lastname']); ?></td>
+                                            <td style="padding: 0.35rem 0.3rem; vertical-align: top;">
+                                                <?php echo htmlspecialchars($g['firstname'] . ' ' . $g['lastname']); ?>
+                                                <?php if ($g['order_id']): ?>
+                                                    <br><small style="font-style: italic;">(<?php echo htmlspecialchars($g['order_id']); ?>)</small>
+                                                <?php endif; ?>
+                                            </td>
                                             <td style="padding: 0.35rem 0.3rem; vertical-align: top;"><small><?php echo htmlspecialchars($g['email']); ?></small></td>
                                             <td class="d-none d-md-table-cell" style="padding: 0.35rem 0.3rem; vertical-align: top;"><small><?php echo htmlspecialchars($g['phone'] ?? '–'); ?></small></td>
                                             <td style="padding: 0.35rem 0.3rem; vertical-align: top;">
