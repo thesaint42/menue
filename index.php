@@ -484,7 +484,9 @@ if ($existing_order && isset($existing_order['orders'])) {
                     <div class="person-menu-section mb-4" data-person-idx="0">
                         <h6 class="border-bottom pb-2">
                             <span class="person-name-display text-warning fw-bold"><?php echo htmlspecialchars($form_data['firstname'] . ' ' . $form_data['lastname']); ?></span>
-                            <small class="text-muted">(Hauptperson)</small>
+                            <?php if ($form_data['guest_type'] === 'family'): ?>
+                                <small class="text-muted">(Hauptperson)</small>
+                            <?php endif; ?>
                         </h6>
                         <?php foreach ($categories as $cat): ?>
                         <div class="mb-3">
@@ -724,7 +726,7 @@ function updateMenuSections() {
             <div class="person-menu-section mb-4" data-person-idx="${person.idx}">
                 <h6 class="border-bottom pb-2">
                     <span class="person-name-display text-warning fw-bold">${escapeHtml(person.name)}</span>
-                    ${person.idx === 0 ? '<small class="text-muted">(Hauptperson)</small>' : ''}
+                    ${person.idx === 0 && guestType === 'family' ? '<small class="text-muted">(Hauptperson)</small>' : ''}
                     ${person.type === 'child' ? '<small class="badge bg-info">Kind</small>' : ''}
                 </h6>
         `;
