@@ -86,18 +86,6 @@ $projects = $pdo->query("SELECT * FROM {$prefix}projects WHERE is_active = 1 ORD
             text-align: center;
         }
         
-        .project-selector {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-            margin-bottom: 30px;
-        }
-        
-        .project-selector .btn {
-            flex: 1;
-            min-width: 150px;
-        }
-        
         @media (max-width: 576px) {
             .report-icon-btn {
                 min-height: 120px;
@@ -109,15 +97,6 @@ $projects = $pdo->query("SELECT * FROM {$prefix}projects WHERE is_active = 1 ORD
             
             .report-icon-btn .title {
                 font-size: 1rem;
-            }
-            
-            .project-selector {
-                gap: 5px;
-            }
-            
-            .project-selector .btn {
-                min-width: 100%;
-                margin-bottom: 5px;
             }
         }
     </style>
@@ -138,13 +117,13 @@ $projects = $pdo->query("SELECT * FROM {$prefix}projects WHERE is_active = 1 ORD
     <div class="card border-0 shadow mb-4">
         <div class="card-body">
             <label class="form-label fw-bold mb-3">Projekt auswählen:</label>
-            <div class="project-selector">
+            <select class="form-select form-select-lg" onchange="window.location.href='?project=' + this.value">
                 <?php foreach ($projects as $p): ?>
-                    <a href="?project=<?php echo $p['id']; ?>" class="btn <?php echo $p['id'] == $project_id ? 'btn-primary' : 'btn-outline-secondary'; ?>">
-                        <?php echo htmlspecialchars($p['name']); ?>
-                    </a>
+                    <option value="<?php echo $p['id']; ?>" <?php echo $p['id'] == $project_id ? 'selected' : ''; ?>>
+                        [ID: <?php echo $p['id']; ?>] <?php echo htmlspecialchars($p['name']); ?>
+                    </option>
                 <?php endforeach; ?>
-            </div>
+            </select>
         </div>
     </div>
 
