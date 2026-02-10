@@ -312,14 +312,14 @@ $projects = $pdo->query("SELECT * FROM {$prefix}projects WHERE is_active = 1 ORD
                 </div>
                 <div class="card-body">
                     <div class="table-responsive">
-                        <table class="table table-hover table-sm">
+                        <table class="table table-hover table-sm" style="margin-bottom: 0; line-height: 1.2;">
                             <thead class="table-light">
-                                <tr>
-                                    <th style="width: 15%;">Name</th>
-                                    <th style="width: 20%;">Email</th>
-                                    <th class="d-none d-md-table-cell" style="width: 12%;">Tel.</th>
-                                    <th style="width: 10%;">Typ</th>
-                                    <th style="width: 43%;">Bestellungen</th>
+                                <tr style="line-height: 1.4;">
+                                    <th style="width: 15%; padding: 0.3rem;">Name</th>
+                                    <th style="width: 20%; padding: 0.3rem;">Email</th>
+                                    <th class="d-none d-md-table-cell" style="width: 12%; padding: 0.3rem;">Tel.</th>
+                                    <th style="width: 10%; padding: 0.3rem;">Typ</th>
+                                    <th style="width: 43%; padding: 0.3rem;">Bestellungen</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -327,17 +327,17 @@ $projects = $pdo->query("SELECT * FROM {$prefix}projects WHERE is_active = 1 ORD
                                     <tr><td colspan="5" class="text-center text-muted py-3">Keine Gäste</td></tr>
                                 <?php else: ?>
                                     <?php foreach ($guests_with_dishes as $g): ?>
-                                        <tr>
-                                            <td><?php echo htmlspecialchars($g['firstname'] . ' ' . $g['lastname']); ?></td>
-                                            <td><small><?php echo htmlspecialchars($g['email']); ?></small></td>
-                                            <td class="d-none d-md-table-cell"><small><?php echo htmlspecialchars($g['phone'] ?? '–'); ?></small></td>
-                                            <td>
+                                        <tr style="line-height: 1.2;">
+                                            <td style="padding: 0.3rem; vertical-align: top;"><?php echo htmlspecialchars($g['firstname'] . ' ' . $g['lastname']); ?></td>
+                                            <td style="padding: 0.3rem; vertical-align: top;"><small><?php echo htmlspecialchars($g['email']); ?></small></td>
+                                            <td class="d-none d-md-table-cell" style="padding: 0.3rem; vertical-align: top;"><small><?php echo htmlspecialchars($g['phone'] ?? '–'); ?></small></td>
+                                            <td style="padding: 0.3rem; vertical-align: top;">
                                                 <span class="badge bg-secondary">
                                                     <?php echo $g['guest_type'] === 'family' ? 'Familie' : 'Einzeln'; ?>
                                                     <?php if ($g['guest_type'] === 'family' && $g['family_size']): ?>(<?php echo $g['family_size']; ?>)<?php endif; ?>
                                                 </span>
                                             </td>
-                                            <td><small style="white-space: pre-wrap;"><?php echo htmlspecialchars($g['dishes_text']); ?></small></td>
+                                            <td style="padding: 0.3rem; vertical-align: top;"><small style="white-space: pre-wrap; line-height: 1.2;"><?php echo htmlspecialchars($g['dishes_text']); ?></small></td>
                                         </tr>
                                     <?php endforeach; ?>
                                 <?php endif; ?>
