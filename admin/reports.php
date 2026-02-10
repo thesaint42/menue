@@ -530,43 +530,66 @@ $projects = $pdo->query("SELECT * FROM {$prefix}projects WHERE is_active = 1 ORD
                     <h5 class="mb-0">Bestellungen: <?php echo htmlspecialchars($project['name']); ?></h5>
                 </div>
                 <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-hover table-sm" style="margin-bottom: 0; line-height: 0.95;">
-                            <thead class="table-light">
-                                <tr style="line-height: 1.3;">
-                                    <th style="width: 18%; padding: 0.35rem 0.2rem;">Name</th>
-                                    <th style="width: 20%; padding: 0.35rem 0.2rem;">Email</th>
-                                    <th class="d-none d-md-table-cell" style="width: 15%; padding: 0.35rem 0.2rem;">Tel.</th>
-                                    <th style="width: 10%; padding: 0.35rem 0.2rem;">Typ</th>
-                                    <th style="width: 37%; padding: 0.35rem 0.2rem;">Bestellungen</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <?php if (empty($guests_with_dishes)): ?>
-                                    <tr><td colspan="5" class="text-center text-muted py-3">Keine Gäste</td></tr>
-                                <?php else: ?>
-                                    <?php foreach ($guests_with_dishes as $g): ?>
-                                        <tr style="line-height: 0.95;">
-                                            <td style="padding: 0.35rem 0.3rem; vertical-align: top;">
-                                                <?php echo htmlspecialchars($g['person_name']); ?>
-                                                <?php if ($g['order_id']): ?>
-                                                    <br><small style="font-style: italic;">(<?php echo htmlspecialchars($g['order_id']); ?>)</small>
-                                                <?php endif; ?>
-                                            </td>
-                                            <td style="padding: 0.35rem 0.3rem; vertical-align: top;"><small><?php echo htmlspecialchars($g['email']); ?></small></td>
-                                            <td class="d-none d-md-table-cell" style="padding: 0.35rem 0.3rem; vertical-align: top;"><small><?php echo htmlspecialchars($g['phone'] ?? '–'); ?></small></td>
-                                            <td style="padding: 0.35rem 0.3rem; vertical-align: top;">
-                                                <span class="badge bg-secondary">
-                                                    <?php echo htmlspecialchars($g['person_type']); ?>
-                                                </span>
-                                            </td>
-                                            <td style="padding: 0.35rem 0.3rem; vertical-align: top;"><small style="white-space: pre-wrap; line-height: 0.5;"><?php echo htmlspecialchars($g['dishes_text']); ?></small></td>
-                                        </tr>
-                                    <?php endforeach; ?>
-                                <?php endif; ?>
-                            </tbody>
-                        </table>
-                    </div>
+                    <?php 
+                    // Gruppiere Daten nach order_id
+                    $orders_grouped = [];
+                    foreach ($guests_with_dishes as $g) {
+                        if ($g['order_id']) {
+                            if (!isset($orders_grouped[$g['order_id']])) {
+                                $orders_grouped[$g['order_id']] = [
+                                    'email' => $g['email'],
+                                    'phone' => $g['phone'],
+                                    'persons' => []
+                                ];
+                            }
+                            $orders_grouped[$g['order_id']]['persons'][] = $g;
+                        }
+                    }
+                    ?>
+                    
+                    <?php if (empty($orders_grouped)): ?>
+                        <p class="text-center text-muted">Keine Bestellungen vorhanden</p>
+                    <?php else: ?>
+                        <?php foreach ($orders_grouped as $order_id => $order_data): ?>
+                            <div class="mb-4">
+                                <!-- Bestellungs-Header -->
+                                <div class="bg-light p-2 border-bottom border-2 border-info mb-2">
+                                    <strong>Bestellung: <?php echo htmlspecialchars($order_id); ?></strong>
+                                    <span class="text-muted ms-2" style="font-size: 0.9em;">
+                                        (<?php echo htmlspecialchars($order_data['email']); ?><?php if (!empty($order_data['phone'])): ?> | <?php echo htmlspecialchars($order_data['phone']); ?><?php endif; ?>)
+                                    </span>
+                                </div>
+                                
+                                <!-- Personen-Tabelle für diese Bestellung -->
+                                <div class="table-responsive">
+                                    <table class="table table-sm mb-0" style="line-height: 0.95;">
+                                        <thead class="table-light" style="font-size: 0.9em;">
+                                            <tr>
+                                                <th style="width: 25%; padding: 0.25rem 0.3rem;">Name</th>
+                                                <th style="width: 20%; padding: 0.25rem 0.3rem;">Typ</th>
+                                                <th style="width: 55%; padding: 0.25rem 0.3rem;">Bestellungen</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <?php foreach ($order_data['persons'] as $person): ?>
+                                                <tr style="line-height: 0.95;">
+                                                    <td style="padding: 0.25rem 0.3rem; vertical-align: top;">
+                                                        <small><?php echo htmlspecialchars($person['person_name']); ?></small>
+                                                    </td>
+                                                    <td style="padding: 0.25rem 0.3rem; vertical-align: top;">
+                                                        <small><?php echo htmlspecialchars($person['person_type']); ?></small>
+                                                    </td>
+                                                    <td style="padding: 0.25rem 0.3rem; vertical-align: top;">
+                                                        <small style="white-space: pre-wrap; line-height: 1.2;"><?php echo htmlspecialchars($person['dishes_text']); ?></small>
+                                                    </td>
+                                                </tr>
+                                            <?php endforeach; ?>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
                 </div>
 
             <?php elseif ($_GET['view'] === 'stats'): ?>
