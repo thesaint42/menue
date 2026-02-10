@@ -483,7 +483,7 @@ if ($existing_order && isset($existing_order['orders'])) {
                     <!-- Dynamisch gefüllt via JS oder Server -->
                     <div class="person-menu-section mb-4" data-person-idx="0">
                         <h6 class="border-bottom pb-2">
-                            <span class="person-name-display"><?php echo htmlspecialchars($form_data['firstname'] . ' ' . $form_data['lastname']); ?></span>
+                            <span class="person-name-display text-warning fw-bold"><?php echo htmlspecialchars($form_data['firstname'] . ' ' . $form_data['lastname']); ?></span>
                             <small class="text-muted">(Hauptperson)</small>
                         </h6>
                         <?php foreach ($categories as $cat): ?>
@@ -723,7 +723,7 @@ function updateMenuSections() {
         var sectionHtml = `
             <div class="person-menu-section mb-4" data-person-idx="${person.idx}">
                 <h6 class="border-bottom pb-2">
-                    <span class="person-name-display">${escapeHtml(person.name)}</span>
+                    <span class="person-name-display text-warning fw-bold">${escapeHtml(person.name)}</span>
                     ${person.idx === 0 ? '<small class="text-muted">(Hauptperson)</small>' : ''}
                     ${person.type === 'child' ? '<small class="badge bg-info">Kind</small>' : ''}
                 </h6>
