@@ -426,12 +426,12 @@ if ($existing_order && isset($existing_order['orders'])) {
             <!-- Familienmitglieder -->
             <div class="card mb-4 <?php echo ($form_data['guest_type'] === 'family') ? '' : 'd-none'; ?>" id="familySection">
                 <div class="card-header">
-                    <h5 class="mb-3">👥 Menübestellung für Gäste</h5>
-                    <div class="d-grid">
-                        <button type="button" class="btn btn-outline-primary" id="addMemberBtn">+ Person hinzufügen</button>
-                    </div>
+                    <h5 class="mb-0">🍽️ Menüauswahl (Mehrfachbestellung)</h5>
                 </div>
                 <div class="card-body">
+                    <div class="d-grid mb-3">
+                        <button type="button" class="btn btn-outline-primary" id="addMemberBtn">+ Person hinzufügen</button>
+                    </div>
                     <div id="membersContainer">
                         <?php foreach ($form_data['members'] as $idx => $member): ?>
                         <div class="member-row border-bottom pb-3 mb-3">
