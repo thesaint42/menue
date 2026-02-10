@@ -426,7 +426,8 @@ if ($existing_order && isset($existing_order['orders'])) {
             <!-- Familienmitglieder -->
             <div class="card mb-4 <?php echo ($form_data['guest_type'] === 'family') ? '' : 'd-none'; ?>" id="familySection">
                 <div class="card-header">
-                    <h5 class="mb-0">🍽️ Menüauswahl (Mehrfachbestellung)</h5>
+                    <h5 class="mb-0">🍽️ Menüauswahl <span class="text-muted" style="font-size: 0.9em;">(Mehrfachbestellung)</span></h5>
+                    <small class="text-muted">Wählen Sie für jede Person ein Gericht pro Gang</small>
                 </div>
                 <div class="card-body">
                     <div class="d-grid mb-3">
