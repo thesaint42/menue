@@ -106,15 +106,15 @@ if (isset($_GET['download']) && $tcpdf_available) {
 
     foreach ($guests as $g) {
         $pdf->SetFillColor($fill ? 245 : 255, $fill ? 245 : 255, $fill ? 245 : 255);
-        $pdf->MultiCell(40, 7, $g['firstname'] . ' ' . $g['lastname'], 1, 'L', $fill);
+        $pdf->MultiCell(40, 7, $g['firstname'] ?? '–', 1, 'L', $fill);
         $pdf->SetXY(50, $pdf->GetY() - 7);
         $pdf->MultiCell(40, 7, $g['email'], 1, 'L', $fill);
         $pdf->SetXY(90, $pdf->GetY() - 7);
         $pdf->MultiCell(30, 7, $g['phone'] ?? '–', 1, 'C', $fill);
         $pdf->SetXY(120, $pdf->GetY() - 7);
-        $guest_type = $g['guest_type'] === 'family' ? 'Fam.' : 'Einz.';
-        if ($g['guest_type'] === 'family') {
-            $guest_type .= '(' . $g['family_size'] . ')';
+        $guest_type = $g['person_type'] === 'child' ? 'Kind' : 'Erw.';
+        if ($g['age']) {
+            $guest_type .= '(' . $g['age'] . ')';
         }
         $pdf->MultiCell(30, 7, $guest_type, 1, 'C', $fill);
         $pdf->SetXY(150, $pdf->GetY() - 7);
