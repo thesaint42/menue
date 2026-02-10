@@ -82,6 +82,11 @@ foreach ($order_sessions as $os) {
 
 // Für jeden Gast und jede Bestellung die Gerichte laden
 foreach ($guests_by_id as $guest_id => $guest) {
+    // Überspringe NULL-Keys (Bestellungen ohne zugeordneten Gast)
+    if ($guest_id === null) {
+        continue;
+    }
+    
     // Wenn es keine Bestellungen gibt
     if (empty($guest['orders'])) {
         $guests_with_dishes[] = [
