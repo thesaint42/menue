@@ -308,7 +308,7 @@ $projects = $pdo->query("SELECT * FROM {$prefix}projects WHERE is_active = 1 ORD
         <div class="card border-0 shadow mt-5">
             <?php if ($_GET['view'] === 'orders'): ?>
                 <div class="card-header bg-info text-white py-3">
-                    <h5 class="mb-0">Bestellungsübersicht: <?php echo htmlspecialchars($project['name']); ?></h5>
+                    <h5 class="mb-0">Bestellübersicht: <?php echo htmlspecialchars($project['name']); ?></h5>
                 </div>
                 <div class="card-body">
                     <div class="table-responsive">
