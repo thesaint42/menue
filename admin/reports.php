@@ -41,11 +41,12 @@ if (isset($_GET['download']) && $_GET['download'] === 'pdf') {
     // Gäste mit Bestellungen laden
     $stmt = $pdo->prepare("
         SELECT g.id, g.firstname, g.lastname, g.email, g.phone, g.guest_type, g.family_size,
-               GROUP_CONCAT(DISTINCT d.name ORDER BY d.name SEPARATOR ', ') as dishes
+               GROUP_CONCAT(DISTINCT CONCAT(mc.name, ': ', d.name) ORDER BY mc.name, d.name SEPARATOR ', ') as dishes
         FROM {$prefix}guests g
         LEFT JOIN {$prefix}order_sessions os ON os.email = g.email AND os.project_id = ?
         LEFT JOIN {$prefix}orders o ON o.order_id = os.order_id
         LEFT JOIN {$prefix}dishes d ON o.dish_id = d.id
+        LEFT JOIN {$prefix}menu_categories mc ON d.category_id = mc.id
         WHERE g.project_id = ?
         GROUP BY g.id
         ORDER BY g.created_at DESC
