@@ -328,16 +328,16 @@ $projects = $pdo->query("SELECT * FROM {$prefix}projects WHERE is_active = 1 ORD
                                 <?php else: ?>
                                     <?php foreach ($guests_with_dishes as $g): ?>
                                         <tr style="line-height: 0.95;">
-                                            <td style="padding: 0.25rem 0.3rem; vertical-align: top;"><?php echo htmlspecialchars($g['firstname'] . ' ' . $g['lastname']); ?></td>
-                                            <td style="padding: 0.25rem 0.3rem; vertical-align: top;"><small><?php echo htmlspecialchars($g['email']); ?></small></td>
-                                            <td class="d-none d-md-table-cell" style="padding: 0.25rem 0.3rem; vertical-align: top;"><small><?php echo htmlspecialchars($g['phone'] ?? '–'); ?></small></td>
-                                            <td style="padding: 0.25rem 0.3rem; vertical-align: top;">
+                                            <td style="padding: 0.35rem 0.3rem; vertical-align: top;"><?php echo htmlspecialchars($g['firstname'] . ' ' . $g['lastname']); ?></td>
+                                            <td style="padding: 0.35rem 0.3rem; vertical-align: top;"><small><?php echo htmlspecialchars($g['email']); ?></small></td>
+                                            <td class="d-none d-md-table-cell" style="padding: 0.35rem 0.3rem; vertical-align: top;"><small><?php echo htmlspecialchars($g['phone'] ?? '–'); ?></small></td>
+                                            <td style="padding: 0.35rem 0.3rem; vertical-align: top;">
                                                 <span class="badge bg-secondary">
                                                     <?php echo $g['guest_type'] === 'family' ? 'Familie' : 'Einzeln'; ?>
                                                     <?php if ($g['guest_type'] === 'family' && $g['family_size']): ?>(<?php echo $g['family_size']; ?>)<?php endif; ?>
                                                 </span>
                                             </td>
-                                            <td style="padding: 0.25rem 0.3rem; vertical-align: top;"><small style="white-space: pre-wrap; line-height: 0.8;"><?php echo htmlspecialchars($g['dishes_text']); ?></small></td>
+                                            <td style="padding: 0.35rem 0.3rem; vertical-align: top;"><small style="white-space: pre-wrap; line-height: 0.5;"><?php echo htmlspecialchars($g['dishes_text']); ?></small></td>
                                         </tr>
                                     <?php endforeach; ?>
                                 <?php endif; ?>
