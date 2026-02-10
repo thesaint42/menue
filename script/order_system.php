@@ -5,16 +5,12 @@
  */
 
 /**
- * Generiert eine eindeutige Order-ID (UUID v4)
+ * Generiert eine eindeutige Order-ID im Format "##### - #####"
  */
 function generate_order_id() {
-    return sprintf('%04x%04x-%04x-%04x-%04x-%04x%04x%04x',
-        mt_rand(0, 0xffff), mt_rand(0, 0xffff),
-        mt_rand(0, 0xffff),
-        mt_rand(0, 0x0fff) | 0x4000,
-        mt_rand(0, 0x3fff) | 0x8000,
-        mt_rand(0, 0xffff), mt_rand(0, 0xffff), mt_rand(0, 0xffff)
-    );
+    $part1 = str_pad(mt_rand(0, 99999), 5, '0', STR_PAD_LEFT);
+    $part2 = str_pad(mt_rand(0, 99999), 5, '0', STR_PAD_LEFT);
+    return $part1 . ' - ' . $part2;
 }
 
 /**
