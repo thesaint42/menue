@@ -223,6 +223,9 @@ foreach ($guests_by_id as $guest_id => $guest) {
             $stmt->execute([$guest['id']]);
             $family_members = $stmt->fetchAll();
             
+            // DEBUG: Temporär aktiviert
+            // error_log("Guest ID: " . $guest['id'] . " - Family members found: " . count($family_members));
+            
             foreach ($family_members as $idx => $member) {
                 $person_idx = $idx + 1;
                 $stmt = $pdo->prepare("
@@ -558,6 +561,7 @@ $projects = $pdo->query("SELECT * FROM {$prefix}projects WHERE is_active = 1 ORD
                                     <span class="ms-2" style="font-size: 0.9em; opacity: 0.9;">
                                         (<?php echo htmlspecialchars($order_data['email']); ?><?php if (!empty($order_data['phone'])): ?> | <?php echo htmlspecialchars($order_data['phone']); ?><?php endif; ?>)
                                     </span>
+                                    <span class="badge bg-light text-dark ms-2"><?php echo count($order_data['persons']); ?> <?php echo count($order_data['persons']) === 1 ? 'Person' : 'Personen'; ?></span>
                                 </div>
                                 
                                 <!-- Personen-Tabelle für diese Bestellung -->
