@@ -114,40 +114,70 @@ function save_order($pdo, $prefix, $data) {
         $guest_type = $data['guest_type'] ?? 'individual';
         $family_size = ($guest_type === 'family') ? count($data['persons'] ?? []) : 1;
         
-        // Hauptperson Typ und Alter extrahieren
+        // Hauptperson Typ und Alter extrahieren (für zukünftige Nutzung vorbereitet)
         $main_person = $data['persons'][0] ?? ['type' => 'adult', 'age_group' => null, 'highchair' => 0];
         $person_type = $main_person['type'] ?? 'adult';
         $child_age = ($person_type === 'child') ? ($main_person['age_group'] ?? $main_person['age'] ?? null) : null;
         $highchair_needed = ($person_type === 'child') ? ($main_person['highchair'] ?? 0) : 0;
         
+        // Prüfe ob neue Spalten existieren
+        $stmt_check = $pdo->prepare("SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = 'person_type'");
+        $stmt_check->execute(["{$prefix}guests"]);
+        $has_person_type_column = $stmt_check->fetchColumn() > 0;
+        
         if ($existing_guest) {
             $guest_id = $existing_guest['id'];
-            $stmt = $pdo->prepare("UPDATE {$prefix}guests SET firstname = ?, lastname = ?, phone = ?, guest_type = ?, family_size = ?, person_type = ?, child_age = ?, highchair_needed = ? WHERE id = ?");
-            $stmt->execute([
-                $firstname,
-                $lastname,
-                $phone,
-                $guest_type,
-                $family_size,
-                $person_type,
-                $child_age,
-                $highchair_needed,
-                $guest_id
-            ]);
+            if ($has_person_type_column) {
+                $stmt = $pdo->prepare("UPDATE {$prefix}guests SET firstname = ?, lastname = ?, phone = ?, guest_type = ?, family_size = ?, person_type = ?, child_age = ?, highchair_needed = ? WHERE id = ?");
+                $stmt->execute([
+                    $firstname,
+                    $lastname,
+                    $phone,
+                    $guest_type,
+                    $family_size,
+                    $person_type,
+                    $child_age,
+                    $highchair_needed,
+                    $guest_id
+                ]);
+            } else {
+                $stmt = $pdo->prepare("UPDATE {$prefix}guests SET firstname = ?, lastname = ?, phone = ?, guest_type = ?, family_size = ? WHERE id = ?");
+                $stmt->execute([
+                    $firstname,
+                    $lastname,
+                    $phone,
+                    $guest_type,
+                    $family_size,
+                    $guest_id
+                ]);
+            }
         } else {
-            $stmt = $pdo->prepare("INSERT INTO {$prefix}guests (project_id, firstname, lastname, email, phone, guest_type, family_size, person_type, child_age, highchair_needed) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-            $stmt->execute([
-                $project_id,
-                $firstname,
-                $lastname,
-                $email,
-                $phone,
-                $guest_type,
-                $family_size,
-                $person_type,
-                $child_age,
-                $highchair_needed
-            ]);
+            if ($has_person_type_column) {
+                $stmt = $pdo->prepare("INSERT INTO {$prefix}guests (project_id, firstname, lastname, email, phone, guest_type, family_size, person_type, child_age, highchair_needed) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                $stmt->execute([
+                    $project_id,
+                    $firstname,
+                    $lastname,
+                    $email,
+                    $phone,
+                    $guest_type,
+                    $family_size,
+                    $person_type,
+                    $child_age,
+                    $highchair_needed
+                ]);
+            } else {
+                $stmt = $pdo->prepare("INSERT INTO {$prefix}guests (project_id, firstname, lastname, email, phone, guest_type, family_size) VALUES (?, ?, ?, ?, ?, ?, ?)");
+                $stmt->execute([
+                    $project_id,
+                    $firstname,
+                    $lastname,
+                    $email,
+                    $phone,
+                    $guest_type,
+                    $family_size
+                ]);
+            }
             $guest_id = $pdo->lastInsertId();
         }
         
