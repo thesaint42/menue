@@ -1,246 +1,438 @@
 <?php
 /**
- * admin/reports.php - Reporting-Übersicht für Service, Küche und Kosten
+ * admin/export_pdf.php - PDF Export der Bestellungsübersicht
  */
 
-@session_start();
 require_once '../db.php';
 require_once '../script/auth.php';
-require_once '../script/order_system.php';
+
+// Prüfe, ob TCPDF verfügbar ist
+$tcpdf_available = file_exists('../script/tcpdf/tcpdf.php');
 
 checkLogin();
-checkAdmin();
 
 $prefix = $config['database']['prefix'] ?? 'menu_';
+$project_id = isset($_GET['project']) ? (int)$_GET['project'] : null;
 $message = "";
 $messageType = "info";
 
-// Projekt-Auswahl
-$project_id = $_GET['project_id'] ?? null;
-$report_type = $_GET['report'] ?? 'service';
-
-// Alle aktiven Projekte laden
-$stmt = $pdo->query("SELECT * FROM {$prefix}projects WHERE is_active = 1 ORDER BY name");
-$projects = $stmt->fetchAll();
-
-$project = null;
-$report_data = [];
-
-if ($project_id) {
-    $stmt = $pdo->prepare("SELECT * FROM {$prefix}projects WHERE id = ?");
-    $stmt->execute([$project_id]);
-    $project = $stmt->fetch();
-    
-    if ($project) {
-        switch ($report_type) {
-            case 'service':
-                $report_data = generate_service_report($pdo, $prefix, $project_id);
-                break;
-            case 'kitchen':
-                $report_data = generate_kitchen_report($pdo, $prefix, $project_id);
-                break;
-            case 'cost':
-                $report_data = generate_cost_report($pdo, $prefix, $project_id);
-                break;
-        }
+if (!$project_id) {
+    $projects = $pdo->query("SELECT * FROM {$prefix}projects WHERE is_active = 1 ORDER BY name")->fetchAll();
+    if (empty($projects)) {
+        echo "<div class='container mt-5'><div class='alert alert-warning'>Keine Projekte vorhanden.</div></div>";
+        exit;
     }
+    $project_id = $projects[0]['id'];
 }
+
+// Projekt laden
+$stmt = $pdo->prepare("SELECT * FROM {$prefix}projects WHERE id = ?");
+$stmt->execute([$project_id]);
+$project = $stmt->fetch();
+
+if (!$project) {
+    die("Projekt nicht gefunden.");
+}
+
+// Gäste und Bestellungen laden
+$stmt = $pdo->prepare("SELECT g.*, COUNT(o.id) as order_count FROM {$prefix}guests g 
+                       LEFT JOIN {$prefix}orders o ON g.id = o.guest_id 
+                       WHERE g.project_id = ? GROUP BY g.id ORDER BY g.created_at DESC");
+$stmt->execute([$project_id]);
+$guests = $stmt->fetchAll();
+
+// PDF Download
+if (isset($_GET['download']) && $tcpdf_available) {
+    require_once '../script/tcpdf/tcpdf.php';
+
+    $pdf = new TCPDF(PDF_PAGE_ORIENTATION, PDF_UNIT, PDF_PAGE_FORMAT, true, 'UTF-8', false);
+    $pdf->SetCreator('Event Menue Order System (EMOS)');
+    $pdf->SetTitle('Bestellungsübersicht - ' . $project['name']);
+    $pdf->SetMargins(10, 10, 10);
+    $pdf->SetAutoPageBreak(true, 15);
+    $pdf->AddPage();
+    
+    // Header
+    $pdf->SetFillColor(13, 110, 253);
+    $pdf->SetTextColor(255, 255, 255);
+    $pdf->SetFont('helvetica', 'B', 16);
+    $pdf->Cell(0, 10, 'Bestellungsübersicht - ' . $project['name'], 0, 1, 'C', true);
+    
+    $pdf->SetTextColor(0, 0, 0);
+    $pdf->SetFont('helvetica', '', 10);
+    $pdf->Cell(0, 5, 'Erstellt am: ' . date('d.m.Y H:i:s'), 0, 1, 'R');
+    $pdf->Ln(5);
+
+    // Projekt Info
+    $pdf->SetFont('helvetica', 'B', 11);
+    $pdf->Cell(0, 6, 'Projektdetails:', 0, 1);
+    $pdf->SetFont('helvetica', '', 10);
+    $pdf->Cell(0, 5, 'Name: ' . $project['name'], 0, 1);
+    if ($project['location']) {
+        $pdf->Cell(0, 5, 'Ort: ' . $project['location'], 0, 1);
+    }
+    $pdf->Cell(0, 5, 'Anmeldungen: ' . count($guests) . ' / ' . $project['max_guests'], 0, 1);
+    $pdf->Ln(5);
+
+    // Tabelle
+    $pdf->SetFont('helvetica', 'B', 10);
+    $pdf->SetFillColor(200, 200, 200);
+    $pdf->Cell(40, 7, 'Name', 1, 0, 'L', true);
+    $pdf->Cell(40, 7, 'Email', 1, 0, 'L', true);
+    $pdf->Cell(30, 7, 'Telefon', 1, 0, 'L', true);
+    $pdf->Cell(30, 7, 'Typ', 1, 0, 'C', true);
+    $pdf->Cell(25, 7, 'Bestellungen', 1, 1, 'C', true);
+
+    $pdf->SetFont('helvetica', '', 9);
+    $pdf->SetFillColor(245, 245, 245);
+    $fill = false;
+
+    foreach ($guests as $g) {
+        $pdf->SetFillColor($fill ? 245 : 255, $fill ? 245 : 255, $fill ? 245 : 255);
+        $pdf->MultiCell(40, 7, $g['firstname'] . ' ' . $g['lastname'], 1, 'L', $fill);
+        $pdf->SetXY(50, $pdf->GetY() - 7);
+        $pdf->MultiCell(40, 7, $g['email'], 1, 'L', $fill);
+        $pdf->SetXY(90, $pdf->GetY() - 7);
+        $pdf->MultiCell(30, 7, $g['phone'] ?? '–', 1, 'C', $fill);
+        $pdf->SetXY(120, $pdf->GetY() - 7);
+        $guest_type = $g['guest_type'] === 'family' ? 'Fam.' : 'Einz.';
+        if ($g['guest_type'] === 'family') {
+            $guest_type .= '(' . $g['family_size'] . ')';
+        }
+        $pdf->MultiCell(30, 7, $guest_type, 1, 'C', $fill);
+        $pdf->SetXY(150, $pdf->GetY() - 7);
+        $pdf->MultiCell(25, 7, $g['order_count'], 1, 'C', $fill);
+        $pdf->Ln();
+        $fill = !$fill;
+    }
+
+    $filename = 'bestellungen_' . $project_id . '_' . date('Ymd_Hi') . '.pdf';
+    $pdf->Output($filename, 'D');
+    exit;
+}
+
+// Projekte für Dropdown
+$projects = $pdo->query("SELECT * FROM {$prefix}projects WHERE is_active = 1 ORDER BY name")->fetchAll();
 ?>
 <!DOCTYPE html>
 <html lang="de" data-bs-theme="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reports - Event Menue Order System (EMOS)</title>
+    <title>Reporting - EMOS Admin</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="../assets/css/style.css" rel="stylesheet">
+    <style>
+        .report-icon-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 150px;
+            text-decoration: none;
+            border-radius: 12px;
+            padding: 20px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .report-icon-btn:hover {
+            background: rgba(255,255,255,0.1);
+            border-color: rgba(255,255,255,0.2);
+            transform: translateY(-5px);
+            text-decoration: none;
+            color: inherit;
+        }
+        
+        .report-icon-btn .icon {
+            font-size: 3rem;
+            margin-bottom: 10px;
+        }
+        
+        .report-icon-btn .title {
+            font-weight: 600;
+            font-size: 1.1rem;
+            text-align: center;
+            margin-bottom: 5px;
+        }
+        
+        .report-icon-btn .subtitle {
+            font-size: 0.85rem;
+            color: #aaa;
+            text-align: center;
+        }
+        
+        .project-selector {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 30px;
+        }
+        
+        .project-selector .btn {
+            flex: 1;
+            min-width: 150px;
+        }
+        
+        @media (max-width: 576px) {
+            .report-icon-btn {
+                min-height: 120px;
+            }
+            
+            .report-icon-btn .icon {
+                font-size: 2.5rem;
+            }
+            
+            .report-icon-btn .title {
+                font-size: 1rem;
+            }
+            
+            .project-selector {
+                gap: 5px;
+            }
+            
+            .project-selector .btn {
+                min-width: 100%;
+                margin-bottom: 5px;
+            }
+        }
+    </style>
 </head>
 <body>
+
 <?php include '../nav/top_nav.php'; ?>
 
-<div class="container-fluid py-4">
+<div class="container py-4" style="max-width: 1000px;">
     <div class="row mb-4">
         <div class="col">
-            <h1>📊 Bestellungs-Reports</h1>
-            <p class="text-muted">Service-, Küchen- und Kostenübersicht</p>
+            <h1 class="mb-2">📊 Reporting</h1>
+            <p class="text-muted">Wählen Sie ein Projekt und einen Report-Typ</p>
         </div>
     </div>
 
-    <!-- Projekt- und Report-Auswahl -->
-    <div class="row mb-4">
-        <div class="col-md-6">
-            <div class="card">
-                <div class="card-body">
-                    <form method="get" action="reports.php">
-                        <div class="mb-3">
-                            <label class="form-label">Projekt auswählen</label>
-                            <select name="project_id" class="form-select" required onchange="this.form.submit()">
-                                <option value="">-- Bitte wählen --</option>
-                                <?php foreach ($projects as $p): ?>
-                                    <option value="<?php echo $p['id']; ?>" <?php echo ($p['id'] == $project_id) ? 'selected' : ''; ?>>
-                                        <?php echo htmlspecialchars($p['name']); ?>
-                                    </option>
-                                <?php endforeach; ?>
-                            </select>
-                        </div>
-                        
-                        <?php if ($project_id): ?>
-                        <div class="btn-group w-100" role="group">
-                            <input type="radio" class="btn-check" name="report" id="report_service" value="service" <?php echo ($report_type === 'service') ? 'checked' : ''; ?> onchange="this.form.submit()">
-                            <label class="btn btn-outline-primary" for="report_service">🍽️ Service</label>
-                            
-                            <input type="radio" class="btn-check" name="report" id="report_kitchen" value="kitchen" <?php echo ($report_type === 'kitchen') ? 'checked' : ''; ?> onchange="this.form.submit()">
-                            <label class="btn btn-outline-primary" for="report_kitchen">👨‍🍳 Küche</label>
-                            
-                            <input type="radio" class="btn-check" name="report" id="report_cost" value="cost" <?php echo ($report_type === 'cost') ? 'checked' : ''; ?> onchange="this.form.submit()">
-                            <label class="btn btn-outline-primary" for="report_cost">💰 Kosten</label>
-                        </div>
-                        <?php endif; ?>
-                    </form>
+    <!-- PROJEKT FILTER -->
+    <div class="card border-0 shadow mb-4">
+        <div class="card-body">
+            <label class="form-label fw-bold mb-3">Projekt auswählen:</label>
+            <div class="project-selector">
+                <?php foreach ($projects as $p): ?>
+                    <a href="?project=<?php echo $p['id']; ?>" class="btn <?php echo $p['id'] == $project_id ? 'btn-primary' : 'btn-outline-secondary'; ?>">
+                        <?php echo htmlspecialchars($p['name']); ?>
+                    </a>
+                <?php endforeach; ?>
+            </div>
+        </div>
+    </div>
+
+    <!-- REPORT OPTIONEN ALS ICONS -->
+    <div class="row g-3 g-md-4">
+        <!-- Bestellungsübersicht -->
+        <div class="col-12 col-sm-6 col-lg-4">
+            <a href="?project=<?php echo $project_id; ?>&view=orders" class="report-icon-btn">
+                <div class="icon">📋</div>
+                <div class="title">Bestellungsübersicht</div>
+                <div class="subtitle">Alle Bestellungen anzeigen</div>
+            </a>
+        </div>
+
+        <!-- PDF Export -->
+        <div class="col-12 col-sm-6 col-lg-4">
+            <?php if ($tcpdf_available): ?>
+                <a href="?project=<?php echo $project_id; ?>&download=1" class="report-icon-btn" title="PDF herunterladen">
+                    <div class="icon">📄</div>
+                    <div class="title">PDF Export</div>
+                    <div class="subtitle">Als PDF herunterladen</div>
+                </a>
+            <?php else: ?>
+                <div class="report-icon-btn" style="opacity: 0.5; cursor: not-allowed;">
+                    <div class="icon">📄</div>
+                    <div class="title">PDF Export</div>
+                    <div class="subtitle">Nicht verfügbar</div>
                 </div>
-            </div>
+            <?php endif; ?>
+        </div>
+
+        <!-- CSV Export -->
+        <div class="col-12 col-sm-6 col-lg-4">
+            <a onclick="exportCSV()" class="report-icon-btn" style="cursor: pointer;">
+                <div class="icon">📊</div>
+                <div class="title">CSV Export</div>
+                <div class="subtitle">Als CSV herunterladen</div>
+            </a>
+        </div>
+
+        <!-- Drucken -->
+        <div class="col-12 col-sm-6 col-lg-4">
+            <a onclick="window.print()" class="report-icon-btn" style="cursor: pointer;">
+                <div class="icon">🖨️</div>
+                <div class="title">Drucken</div>
+                <div class="subtitle">Seite drucken / speichern</div>
+            </a>
+        </div>
+
+        <!-- Statistiken -->
+        <div class="col-12 col-sm-6 col-lg-4">
+            <a href="?project=<?php echo $project_id; ?>&view=stats" class="report-icon-btn">
+                <div class="icon">📈</div>
+                <div class="title">Statistiken</div>
+                <div class="subtitle">Auswertungen & Analysen</div>
+            </a>
+        </div>
+
+        <!-- Gästeübersicht -->
+        <div class="col-12 col-sm-6 col-lg-4">
+            <a href="?project=<?php echo $project_id; ?>&view=guests" class="report-icon-btn">
+                <div class="icon">👥</div>
+                <div class="title">Gästeübersicht</div>
+                <div class="subtitle">Alle Gäste anzeigen</div>
+            </a>
         </div>
     </div>
 
-    <?php if ($project && !empty($report_data)): ?>
-    
-    <!-- Service Report -->
-    <?php if ($report_type === 'service'): ?>
-    <div class="card">
-        <div class="card-header">
-            <h5 class="mb-0">🍽️ Service Report - <?php echo htmlspecialchars($project['name']); ?></h5>
-            <small class="text-muted">Personen mit ihren Gerichten</small>
+    <!-- INHALTSBEREICH -->
+    <?php if (isset($_GET['view'])): ?>
+        <div class="card border-0 shadow mt-5">
+            <?php if ($_GET['view'] === 'orders'): ?>
+                <div class="card-header bg-info text-white py-3">
+                    <h5 class="mb-0">Bestellungsübersicht: <?php echo htmlspecialchars($project['name']); ?></h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Email</th>
+                                    <th class="d-none d-md-table-cell">Tel.</th>
+                                    <th>Typ</th>
+                                    <th class="d-none d-lg-table-cell">Bestellungen</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php if (empty($guests)): ?>
+                                    <tr><td colspan="5" class="text-center text-muted py-3">Keine Gäste</td></tr>
+                                <?php else: ?>
+                                    <?php foreach ($guests as $g): ?>
+                                        <tr>
+                                            <td><?php echo htmlspecialchars($g['firstname'] . ' ' . $g['lastname']); ?></td>
+                                            <td><small><?php echo htmlspecialchars($g['email']); ?></small></td>
+                                            <td class="d-none d-md-table-cell"><small><?php echo htmlspecialchars($g['phone'] ?? '–'); ?></small></td>
+                                            <td>
+                                                <span class="badge bg-secondary">
+                                                    <?php echo $g['guest_type'] === 'family' ? 'Familie' : 'Einzeln'; ?>
+                                                </span>
+                                            </td>
+                                            <td class="d-none d-lg-table-cell"><?php echo $g['order_count']; ?></td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                <?php endif; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            <?php elseif ($_GET['view'] === 'stats'): ?>
+                <div class="card-header bg-success text-white py-3">
+                    <h5 class="mb-0">Statistiken: <?php echo htmlspecialchars($project['name']); ?></h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-12 col-sm-6 col-lg-4">
+                            <div class="bg-light p-3 rounded">
+                                <div class="text-muted small">Gesamt Gäste</div>
+                                <div class="fs-3 fw-bold"><?php echo count($guests); ?> / <?php echo $project['max_guests']; ?></div>
+                                <div class="progress mt-2" style="height: 8px;">
+                                    <div class="progress-bar" style="width: <?php echo (count($guests) / $project['max_guests']) * 100; ?>%"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-12 col-sm-6 col-lg-4">
+                            <div class="bg-light p-3 rounded">
+                                <div class="text-muted small">Einzelpersonen</div>
+                                <div class="fs-3 fw-bold"><?php echo count(array_filter($guests, fn($g) => $g['guest_type'] === 'individual')); ?></div>
+                            </div>
+                        </div>
+                        <div class="col-12 col-sm-6 col-lg-4">
+                            <div class="bg-light p-3 rounded">
+                                <div class="text-muted small">Familien</div>
+                                <div class="fs-3 fw-bold"><?php echo count(array_filter($guests, fn($g) => $g['guest_type'] === 'family')); ?></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            <?php elseif ($_GET['view'] === 'guests'): ?>
+                <div class="card-header bg-warning text-dark py-3">
+                    <h5 class="mb-0">Gästeübersicht: <?php echo htmlspecialchars($project['name']); ?></h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <?php if (empty($guests)): ?>
+                            <div class="col-12"><p class="text-muted text-center py-5">Keine Gäste vorhanden</p></div>
+                        <?php else: ?>
+                            <?php foreach ($guests as $g): ?>
+                            <div class="col-12 col-md-6 col-lg-4">
+                                <div class="card border-0 bg-light">
+                                    <div class="card-body">
+                                        <h6 class="card-title"><?php echo htmlspecialchars($g['firstname'] . ' ' . $g['lastname']); ?></h6>
+                                        <p class="card-text small text-muted mb-2">
+                                            📧 <a href="mailto:<?php echo htmlspecialchars($g['email']); ?>"><?php echo htmlspecialchars($g['email']); ?></a>
+                                        </p>
+                                        <?php if ($g['phone']): ?>
+                                            <p class="card-text small text-muted mb-2">
+                                                📞 <?php echo htmlspecialchars($g['phone']); ?>
+                                            </p>
+                                        <?php endif; ?>
+                                        <p class="card-text small mb-0">
+                                            <span class="badge bg-secondary"><?php echo $g['guest_type'] === 'family' ? 'Familie' : 'Einzeln'; ?></span>
+                                            <span class="badge bg-info"><?php echo $g['order_count']; ?> Bestellung<?php echo $g['order_count'] !== 1 ? 'en' : ''; ?></span>
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </div>
+                </div>
+            <?php endif; ?>
         </div>
-        <div class="card-body">
-            <div class="table-responsive">
-                <table class="table table-sm table-hover">
-                    <thead>
-                        <tr>
-                            <th>Gast</th>
-                            <th>Person</th>
-                            <th>Typ</th>
-                            <th>Gang</th>
-                            <th>Gericht</th>
-                            <?php if ($project['show_prices']): ?>
-                            <th class="text-end">Preis</th>
-                            <?php endif; ?>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php 
-                        $last_guest = null;
-                        foreach ($report_data as $row): 
-                            $guest_name = $row['firstname'] . ' ' . $row['lastname'];
-                        ?>
-                        <tr>
-                            <td><?php echo ($guest_name !== $last_guest) ? htmlspecialchars($guest_name) : ''; ?></td>
-                            <td><?php echo htmlspecialchars($row['person_name'] ?? 'Hauptperson'); ?></td>
-                            <td><?php echo $row['member_type'] === 'child' ? '👶 Kind' . ($row['child_age'] ? ' (' . $row['child_age'] . ')' : '') : '👤 Erw.'; ?></td>
-                            <td><?php echo htmlspecialchars($row['category']); ?></td>
-                            <td><?php echo htmlspecialchars($row['dish']); ?></td>
-                            <?php if ($project['show_prices']): ?>
-                            <td class="text-end"><?php echo $row['price'] ? number_format($row['price'], 2, ',', '.') . ' €' : '-'; ?></td>
-                            <?php endif; ?>
-                        </tr>
-                        <?php 
-                        $last_guest = $guest_name;
-                        endforeach; 
-                        ?>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
     <?php endif; ?>
-    
-    <!-- Kitchen Report -->
-    <?php if ($report_type === 'kitchen'): ?>
-    <div class="card">
-        <div class="card-header">
-            <h5 class="mb-0">👨‍🍳 Küchen Report - <?php echo htmlspecialchars($project['name']); ?></h5>
-            <small class="text-muted">Anzahl pro Gericht</small>
-        </div>
-        <div class="card-body">
-            <div class="table-responsive">
-                <table class="table table-sm table-hover">
-                    <thead>
-                        <tr>
-                            <th>Gang</th>
-                            <th>Gericht</th>
-                            <th class="text-end">Anzahl</th>
-                            <th>Gäste (Info)</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php foreach ($report_data as $row): ?>
-                        <tr>
-                            <td><?php echo htmlspecialchars($row['category']); ?></td>
-                            <td><strong><?php echo htmlspecialchars($row['dish']); ?></strong></td>
-                            <td class="text-end"><span class="badge bg-primary"><?php echo $row['quantity']; ?>x</span></td>
-                            <td class="small text-muted"><?php echo htmlspecialchars(substr($row['guests'], 0, 100)); ?><?php echo strlen($row['guests']) > 100 ? '...' : ''; ?></td>
-                        </tr>
-                        <?php endforeach; ?>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-    <?php endif; ?>
-    
-    <!-- Cost Report -->
-    <?php if ($report_type === 'cost'): ?>
-    <div class="card">
-        <div class="card-header">
-            <h5 class="mb-0">💰 Kosten Report - <?php echo htmlspecialchars($project['name']); ?></h5>
-            <small class="text-muted">Gesamtkosten pro Bestellung (Brutto)</small>
-        </div>
-        <div class="card-body">
-            <div class="table-responsive">
-                <table class="table table-sm table-hover">
-                    <thead>
-                        <tr>
-                            <th>Gast</th>
-                            <th>E-Mail</th>
-                            <th>Order-ID</th>
-                            <th class="text-end">Gerichte</th>
-                            <th class="text-end">Gesamt</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php 
-                        $total_sum = 0;
-                        foreach ($report_data as $row): 
-                            $total_sum += $row['total_cost'];
-                        ?>
-                        <tr>
-                            <td><?php echo htmlspecialchars($row['firstname'] . ' ' . $row['lastname']); ?></td>
-                            <td><?php echo htmlspecialchars($row['email']); ?></td>
-                            <td class="small font-monospace"><?php echo htmlspecialchars(substr($row['order_id'], 0, 8)); ?>...</td>
-                            <td class="text-end"><?php echo $row['dish_count']; ?></td>
-                            <td class="text-end"><strong><?php echo number_format($row['total_cost'], 2, ',', '.'); ?> €</strong></td>
-                        </tr>
-                        <?php endforeach; ?>
-                    </tbody>
-                    <tfoot>
-                        <tr class="table-primary">
-                            <th colspan="4" class="text-end">Gesamtsumme:</th>
-                            <th class="text-end"><?php echo number_format($total_sum, 2, ',', '.'); ?> €</th>
-                        </tr>
-                    </tfoot>
-                </table>
-            </div>
-        </div>
-    </div>
-    <?php endif; ?>
-    
-    <?php elseif ($project): ?>
-    <div class="alert alert-info">
-        <p class="mb-0">ℹ️ Keine Bestellungen für dieses Projekt vorhanden.</p>
-    </div>
-    <?php endif; ?>
+
 </div>
 
 <?php include '../nav/footer.php'; ?>
+
+<script>
+function exportCSV() {
+    let csv = 'Name,Email,Telefon,Typ,Bestellungen\n';
+    const rows = document.querySelectorAll('table tbody tr');
+    
+    rows.forEach(row => {
+        const cells = row.querySelectorAll('td');
+        if (cells.length > 0) {
+            const data = Array.from(cells).map(cell => {
+                let text = cell.textContent.trim();
+                // CSV-Escaping
+                if (text.includes(',') || text.includes('"') || text.includes('\n')) {
+                    text = '"' + text.replace(/"/g, '""') + '"';
+                }
+                return text;
+            });
+            csv += data.join(',') + '\n';
+        }
+    });
+
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', 'bestellungen_<?php echo $project_id; ?>_<?php echo date('Ymd_Hi'); ?>.csv');
+    link.click();
+}
+</script>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
