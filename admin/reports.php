@@ -33,6 +33,73 @@ $stmt = $pdo->prepare("SELECT * FROM {$prefix}guests WHERE project_id = ? ORDER 
 $stmt->execute([$project_id]);
 $guests = $stmt->fetchAll();
 
+// PDF Download
+if (isset($_GET['download']) && $_GET['download'] === 'pdf') {
+    require_once '../script/tcpdf/tcpdf.php';
+
+    $pdf = new TCPDF(PDF_PAGE_ORIENTATION, PDF_UNIT, PDF_PAGE_FORMAT, true, 'UTF-8', false);
+    $pdf->SetCreator('Event Menue Order System (EMOS)');
+    $pdf->SetTitle('Gästeübersicht - ' . $project['name']);
+    $pdf->SetMargins(10, 10, 10);
+    $pdf->SetAutoPageBreak(true, 15);
+    $pdf->AddPage();
+    
+    // Header
+    $pdf->SetFillColor(13, 110, 253);
+    $pdf->SetTextColor(255, 255, 255);
+    $pdf->SetFont('helvetica', 'B', 16);
+    $pdf->Cell(0, 10, 'Gästeübersicht - ' . $project['name'], 0, 1, 'C', true);
+    
+    $pdf->SetTextColor(0, 0, 0);
+    $pdf->SetFont('helvetica', '', 10);
+    $pdf->Cell(0, 5, 'Erstellt am: ' . date('d.m.Y H:i:s'), 0, 1, 'R');
+    $pdf->Ln(5);
+
+    // Projekt Info
+    $pdf->SetFont('helvetica', 'B', 11);
+    $pdf->Cell(0, 6, 'Projektdetails:', 0, 1);
+    $pdf->SetFont('helvetica', '', 10);
+    $pdf->Cell(0, 5, 'Name: ' . $project['name'], 0, 1);
+    if ($project['location']) {
+        $pdf->Cell(0, 5, 'Ort: ' . $project['location'], 0, 1);
+    }
+    $pdf->Cell(0, 5, 'Anmeldungen: ' . count($guests) . ' / ' . $project['max_guests'], 0, 1);
+    $pdf->Ln(5);
+
+    // Tabelle
+    $pdf->SetFont('helvetica', 'B', 10);
+    $pdf->SetFillColor(200, 200, 200);
+    $pdf->Cell(40, 7, 'Name', 1, 0, 'L', true);
+    $pdf->Cell(40, 7, 'Email', 1, 0, 'L', true);
+    $pdf->Cell(35, 7, 'Telefon', 1, 0, 'L', true);
+    $pdf->Cell(30, 7, 'Typ', 1, 1, 'C', true);
+
+    $pdf->SetFont('helvetica', '', 9);
+    $pdf->SetFillColor(245, 245, 245);
+    $fill = false;
+
+    foreach ($guests as $g) {
+        $pdf->SetFillColor($fill ? 245 : 255, $fill ? 245 : 255, $fill ? 245 : 255);
+        $pdf->MultiCell(40, 7, $g['firstname'] . ' ' . $g['lastname'], 1, 'L', $fill);
+        $pdf->SetXY(50, $pdf->GetY() - 7);
+        $pdf->MultiCell(40, 7, $g['email'], 1, 'L', $fill);
+        $pdf->SetXY(90, $pdf->GetY() - 7);
+        $pdf->MultiCell(35, 7, $g['phone'] ?? '–', 1, 'L', $fill);
+        $pdf->SetXY(125, $pdf->GetY() - 7);
+        $guest_type = $g['guest_type'] === 'family' ? 'Familie' : 'Einzeln';
+        if ($g['guest_type'] === 'family' && $g['family_size']) {
+            $guest_type .= ' (' . $g['family_size'] . ')';
+        }
+        $pdf->MultiCell(30, 7, $guest_type, 1, 'C', $fill);
+        $pdf->Ln();
+        $fill = !$fill;
+    }
+
+    $filename = 'gaeste_' . $project_id . '_' . date('Ymd_Hi') . '.pdf';
+    $pdf->Output($filename, 'D');
+    exit;
+}
+
 // Projekte für Dropdown
 $projects = $pdo->query("SELECT * FROM {$prefix}projects WHERE is_active = 1 ORDER BY name")->fetchAll();
 ?>
@@ -147,12 +214,12 @@ $projects = $pdo->query("SELECT * FROM {$prefix}projects WHERE is_active = 1 ORD
             </a>
         </div>
 
-        <!-- Drucken -->
+        <!-- Drucken / PDF -->
         <div class="col-12 col-sm-6 col-lg-4">
-            <a onclick="window.print()" class="report-icon-btn" style="cursor: pointer;">
+            <a href="?project=<?php echo $project_id; ?>&download=pdf" class="report-icon-btn">
                 <div class="icon">🖨️</div>
-                <div class="title">Drucken</div>
-                <div class="subtitle">Seite drucken / speichern</div>
+                <div class="title">PDF Report</div>
+                <div class="subtitle">Als PDF herunterladen</div>
             </a>
         </div>
 
