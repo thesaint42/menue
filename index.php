@@ -578,7 +578,12 @@ document.getElementById('main_person_type').addEventListener('change', function(
 });
 
 // Hauptperson Alter Validierung
-        document.getElementById('main_person_age').addEventListener('input', validateChildAge);
+document.getElementById('main_person_age').addEventListener('input', validateChildAge);
+
+// Namensfelder: Bei Eingabe Menüsektion aktualisieren
+document.querySelector('[name="firstname"]').addEventListener('input', updateMenuSections);
+document.querySelector('[name="lastname"]').addEventListener('input', updateMenuSections);
+
 // Gast-Typ Toggle
 document.querySelectorAll('[name="guest_type"]').forEach(function(radio){
     radio.addEventListener('change', function(){
@@ -693,9 +698,13 @@ function updateMenuSections() {
     var menuTypeLabel = document.getElementById('menu-order-type-label');
     
     // Hauptperson immer vorhanden
+    var firstname = document.querySelector('[name="firstname"]').value.trim();
+    var lastname = document.querySelector('[name="lastname"]').value.trim();
+    var fullName = (firstname + ' ' + lastname).trim() || 'Ihr Name';
+    
     var sections = [{
         idx: 0,
-        name: (document.querySelector('[name="firstname"]').value + ' ' + document.querySelector('[name="lastname"]').value).trim() || 'Hauptperson',
+        name: fullName,
         type: 'guest'
     }];
     
