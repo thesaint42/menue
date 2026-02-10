@@ -18,7 +18,7 @@ $stmt = $pdo->prepare("SELECT * FROM {$prefix}guests WHERE project_id = ?");
 $stmt->execute([$project_id]);
 $guests = $stmt->fetchAll();
 
-echo "<table><tr><th>ID</th><th>Name</th><th>Email</th><th>Type</th><th>Family Size</th></tr>";
+echo "<table><tr><th>ID</th><th>Name</th><th>Email</th><th>Type</th><th>Family Size</th><th>Person Type</th><th>Child Age</th><th>Hochstuhl</th></tr>";
 foreach ($guests as $g) {
     echo "<tr>";
     echo "<td>{$g['id']}</td>";
@@ -26,6 +26,9 @@ foreach ($guests as $g) {
     echo "<td>{$g['email']}</td>";
     echo "<td>{$g['guest_type']}</td>";
     echo "<td>{$g['family_size']}</td>";
+    echo "<td>" . ($g['person_type'] ?? '–') . "</td>";
+    echo "<td>" . ($g['child_age'] ?? '–') . "</td>";
+    echo "<td>" . (isset($g['highchair_needed']) && $g['highchair_needed'] ? '🪑' : '–') . "</td>";
     echo "</tr>";
 }
 echo "</table>";
