@@ -38,6 +38,21 @@ if (isset($_GET['download']) && $_GET['download'] === 'pdf') {
     $action = isset($_GET['action']) ? $_GET['action'] : 'download'; // 'download' oder 'view'
     require_once '../script/tcpdf/tcpdf.php';
 
+    // Gäste mit Bestellungen laden
+    $stmt = $pdo->prepare("
+        SELECT g.*, 
+               GROUP_CONCAT(DISTINCT d.name ORDER BY d.name SEPARATOR ', ') as dishes
+        FROM {$prefix}guests g
+        LEFT JOIN {$prefix}family_members fm ON fm.guest_id = g.id
+        LEFT JOIN {$prefix}orders o ON (fm.id = o.person_id OR g.id = o.person_id)
+        LEFT JOIN {$prefix}dishes d ON o.dish_id = d.id
+        WHERE g.project_id = ?
+        GROUP BY g.id
+        ORDER BY g.created_at DESC
+    ");
+    $stmt->execute([$project_id]);
+    $guests_with_orders = $stmt->fetchAll();
+
     $pdf = new TCPDF(PDF_PAGE_ORIENTATION, PDF_UNIT, PDF_PAGE_FORMAT, true, 'UTF-8', false);
     $pdf->SetCreator('Event Menue Order System (EMOS)');
     $pdf->SetTitle('Gästeübersicht - ' . $project['name']);
@@ -64,34 +79,43 @@ if (isset($_GET['download']) && $_GET['download'] === 'pdf') {
     if ($project['location']) {
         $pdf->Cell(0, 5, 'Ort: ' . $project['location'], 0, 1);
     }
-    $pdf->Cell(0, 5, 'Anmeldungen: ' . count($guests) . ' / ' . $project['max_guests'], 0, 1);
+    $pdf->Cell(0, 5, 'Anmeldungen: ' . count($guests_with_orders) . ' / ' . $project['max_guests'], 0, 1);
     $pdf->Ln(5);
 
     // Tabelle
-    $pdf->SetFont('helvetica', 'B', 10);
+    $pdf->SetFont('helvetica', 'B', 9);
     $pdf->SetFillColor(200, 200, 200);
-    $pdf->Cell(40, 7, 'Name', 1, 0, 'L', true);
-    $pdf->Cell(40, 7, 'Email', 1, 0, 'L', true);
-    $pdf->Cell(35, 7, 'Telefon', 1, 0, 'L', true);
-    $pdf->Cell(30, 7, 'Typ', 1, 1, 'C', true);
+    $pdf->Cell(30, 7, 'Name', 1, 0, 'L', true);
+    $pdf->Cell(35, 7, 'Email', 1, 0, 'L', true);
+    $pdf->Cell(25, 7, 'Telefon', 1, 0, 'L', true);
+    $pdf->Cell(25, 7, 'Typ', 1, 0, 'C', true);
+    $pdf->Cell(60, 7, 'Gerichte', 1, 1, 'L', true);
 
-    $pdf->SetFont('helvetica', '', 9);
+    $pdf->SetFont('helvetica', '', 8);
     $pdf->SetFillColor(245, 245, 245);
     $fill = false;
 
-    foreach ($guests as $g) {
+    foreach ($guests_with_orders as $g) {
         $pdf->SetFillColor($fill ? 245 : 255, $fill ? 245 : 255, $fill ? 245 : 255);
-        $pdf->MultiCell(40, 7, $g['firstname'] . ' ' . $g['lastname'], 1, 'L', $fill);
-        $pdf->SetXY(50, $pdf->GetY() - 7);
-        $pdf->MultiCell(40, 7, $g['email'], 1, 'L', $fill);
-        $pdf->SetXY(90, $pdf->GetY() - 7);
-        $pdf->MultiCell(35, 7, $g['phone'] ?? '–', 1, 'L', $fill);
-        $pdf->SetXY(125, $pdf->GetY() - 7);
-        $guest_type = $g['guest_type'] === 'family' ? 'Familie' : 'Einzeln';
+        
+        $name = $g['firstname'] . ' ' . $g['lastname'];
+        $email = $g['email'];
+        $phone = $g['phone'] ?? '–';
+        $type = $g['guest_type'] === 'family' ? 'Familie' : 'Einzeln';
         if ($g['guest_type'] === 'family' && $g['family_size']) {
-            $guest_type .= ' (' . $g['family_size'] . ')';
+            $type .= ' (' . $g['family_size'] . ')';
         }
-        $pdf->MultiCell(30, 7, $guest_type, 1, 'C', $fill);
+        $dishes = $g['dishes'] ? substr($g['dishes'], 0, 100) : '–';
+        
+        $pdf->MultiCell(30, 7, $name, 1, 'L', $fill);
+        $pdf->SetXY(40, $pdf->GetY() - 7);
+        $pdf->MultiCell(35, 7, $email, 1, 'L', $fill);
+        $pdf->SetXY(75, $pdf->GetY() - 7);
+        $pdf->MultiCell(25, 7, $phone, 1, 'L', $fill);
+        $pdf->SetXY(100, $pdf->GetY() - 7);
+        $pdf->MultiCell(25, 7, $type, 1, 'C', $fill);
+        $pdf->SetXY(125, $pdf->GetY() - 7);
+        $pdf->MultiCell(60, 7, $dishes, 1, 'L', $fill);
         $pdf->Ln();
         $fill = !$fill;
     }
@@ -367,7 +391,7 @@ $projects = $pdo->query("SELECT * FROM {$prefix}projects WHERE is_active = 1 ORD
                 <p>Wie möchten Sie mit dem PDF Report verfahren?</p>
             </div>
             <div class="modal-footer gap-2">
-                <a href="?project=<?php echo $project_id; ?>&download=pdf&action=view" class="btn btn-primary">
+                <a href="?project=<?php echo $project_id; ?>&download=pdf&action=view" target="_blank" class="btn btn-primary">
                     <i class="bi bi-printer"></i> Anzeigen & Drucken
                 </a>
                 <a href="?project=<?php echo $project_id; ?>&download=pdf&action=download" class="btn btn-success">
