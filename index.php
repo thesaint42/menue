@@ -575,6 +575,8 @@ document.getElementById('main_person_type').addEventListener('change', function(
     updateMenuSections();
 });
 
+// Hauptperson Alter Validierung
+        document.getElementById('main_person_age').addEventListener('input', validateChildAge);
 // Gast-Typ Toggle
 document.querySelectorAll('[name="guest_type"]').forEach(function(radio){
     radio.addEventListener('change', function(){
@@ -641,6 +643,22 @@ function attachMemberListeners() {
         input.removeEventListener('input', updateMenuSections);
         input.addEventListener('input', updateMenuSections);
     });
+    // Alters-Validierung für Familienmitglieder
+    document.querySelectorAll('.member-age-input').forEach(function(input){
+        input.removeEventListener('input', validateChildAge);
+        input.addEventListener('input', validateChildAge);
+    });
+}
+
+function validateChildAge(e) {
+    var value = e.target.value;
+    if (value === '') return; // Leere Eingabe ignorieren
+    
+    var age = parseInt(value);
+    if (!isNaN(age) && age > 12) {
+        alert('Alter darf maximal 12 Jahre sein. Alle älteren Personen sind als Erwachsene zu erfassen.');
+        e.target.value = '12';
+    }
 }
 
 function handleMemberTypeChange(e) {
