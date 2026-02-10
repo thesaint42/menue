@@ -475,7 +475,7 @@ if ($existing_order && isset($existing_order['orders'])) {
             <!-- Menüauswahl pro Person -->
             <div class="card mb-4">
                 <div class="card-header">
-                    <h5 class="mb-0">🍽️ Menüauswahl</h5>
+                    <h5 class="mb-0">🍽️ Menüauswahl <span id="menu-order-type-label" class="text-muted" style="font-size: 0.9em;"></span></h5>
                     <small class="text-muted">Wählen Sie für jede Person ein Gericht pro Gang</small>
                 </div>
                 <div class="card-body" id="menuSelection">
@@ -669,6 +669,7 @@ function handleRemoveMember(e) {
 function updateMenuSections() {
     var guestType = document.querySelector('[name="guest_type"]:checked').value;
     var menuSelection = document.getElementById('menuSelection');
+    var menuTypeLabel = document.getElementById('menu-order-type-label');
     
     // Hauptperson immer vorhanden
     var sections = [{
@@ -688,6 +689,9 @@ function updateMenuSections() {
                 type: typeSelect.value
             });
         });
+        menuTypeLabel.textContent = '(Mehrfachbestellung)';
+    } else {
+        menuTypeLabel.textContent = '(Einzelbestellung)';
     }
     
     // Menu sections neu generieren
