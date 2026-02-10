@@ -34,10 +34,26 @@ if (!$project) {
     die("Projekt nicht gefunden.");
 }
 
-// Gäste und Bestellungen laden
-$stmt = $pdo->prepare("SELECT g.*, COUNT(o.id) as order_count FROM {$prefix}guests g 
-                       LEFT JOIN {$prefix}orders o ON g.id = o.guest_id 
-                       WHERE g.project_id = ? GROUP BY g.id ORDER BY g.created_at DESC");
+// Gäste und Bestellungen laden (v3.0 Schema)
+$stmt = $pdo->prepare("
+    SELECT 
+        os.id as session_id,
+        os.email,
+        os.phone,
+        fm.id as person_id,
+        fm.firstname,
+        fm.lastname,
+        fm.person_type,
+        fm.age,
+        fm.highchair_needed,
+        COUNT(o.id) as order_count
+    FROM {$prefix}order_sessions os
+    LEFT JOIN {$prefix}family_members fm ON os.id = fm.order_session_id
+    LEFT JOIN {$prefix}orders o ON fm.id = o.family_member_id
+    WHERE os.project_id = ?
+    GROUP BY os.id, fm.id
+    ORDER BY os.created_at DESC, fm.created_at ASC
+");
 $stmt->execute([$project_id]);
 $guests = $stmt->fetchAll();
 
@@ -316,12 +332,14 @@ $projects = $pdo->query("SELECT * FROM {$prefix}projects WHERE is_active = 1 ORD
                                 <?php else: ?>
                                     <?php foreach ($guests as $g): ?>
                                         <tr>
-                                            <td><?php echo htmlspecialchars($g['firstname'] . ' ' . $g['lastname']); ?></td>
+                                            <td><?php echo htmlspecialchars(($g['firstname'] ?? '–') . ' ' . ($g['lastname'] ?? '–')); ?></td>
                                             <td><small><?php echo htmlspecialchars($g['email']); ?></small></td>
                                             <td class="d-none d-md-table-cell"><small><?php echo htmlspecialchars($g['phone'] ?? '–'); ?></small></td>
                                             <td>
                                                 <span class="badge bg-secondary">
-                                                    <?php echo $g['guest_type'] === 'family' ? 'Familie' : 'Einzeln'; ?>
+                                                    <?php echo $g['person_type'] === 'child' ? 'Kind' : 'Erw.'; ?>
+                                                    <?php if ($g['age']): ?>(<?php echo $g['age']; ?>)<?php endif; ?>
+                                                    <?php if ($g['highchair_needed']): ?> 🪑<?php endif; ?>
                                                 </span>
                                             </td>
                                             <td class="d-none d-lg-table-cell"><?php echo $g['order_count']; ?></td>
@@ -341,7 +359,7 @@ $projects = $pdo->query("SELECT * FROM {$prefix}projects WHERE is_active = 1 ORD
                     <div class="row g-3">
                         <div class="col-12 col-sm-6 col-lg-4">
                             <div class="bg-light p-3 rounded">
-                                <div class="text-muted small">Gesamt Gäste</div>
+                                <div class="text-muted small">Gesamt Personen</div>
                                 <div class="fs-3 fw-bold"><?php echo count($guests); ?> / <?php echo $project['max_guests']; ?></div>
                                 <div class="progress mt-2" style="height: 8px;">
                                     <div class="progress-bar" style="width: <?php echo (count($guests) / $project['max_guests']) * 100; ?>%"></div>
@@ -350,14 +368,14 @@ $projects = $pdo->query("SELECT * FROM {$prefix}projects WHERE is_active = 1 ORD
                         </div>
                         <div class="col-12 col-sm-6 col-lg-4">
                             <div class="bg-light p-3 rounded">
-                                <div class="text-muted small">Einzelpersonen</div>
-                                <div class="fs-3 fw-bold"><?php echo count(array_filter($guests, fn($g) => $g['guest_type'] === 'individual')); ?></div>
+                                <div class="text-muted small">Erwachsene</div>
+                                <div class="fs-3 fw-bold"><?php echo count(array_filter($guests, fn($g) => $g['person_type'] !== 'child')); ?></div>
                             </div>
                         </div>
                         <div class="col-12 col-sm-6 col-lg-4">
                             <div class="bg-light p-3 rounded">
-                                <div class="text-muted small">Familien</div>
-                                <div class="fs-3 fw-bold"><?php echo count(array_filter($guests, fn($g) => $g['guest_type'] === 'family')); ?></div>
+                                <div class="text-muted small">Kinder</div>
+                                <div class="fs-3 fw-bold"><?php echo count(array_filter($guests, fn($g) => $g['person_type'] === 'child')); ?></div>
                             </div>
                         </div>
                     </div>
@@ -370,13 +388,13 @@ $projects = $pdo->query("SELECT * FROM {$prefix}projects WHERE is_active = 1 ORD
                 <div class="card-body">
                     <div class="row g-3">
                         <?php if (empty($guests)): ?>
-                            <div class="col-12"><p class="text-muted text-center py-5">Keine Gäste vorhanden</p></div>
+                            <div class="col-12"><p class="text-muted text-center py-5">Keine Personen vorhanden</p></div>
                         <?php else: ?>
                             <?php foreach ($guests as $g): ?>
                             <div class="col-12 col-md-6 col-lg-4">
                                 <div class="card border-0 bg-light">
                                     <div class="card-body">
-                                        <h6 class="card-title"><?php echo htmlspecialchars($g['firstname'] . ' ' . $g['lastname']); ?></h6>
+                                        <h6 class="card-title"><?php echo htmlspecialchars(($g['firstname'] ?? '–') . ' ' . ($g['lastname'] ?? '–')); ?></h6>
                                         <p class="card-text small text-muted mb-2">
                                             📧 <a href="mailto:<?php echo htmlspecialchars($g['email']); ?>"><?php echo htmlspecialchars($g['email']); ?></a>
                                         </p>
@@ -386,7 +404,13 @@ $projects = $pdo->query("SELECT * FROM {$prefix}projects WHERE is_active = 1 ORD
                                             </p>
                                         <?php endif; ?>
                                         <p class="card-text small mb-0">
-                                            <span class="badge bg-secondary"><?php echo $g['guest_type'] === 'family' ? 'Familie' : 'Einzeln'; ?></span>
+                                            <span class="badge bg-secondary">
+                                                <?php echo $g['person_type'] === 'child' ? 'Kind' : 'Erwachsener'; ?>
+                                                <?php if ($g['age']): ?>(<?php echo $g['age']; ?>)<?php endif; ?>
+                                            </span>
+                                            <?php if ($g['highchair_needed']): ?>
+                                                <span class="badge bg-warning">🪑 Hochstuhl</span>
+                                            <?php endif; ?>
                                             <span class="badge bg-info"><?php echo $g['order_count']; ?> Bestellung<?php echo $g['order_count'] !== 1 ? 'en' : ''; ?></span>
                                         </p>
                                     </div>
