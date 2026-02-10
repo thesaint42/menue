@@ -38,21 +38,22 @@ if (!$project) {
 $stmt = $pdo->prepare("
     SELECT 
         fm.id as person_id,
+        g.id as guest_id,
         os.id as session_id,
-        os.email,
-        os.phone,
-        fm.firstname,
-        fm.lastname,
-        fm.person_type,
-        fm.age,
+        g.email,
+        g.phone,
+        fm.name as firstname,
+        fm.member_type as person_type,
+        fm.child_age as age,
         fm.highchair_needed,
         COUNT(o.id) as order_count
     FROM {$prefix}order_sessions os
-    LEFT JOIN {$prefix}family_members fm ON os.id = fm.order_session_id
-    LEFT JOIN {$prefix}orders o ON fm.id = o.family_member_id
+    LEFT JOIN {$prefix}guests g ON os.project_id = g.project_id
+    LEFT JOIN {$prefix}family_members fm ON fm.guest_id = g.id
+    LEFT JOIN {$prefix}orders o ON fm.id = o.person_id
     WHERE os.project_id = ?
-    GROUP BY fm.id, os.id, os.email, os.phone, fm.firstname, fm.lastname, fm.person_type, fm.age, fm.highchair_needed
-    ORDER BY os.created_at DESC, fm.created_at ASC
+    GROUP BY fm.id, g.id
+    ORDER BY g.created_at DESC
 ");
 $stmt->execute([$project_id]);
 $guests = $stmt->fetchAll();
@@ -332,7 +333,7 @@ $projects = $pdo->query("SELECT * FROM {$prefix}projects WHERE is_active = 1 ORD
                                 <?php else: ?>
                                     <?php foreach ($guests as $g): ?>
                                         <tr>
-                                            <td><?php echo htmlspecialchars(($g['firstname'] ?? '–') . ' ' . ($g['lastname'] ?? '–')); ?></td>
+                                            <td><?php echo htmlspecialchars(($g['firstname'] ?? '–')); ?></td>
                                             <td><small><?php echo htmlspecialchars($g['email']); ?></small></td>
                                             <td class="d-none d-md-table-cell"><small><?php echo htmlspecialchars($g['phone'] ?? '–'); ?></small></td>
                                             <td>
@@ -394,7 +395,7 @@ $projects = $pdo->query("SELECT * FROM {$prefix}projects WHERE is_active = 1 ORD
                             <div class="col-12 col-md-6 col-lg-4">
                                 <div class="card border-0 bg-light">
                                     <div class="card-body">
-                                        <h6 class="card-title"><?php echo htmlspecialchars(($g['firstname'] ?? '–') . ' ' . ($g['lastname'] ?? '–')); ?></h6>
+                                        <h6 class="card-title"><?php echo htmlspecialchars($g['firstname'] ?? '–'); ?></h6>
                                         <p class="card-text small text-muted mb-2">
                                             📧 <a href="mailto:<?php echo htmlspecialchars($g['email']); ?>"><?php echo htmlspecialchars($g['email']); ?></a>
                                         </p>
