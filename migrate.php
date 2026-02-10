@@ -549,6 +549,8 @@ if (isset($_POST['run_migration']) && isset($_POST['migration_key'])) {
     </div>
 </div>
 
+<?php include 'nav/footer.php'; ?>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
