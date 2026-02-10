@@ -182,7 +182,7 @@ function save_order($pdo, $prefix, $data) {
         $pdo->commit();
 
         // Bestätigungs-Mail (v3.0) versenden
-        $mail_message = 'Bestellung erfolgreich gespeichert.';
+        $mail_message = 'Bestellung erfolgreich gespeichert. Eine Bestätigungsemail wird in Kürze an ' . htmlspecialchars($email) . ' versendet.';
         try {
             if (!empty($email) && isset($_SERVER['HTTP_HOST'])) {
                 require_once __DIR__ . '/mailer.php';
