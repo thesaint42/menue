@@ -46,6 +46,9 @@ checkLogin();
 checkAdmin();
 
 $prefix = $config['database']['prefix'] ?? 'menu_';
+if (empty($prefix)) {
+    $prefix = 'menu_';
+}
 $message = "";
 $messageType = "info";
 
@@ -180,27 +183,30 @@ if (isset($_POST['delete_project'])) {
     } else {
         try {
             $pdo->beginTransaction();
-
-            // Lösche Bestellungen, die zu Gästen dieses Projekts gehören
-            $stmt = $pdo->prepare("SELECT id FROM {$prefix}guests WHERE project_id = ?");
+            
+            // Finde alle order_sessions für dieses Projekt
+            $stmt = $pdo->prepare("SELECT order_id FROM {$prefix}order_sessions WHERE project_id = ?");
             $stmt->execute([$id]);
-            $guestIds = $stmt->fetchAll(PDO::FETCH_COLUMN, 0);
-            if (!empty($guestIds)) {
-                // Platzhalter für IN
-                $in = implode(',', array_fill(0, count($guestIds), '?'));
-                $delOrders = $pdo->prepare("DELETE FROM {$prefix}orders WHERE guest_id IN ($in)");
-                $delOrders->execute($guestIds);
+            $orderIds = $stmt->fetchAll(PDO::FETCH_COLUMN, 0);
+            
+            if (!empty($orderIds)) {
+                // Lösche Bestellungen basierend auf order_id
+                $placeholders = implode(',', array_fill(0, count($orderIds), '?'));
+                $delOrders = $pdo->prepare("DELETE FROM {$prefix}orders WHERE order_id IN ($placeholders)");
+                $delOrders->execute($orderIds);
             }
 
-            // Lösche Gäste
+            // Lösche Gäste des Projekts
             $delGuests = $pdo->prepare("DELETE FROM {$prefix}guests WHERE project_id = ?");
             $delGuests->execute([$id]);
 
             // Lösche Gerichte / Menüs, die diesem Projekt gehören
             $delDishes = $pdo->prepare("DELETE FROM {$prefix}dishes WHERE project_id = ?");
             $delDishes->execute([$id]);
-
-            // Optional: weitere projektbezogene Tabellen hier löschen (z.B. uploads)
+            
+            // Lösche order_sessions des Projekts
+            $delSessions = $pdo->prepare("DELETE FROM {$prefix}order_sessions WHERE project_id = ?");
+            $delSessions->execute([$id]);
 
             // Projekt selbst löschen
             $delProj = $pdo->prepare("DELETE FROM {$prefix}projects WHERE id = ?");
@@ -797,7 +803,7 @@ function createProjectBackupFor(projectId) {
             </div>
             <div class="modal-footer border-secondary">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Abbrechen</button>
-                <button type="button" id="deleteConfirmBtn" class="btn btn-danger">Endgültig löschen</button>
+                <button type="button" id="deleteConfirmBtn" class="btn btn-danger" disabled>Endgültig löschen</button>
             </div>
         </div>
     </div>
@@ -811,16 +817,20 @@ function createProjectBackupFor(projectId) {
 <script>
 function confirmDelete(id) {
         document.getElementById('confirmBackupCheck').checked = false;
+        document.getElementById('deleteConfirmBtn').disabled = true;
         document.getElementById('delete_project_id').value = id;
         var modal = new bootstrap.Modal(document.getElementById('deleteConfirmModal'));
         modal.show();
 
-        document.getElementById('deleteConfirmBtn').onclick = function(){
-                // require checkbox to be checked to proceed
-                var ok = document.getElementById('confirmBackupCheck').checked;
-                if (!ok) {
-                        if (!confirm('Du hast kein Backup bestätigt. Wirklich ohne Backup löschen?')) return;
-                }
+        // Checkbox Event Listener für Button Enable/Disable
+        var checkbox = document.getElementById('confirmBackupCheck');
+        var deleteBtn = document.getElementById('deleteConfirmBtn');
+        
+        checkbox.onchange = function() {
+                deleteBtn.disabled = !this.checked;
+        };
+
+        deleteBtn.onclick = function(){
                 document.getElementById('deleteProjectForm').submit();
         };
 }

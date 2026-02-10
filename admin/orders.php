@@ -71,12 +71,18 @@ if ($project_id > 0) {
     <title>Bestellungen - Event Menue Order System (EMOS) Admin</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="../assets/css/style.css">
+    <style>
+        .page-container { max-width: 900px; }
+        @media (max-width: 576px) {
+            .order-header-meta { text-align: left !important; }
+        }
+    </style>
 </head>
 <body>
 
 <?php include '../nav/top_nav.php'; ?>
 
-<div class="container py-4">
+<div class="container py-4 page-container">
     <div class="row mb-4">
         <div class="col">
             <h1>Bestellungsübersicht</h1>
@@ -87,7 +93,7 @@ if ($project_id > 0) {
     <div class="card border-0 shadow mb-4">
         <div class="card-body">
             <form method="get" class="row g-3">
-                <div class="col-md-6">
+                <div class="col-12 col-md-6">
                     <label class="form-label">Projekt auswählen</label>
                     <select name="project" class="form-select" onchange="this.form.submit()">
                         <option value="">-- Bitte wählen --</option>
@@ -148,7 +154,7 @@ if ($project_id > 0) {
             <?php foreach ($grouped_orders as $order_id => $order_data): ?>
             <div class="card border-0 shadow mb-4">
                 <div class="card-header bg-primary text-white">
-                    <div class="d-flex justify-content-between align-items-center">
+                    <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-2">
                         <div>
                             <h5 class="mb-0">
                                 <?php echo htmlspecialchars($order_data['firstname'] . ' ' . $order_data['lastname']); ?>
@@ -160,7 +166,7 @@ if ($project_id > 0) {
                                 <?php endif; ?>
                             </small>
                         </div>
-                        <div class="text-end">
+                        <div class="order-header-meta text-md-end ms-md-auto">
                             <small class="d-block">Order-ID: <code><?php echo htmlspecialchars($order_id); ?></code></small>
                             <small><?php echo date('d.m.Y H:i', strtotime($order_data['order_date'])); ?></small>
                         </div>
@@ -180,7 +186,7 @@ if ($project_id > 0) {
                                 <span class="badge bg-secondary">Erwachsener</span>
                             <?php endif; ?>
                         </h6>
-                        <ul class="list-unstyled mb-0 ms-3">
+                        <ul class="list-unstyled mb-0 ms-0 ms-md-3">
                             <?php foreach ($person['dishes'] as $dish): ?>
                             <li>
                                 <strong><?php echo htmlspecialchars($dish['category']); ?>:</strong>
@@ -195,7 +201,7 @@ if ($project_id > 0) {
             <?php endforeach; ?>
 
             <!-- Export-Buttons -->
-            <div class="mt-4 d-flex gap-2">
+            <div class="mt-4 d-flex flex-column flex-sm-row gap-2">
                 <button class="btn btn-primary" onclick="window.print()">
                     🖨️ Drucken
                 </button>

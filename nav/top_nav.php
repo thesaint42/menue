@@ -11,11 +11,14 @@ $page_names = [
     'admin' => 'Dashboard',
     'projects' => 'Projekte',
     'dishes' => 'Menüs',
+    'menu_categories' => 'Menükategorien',
     'guests' => 'Gäste',
     'orders' => 'Bestellungen',
     'reports' => 'Reporting',
     'settings_mail' => 'Mail Einstellungen',
-    'profile' => 'Mein Profil'
+    'profile' => 'Mein Profil',
+    'users' => 'Benutzerverwaltung',
+    'roles' => 'Rollenverwaltung'
     , 'vvt' => 'VVT'
     , 'migrate' => 'Migration'
     , 'backup' => 'Backup'
@@ -81,6 +84,7 @@ $display_name = $page_names[$current_page] ?? ucfirst($current_page);
                                 <div class="nav-separator my-2"></div>
                             </li>
                             <li class="nav-item"><span class="nav-link text-end project-header small">Projektverwaltung</span></li>
+                            <li class="nav-item"><a class="nav-link text-end" href="<?php echo $root; ?>admin/menu_categories.php">Menükategorien</a></li>
                             <li class="nav-item"><a class="nav-link text-end" href="<?php echo $root; ?>admin/projects.php">Projekte</a></li>
                             <li class="nav-item"><a class="nav-link text-end" href="<?php echo $root; ?>admin/dishes.php">Menüs</a></li>
                             <li class="nav-item"><a class="nav-link text-end" href="<?php echo $root; ?>admin/guests.php">Gäste</a></li>
@@ -90,8 +94,14 @@ $display_name = $page_names[$current_page] ?? ucfirst($current_page);
                             <li class="nav-item">
                                 <div class="nav-separator my-2"></div>
                             </li>
+                            <li class="nav-item"><span class="nav-link text-end usermgmt-header small">Benutzerverwaltung</span></li>
+                            <li class="nav-item"><a class="nav-link text-end" href="<?php echo $root; ?>admin/users.php">Benutzer</a></li>
+                            <li class="nav-item"><a class="nav-link text-end" href="<?php echo $root; ?>admin/roles.php">Rollen</a></li>
+                            <li class="nav-item">
+                                <div class="nav-separator my-2"></div>
+                            </li>
                             <li class="nav-item"><span class="nav-link text-end system-header small">System</span></li>
-                            <li class="nav-item"><a class="nav-link text-end" href="<?php echo $root; ?>admin/settings_mail.php">Mail Einstellungen</a></li>
+                            <li class="nav-item"><a class="nav-link text-end" href="<?php echo $root; ?>admin/settings_mail.php">Mail</a></li>
                             <li class="nav-item"><a class="nav-link text-end" href="<?php echo $root; ?>migrate.php">Migration</a></li>
                             <li class="nav-item"><a class="nav-link text-end" href="<?php echo $root; ?>admin/backup.php">Backup</a></li>
                         <?php else: ?>
@@ -123,7 +133,9 @@ $display_name = $page_names[$current_page] ?? ucfirst($current_page);
             .project-header { color: #ff7a00 !important; }
             /* System header highlight */
             .system-header { color: #ff7a00 !important; }
+            .usermgmt-header { color: #ff7a00 !important; }
             .system-header, .project-header { font-weight: 700; text-transform: uppercase; }
+            .usermgmt-header { font-weight: 700; text-transform: uppercase; }
         </style>
 
         <div class="navbar-backdrop" id="navbarBackdrop"></div>

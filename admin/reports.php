@@ -10,51 +10,64 @@ checkLogin();
 
 $prefix = $config['database']['prefix'] ?? 'menu_';
 $project_id = isset($_GET['project']) ? (int)$_GET['project'] : null;
+$no_projects = false;
+$project_not_found = false;
 
-if (!$project_id) {
-    $projects = $pdo->query("SELECT * FROM {$prefix}projects WHERE is_active = 1 ORDER BY name")->fetchAll();
-    if (empty($projects)) {
-        die("Keine Projekte vorhanden.");
-    }
+// Projekte laden (für Auswahl und Defaults)
+$projects = $pdo->query("SELECT * FROM {$prefix}projects WHERE is_active = 1 ORDER BY name")->fetchAll();
+if (empty($projects)) {
+    $no_projects = true;
+}
+
+if (!$project_id && !$no_projects) {
     $project_id = $projects[0]['id'];
 }
 
 // Projekt laden
-$stmt = $pdo->prepare("SELECT * FROM {$prefix}projects WHERE id = ?");
-$stmt->execute([$project_id]);
-$project = $stmt->fetch();
-
-if (!$project) {
-    die("Projekt nicht gefunden.");
+if ($project_id) {
+    $stmt = $pdo->prepare("SELECT * FROM {$prefix}projects WHERE id = ?");
+    $stmt->execute([$project_id]);
+    $project = $stmt->fetch();
+    if (!$project) {
+        $project_not_found = true;
+    }
+} else {
+    $project = null;
 }
 
 // Gäste laden
-$stmt = $pdo->prepare("SELECT * FROM {$prefix}guests WHERE project_id = ? ORDER BY created_at DESC");
-$stmt->execute([$project_id]);
-$guests = $stmt->fetchAll();
+$guests = [];
+if ($project_id && !$project_not_found) {
+    $stmt = $pdo->prepare("SELECT * FROM {$prefix}guests WHERE project_id = ? ORDER BY created_at DESC");
+    $stmt->execute([$project_id]);
+    $guests = $stmt->fetchAll();
+}
 
 // Alle Bestellungen laden (vereinfachte Version)
 $guests_with_dishes = [];
 
 // Lade alle order_sessions mit den dazugehörigen Gästen und Gerichten
-$stmt = $pdo->prepare("
-    SELECT DISTINCT 
-        os.id as order_session_id,
-        os.order_id,
-        os.email,
-        g.id as guest_id,
-        g.firstname,
-        g.lastname,
-        g.phone,
-        g.guest_type,
-        g.family_size
-    FROM {$prefix}order_sessions os
-    LEFT JOIN {$prefix}guests g ON g.email = os.email AND g.project_id = ?
-    WHERE os.project_id = ?
-    ORDER BY g.id, os.id DESC
-");
-$stmt->execute([$project_id, $project_id]);
-$order_sessions = $stmt->fetchAll();
+$order_sessions = [];
+if ($project_id && !$project_not_found) {
+    $stmt = $pdo->prepare("
+        SELECT DISTINCT 
+            os.id as order_session_id,
+            os.order_id,
+            os.email,
+            g.id as guest_id,
+            g.firstname,
+            g.lastname,
+            g.phone,
+            g.guest_type,
+            g.family_size
+        FROM {$prefix}order_sessions os
+        LEFT JOIN {$prefix}guests g ON g.email = os.email AND g.project_id = ?
+        WHERE os.project_id = ?
+        ORDER BY g.id, os.id DESC
+    ");
+    $stmt->execute([$project_id, $project_id]);
+    $order_sessions = $stmt->fetchAll();
+}
 
 // Gruppiere nach Gast
 $guests_by_id = [];
@@ -298,6 +311,11 @@ foreach ($guests_by_id as $guest_id => $guest) {
 
 // PDF Download oder Anzeige
 if (isset($_GET['download']) && $_GET['download'] === 'pdf') {
+    if (!$project_id || $project_not_found) {
+        http_response_code(400);
+        echo 'Projekt nicht gefunden.';
+        exit;
+    }
     $action = isset($_GET['action']) ? $_GET['action'] : 'download'; // 'download' oder 'view'
     require_once '../script/tcpdf/tcpdf.php';
 
@@ -479,17 +497,34 @@ $projects = $pdo->query("SELECT * FROM {$prefix}projects WHERE is_active = 1 ORD
     <div class="card border-0 shadow mb-4">
         <div class="card-body">
             <label class="form-label fw-bold mb-3">Projekt auswählen:</label>
-            <select class="form-select form-select-lg" onchange="window.location.href='?project=' + this.value">
-                <?php foreach ($projects as $p): ?>
-                    <option value="<?php echo $p['id']; ?>" <?php echo $p['id'] == $project_id ? 'selected' : ''; ?>>
-                        [ID: <?php echo $p['id']; ?>] <?php echo htmlspecialchars($p['name']); ?>
-                    </option>
-                <?php endforeach; ?>
-            </select>
+            <?php if ($no_projects): ?>
+                <div class="alert alert-info mb-3">Keine Projekte vorhanden.</div>
+                <select class="form-select form-select-lg" disabled>
+                    <option selected>Keine Projekte verfügbar</option>
+                </select>
+            <?php elseif ($project_not_found): ?>
+                <div class="alert alert-warning mb-3">Projekt nicht gefunden.</div>
+                <select class="form-select form-select-lg" onchange="window.location.href='?project=' + this.value">
+                    <?php foreach ($projects as $p): ?>
+                        <option value="<?php echo $p['id']; ?>" <?php echo $p['id'] == $project_id ? 'selected' : ''; ?>>
+                            [ID: <?php echo $p['id']; ?>] <?php echo htmlspecialchars($p['name']); ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+            <?php else: ?>
+                <select class="form-select form-select-lg" onchange="window.location.href='?project=' + this.value">
+                    <?php foreach ($projects as $p): ?>
+                        <option value="<?php echo $p['id']; ?>" <?php echo $p['id'] == $project_id ? 'selected' : ''; ?>>
+                            [ID: <?php echo $p['id']; ?>] <?php echo htmlspecialchars($p['name']); ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+            <?php endif; ?>
         </div>
     </div>
 
     <!-- REPORT OPTIONEN ALS ICONS -->
+    <?php if (!$no_projects && !$project_not_found): ?>
     <div class="row g-3 g-md-4">
         <!-- Bestellungen -->
         <div class="col-12 col-sm-6 col-lg-4">
@@ -536,6 +571,7 @@ $projects = $pdo->query("SELECT * FROM {$prefix}projects WHERE is_active = 1 ORD
             </a>
         </div>
     </div>
+    <?php endif; ?>
 
     <!-- INHALTSBEREICH -->
     <?php if (isset($_GET['view'])): ?>
