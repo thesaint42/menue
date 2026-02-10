@@ -146,7 +146,7 @@ foreach ($guests_by_id as $guest_id => $guest) {
                 'dishes_text' => $dishes_text ?: '–',
                 'order_id' => $order_id,
                 'person_name' => $guest['firstname'] . ' ' . $guest['lastname'],
-                'person_type' => 'Einzeln'
+                'person_type' => 'Erwachsener'
             ];
         } else {
             // Familie - Hauptperson
