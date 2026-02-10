@@ -553,9 +553,9 @@ $projects = $pdo->query("SELECT * FROM {$prefix}projects WHERE is_active = 1 ORD
                         <?php foreach ($orders_grouped as $order_id => $order_data): ?>
                             <div class="mb-4">
                                 <!-- Bestellungs-Header -->
-                                <div class="bg-light p-2 border-bottom border-2 border-info mb-2">
+                                <div class="bg-secondary text-white p-2 border-bottom border-2 border-info mb-2">
                                     <strong>Bestellung: <?php echo htmlspecialchars($order_id); ?></strong>
-                                    <span class="text-muted ms-2" style="font-size: 0.9em;">
+                                    <span class="ms-2" style="font-size: 0.9em; opacity: 0.9;">
                                         (<?php echo htmlspecialchars($order_data['email']); ?><?php if (!empty($order_data['phone'])): ?> | <?php echo htmlspecialchars($order_data['phone']); ?><?php endif; ?>)
                                     </span>
                                 </div>
