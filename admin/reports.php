@@ -40,17 +40,17 @@ if (isset($_GET['download']) && $_GET['download'] === 'pdf') {
 
     // Gäste mit Bestellungen laden
     $stmt = $pdo->prepare("
-        SELECT g.*, 
+        SELECT g.id, g.firstname, g.lastname, g.email, g.phone, g.guest_type, g.family_size,
                GROUP_CONCAT(DISTINCT d.name ORDER BY d.name SEPARATOR ', ') as dishes
         FROM {$prefix}guests g
-        LEFT JOIN {$prefix}family_members fm ON fm.guest_id = g.id
-        LEFT JOIN {$prefix}orders o ON (fm.id = o.person_id OR g.id = o.person_id)
+        LEFT JOIN {$prefix}order_sessions os ON os.email = g.email AND os.project_id = ?
+        LEFT JOIN {$prefix}orders o ON o.order_id = os.order_id
         LEFT JOIN {$prefix}dishes d ON o.dish_id = d.id
         WHERE g.project_id = ?
         GROUP BY g.id
         ORDER BY g.created_at DESC
     ");
-    $stmt->execute([$project_id]);
+    $stmt->execute([$project_id, $project_id]);
     $guests_with_orders = $stmt->fetchAll();
 
     $pdf = new TCPDF(PDF_PAGE_ORIENTATION, PDF_UNIT, PDF_PAGE_FORMAT, true, 'UTF-8', false);
