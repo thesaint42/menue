@@ -135,6 +135,15 @@ foreach ($guests_by_id as $guest_id => $guest) {
                 $dishes_text .= $category . ': ' . implode(', ', array_unique($dish_list));
             }
             
+            // Bestimme person_type mit optional Hochstuhl-Info
+            $person_type = $guest['person_type'] === 'child' ? 'Kind' : 'Erwachsener';
+            if ($guest['person_type'] === 'child' && $guest['child_age']) {
+                $person_type .= ' (' . $guest['child_age'] . 'J)';
+            }
+            if ($guest['highchair_needed']) {
+                $person_type .= ' 🪑';
+            }
+            
             $guests_with_dishes[] = [
                 'firstname' => $guest['firstname'],
                 'lastname' => $guest['lastname'],
@@ -146,7 +155,7 @@ foreach ($guests_by_id as $guest_id => $guest) {
                 'dishes_text' => $dishes_text ?: '–',
                 'order_id' => $order_id,
                 'person_name' => $guest['firstname'] . ' ' . $guest['lastname'],
-                'person_type' => 'Erwachsener'
+                'person_type' => $person_type
             ];
         } else {
             // Familie - Hauptperson

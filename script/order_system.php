@@ -114,19 +114,28 @@ function save_order($pdo, $prefix, $data) {
         $guest_type = $data['guest_type'] ?? 'individual';
         $family_size = ($guest_type === 'family') ? count($data['persons'] ?? []) : 1;
         
+        // Hauptperson Typ und Alter extrahieren
+        $main_person = $data['persons'][0] ?? ['type' => 'adult', 'age_group' => null, 'highchair' => 0];
+        $person_type = $main_person['type'] ?? 'adult';
+        $child_age = ($person_type === 'child') ? ($main_person['age_group'] ?? $main_person['age'] ?? null) : null;
+        $highchair_needed = ($person_type === 'child') ? ($main_person['highchair'] ?? 0) : 0;
+        
         if ($existing_guest) {
             $guest_id = $existing_guest['id'];
-            $stmt = $pdo->prepare("UPDATE {$prefix}guests SET firstname = ?, lastname = ?, phone = ?, guest_type = ?, family_size = ? WHERE id = ?");
+            $stmt = $pdo->prepare("UPDATE {$prefix}guests SET firstname = ?, lastname = ?, phone = ?, guest_type = ?, family_size = ?, person_type = ?, child_age = ?, highchair_needed = ? WHERE id = ?");
             $stmt->execute([
                 $firstname,
                 $lastname,
                 $phone,
                 $guest_type,
                 $family_size,
+                $person_type,
+                $child_age,
+                $highchair_needed,
                 $guest_id
             ]);
         } else {
-            $stmt = $pdo->prepare("INSERT INTO {$prefix}guests (project_id, firstname, lastname, email, phone, guest_type, family_size) VALUES (?, ?, ?, ?, ?, ?, ?)");
+            $stmt = $pdo->prepare("INSERT INTO {$prefix}guests (project_id, firstname, lastname, email, phone, guest_type, family_size, person_type, child_age, highchair_needed) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
             $stmt->execute([
                 $project_id,
                 $firstname,
@@ -134,7 +143,10 @@ function save_order($pdo, $prefix, $data) {
                 $email,
                 $phone,
                 $guest_type,
-                $family_size
+                $family_size,
+                $person_type,
+                $child_age,
+                $highchair_needed
             ]);
             $guest_id = $pdo->lastInsertId();
         }

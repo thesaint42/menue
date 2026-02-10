@@ -309,6 +309,30 @@ $migrations = [
                 throw new Exception("Fehler bei orders Migration: " . $e->getMessage());
             }
         }
+    ],
+    'add_person_type_to_guests' => [
+        'name' => 'Person-Typ zu Gäste-Tabelle hinzufügen',
+        'description' => 'Fügt person_type, child_age und highchair_needed Spalten zur guests Tabelle hinzu',
+        'version' => '3.0.1',
+        'up' => function($pdo, $prefix) {
+            try {
+                // Prüfe ob Spalten schon existieren
+                $stmt = $pdo->prepare("SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = 'person_type'");
+                $stmt->execute(["{$prefix}guests"]);
+                if ($stmt->rowCount() > 0) {
+                    return true; // Spalten existieren bereits
+                }
+                
+                // Füge Spalten hinzu
+                $pdo->exec("ALTER TABLE `{$prefix}guests` ADD COLUMN `person_type` ENUM('adult', 'child') DEFAULT 'adult'");
+                $pdo->exec("ALTER TABLE `{$prefix}guests` ADD COLUMN `child_age` INT");
+                $pdo->exec("ALTER TABLE `{$prefix}guests` ADD COLUMN `highchair_needed` TINYINT(1) DEFAULT 0");
+                
+                return true;
+            } catch (Exception $e) {
+                throw new Exception("Fehler beim Hinzufügen von person_type zu guests Tabelle: " . $e->getMessage());
+            }
+        }
     ]
 ];
 
