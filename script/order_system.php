@@ -121,7 +121,9 @@ function save_order($pdo, $prefix, $data) {
         // Hauptperson Typ und Alter extrahieren (für zukünftige Nutzung vorbereitet)
         $main_person = $data['persons'][0] ?? ['type' => 'adult', 'age_group' => null, 'highchair' => 0];
         $person_type = $main_person['type'] ?? 'adult';
-        $child_age = ($person_type === 'child') ? ($main_person['age_group'] ?? $main_person['age'] ?? null) : null;
+        $age_value = ($person_type === 'child') ? ($main_person['age_group'] ?? $main_person['age'] ?? null) : null;
+        // Konvertiere leere Strings zu NULL
+        $child_age = ($age_value === '' || $age_value === null) ? null : intval($age_value);
         $highchair_needed = ($person_type === 'child') ? ($main_person['highchair'] ?? 0) : 0;
         
         // Prüfe ob neue Spalten existieren
@@ -196,6 +198,8 @@ function save_order($pdo, $prefix, $data) {
                     continue; // Hauptperson wird nicht als Family Member gespeichert
                 }
                 $age = $person['age'] ?? $person['age_group'] ?? null;
+                // Konvertiere leere Strings zu NULL
+                $age = ($age === '' || $age === null) ? null : intval($age);
                 $stmt->execute([
                     $guest_id,
                     $person['name'],
