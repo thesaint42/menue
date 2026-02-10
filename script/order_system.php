@@ -112,6 +112,10 @@ function save_order($pdo, $prefix, $data) {
         $existing_guest = $stmt->fetch();
         
         $guest_type = $data['guest_type'] ?? 'individual';
+        // Auto-korrigiere guest_type wenn mehr als 1 Person vorhanden ist
+        if (count($data['persons'] ?? []) > 1) {
+            $guest_type = 'family';
+        }
         $family_size = ($guest_type === 'family') ? count($data['persons'] ?? []) : 1;
         
         // Hauptperson Typ und Alter extrahieren (für zukünftige Nutzung vorbereitet)
