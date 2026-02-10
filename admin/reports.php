@@ -242,15 +242,6 @@ $projects = $pdo->query("SELECT * FROM {$prefix}projects WHERE is_active = 1 ORD
             </a>
         </div>
 
-        <!-- Drucken / PDF -->
-        <div class="col-12 col-sm-6 col-lg-4">
-            <a href="#" data-bs-toggle="modal" data-bs-target="#pdfModal" class="report-icon-btn">
-                <div class="icon">🖨️</div>
-                <div class="title">PDF Report</div>
-                <div class="subtitle">Anzeigen oder herunterladen</div>
-            </a>
-        </div>
-
         <!-- Statistiken -->
         <div class="col-12 col-sm-6 col-lg-4">
             <a href="?project=<?php echo $project_id; ?>&view=stats" class="report-icon-btn">
@@ -266,6 +257,15 @@ $projects = $pdo->query("SELECT * FROM {$prefix}projects WHERE is_active = 1 ORD
                 <div class="icon">👥</div>
                 <div class="title">Gästeübersicht</div>
                 <div class="subtitle">Alle Gäste anzeigen</div>
+            </a>
+        </div>
+
+        <!-- Drucken / PDF -->
+        <div class="col-12 col-sm-6 col-lg-4">
+            <a href="#" data-bs-toggle="modal" data-bs-target="#pdfModal" class="report-icon-btn">
+                <div class="icon">🖨️</div>
+                <div class="title">PDF Report</div>
+                <div class="subtitle">Anzeigen oder herunterladen</div>
             </a>
         </div>
     </div>
