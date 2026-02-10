@@ -254,7 +254,7 @@ foreach ($guests_by_id as $guest_id => $guest) {
                     $member_dishes_text .= $category . ': ' . implode(', ', array_unique($dish_list));
                 }
                 
-                $person_type = $member['member_type'] === 'child' ? ('Kind' . ($member['child_age'] ? ' (' . $member['child_age'] . 'J)' : '')) : 'Erwachsen';
+                $person_type = $member['member_type'] === 'child' ? ('Kind' . ($member['child_age'] ? ' (' . $member['child_age'] . 'J)' : '')) : 'Erwachsener';
                 if ($member['highchair_needed']) {
                     $person_type .= ' 🪑';
                 }
@@ -268,7 +268,7 @@ foreach ($guests_by_id as $guest_id => $guest) {
                     'family_size' => 0,
                     'id' => $guest['id'],
                     'dishes_text' => $member_dishes_text ?: '–',
-                    'order_id' => '',
+                    'order_id' => $order_id,
                     'person_name' => $member['name'],
                     'person_type' => $person_type
                 ];
