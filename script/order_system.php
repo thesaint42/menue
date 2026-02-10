@@ -205,7 +205,7 @@ function save_order($pdo, $prefix, $data) {
                     $person['name'],
                     $person['type'],
                     $age,
-                    $person['highchair'] ?? 0
+                    $person['highchair_needed'] ?? 0
                 ]);
             }
         }
