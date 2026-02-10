@@ -1,26 +1,20 @@
 <?php
 /**
- * admin/export_pdf.php - PDF Export der Bestellungsübersicht
+ * admin/reports.php - Reporting & Export
  */
 
 require_once '../db.php';
 require_once '../script/auth.php';
 
-// Prüfe, ob TCPDF verfügbar ist
-$tcpdf_available = file_exists('../script/tcpdf/tcpdf.php');
-
 checkLogin();
 
 $prefix = $config['database']['prefix'] ?? 'menu_';
 $project_id = isset($_GET['project']) ? (int)$_GET['project'] : null;
-$message = "";
-$messageType = "info";
 
 if (!$project_id) {
     $projects = $pdo->query("SELECT * FROM {$prefix}projects WHERE is_active = 1 ORDER BY name")->fetchAll();
     if (empty($projects)) {
-        echo "<div class='container mt-5'><div class='alert alert-warning'>Keine Projekte vorhanden.</div></div>";
-        exit;
+        die("Keine Projekte vorhanden.");
     }
     $project_id = $projects[0]['id'];
 }
@@ -34,99 +28,10 @@ if (!$project) {
     die("Projekt nicht gefunden.");
 }
 
-// Gäste und Bestellungen laden (v3.0 Schema)
-$stmt = $pdo->prepare("
-    SELECT 
-        fm.id as person_id,
-        g.id as guest_id,
-        os.id as session_id,
-        g.email,
-        g.phone,
-        fm.name as firstname,
-        fm.member_type as person_type,
-        fm.child_age as age,
-        fm.highchair_needed,
-        COUNT(o.id) as order_count
-    FROM {$prefix}order_sessions os
-    LEFT JOIN {$prefix}guests g ON os.project_id = g.project_id
-    LEFT JOIN {$prefix}family_members fm ON fm.guest_id = g.id
-    LEFT JOIN {$prefix}orders o ON fm.id = o.person_id
-    WHERE os.project_id = ?
-    GROUP BY fm.id, g.id
-    ORDER BY g.created_at DESC
-");
+// Gäste laden
+$stmt = $pdo->prepare("SELECT * FROM {$prefix}guests WHERE project_id = ? ORDER BY created_at DESC");
 $stmt->execute([$project_id]);
 $guests = $stmt->fetchAll();
-
-// PDF Download
-if (isset($_GET['download']) && $tcpdf_available) {
-    require_once '../script/tcpdf/tcpdf.php';
-
-    $pdf = new TCPDF(PDF_PAGE_ORIENTATION, PDF_UNIT, PDF_PAGE_FORMAT, true, 'UTF-8', false);
-    $pdf->SetCreator('Event Menue Order System (EMOS)');
-    $pdf->SetTitle('Bestellungsübersicht - ' . $project['name']);
-    $pdf->SetMargins(10, 10, 10);
-    $pdf->SetAutoPageBreak(true, 15);
-    $pdf->AddPage();
-    
-    // Header
-    $pdf->SetFillColor(13, 110, 253);
-    $pdf->SetTextColor(255, 255, 255);
-    $pdf->SetFont('helvetica', 'B', 16);
-    $pdf->Cell(0, 10, 'Bestellungsübersicht - ' . $project['name'], 0, 1, 'C', true);
-    
-    $pdf->SetTextColor(0, 0, 0);
-    $pdf->SetFont('helvetica', '', 10);
-    $pdf->Cell(0, 5, 'Erstellt am: ' . date('d.m.Y H:i:s'), 0, 1, 'R');
-    $pdf->Ln(5);
-
-    // Projekt Info
-    $pdf->SetFont('helvetica', 'B', 11);
-    $pdf->Cell(0, 6, 'Projektdetails:', 0, 1);
-    $pdf->SetFont('helvetica', '', 10);
-    $pdf->Cell(0, 5, 'Name: ' . $project['name'], 0, 1);
-    if ($project['location']) {
-        $pdf->Cell(0, 5, 'Ort: ' . $project['location'], 0, 1);
-    }
-    $pdf->Cell(0, 5, 'Anmeldungen: ' . count($guests) . ' / ' . $project['max_guests'], 0, 1);
-    $pdf->Ln(5);
-
-    // Tabelle
-    $pdf->SetFont('helvetica', 'B', 10);
-    $pdf->SetFillColor(200, 200, 200);
-    $pdf->Cell(40, 7, 'Name', 1, 0, 'L', true);
-    $pdf->Cell(40, 7, 'Email', 1, 0, 'L', true);
-    $pdf->Cell(30, 7, 'Telefon', 1, 0, 'L', true);
-    $pdf->Cell(30, 7, 'Typ', 1, 0, 'C', true);
-    $pdf->Cell(25, 7, 'Bestellungen', 1, 1, 'C', true);
-
-    $pdf->SetFont('helvetica', '', 9);
-    $pdf->SetFillColor(245, 245, 245);
-    $fill = false;
-
-    foreach ($guests as $g) {
-        $pdf->SetFillColor($fill ? 245 : 255, $fill ? 245 : 255, $fill ? 245 : 255);
-        $pdf->MultiCell(40, 7, $g['firstname'] ?? '–', 1, 'L', $fill);
-        $pdf->SetXY(50, $pdf->GetY() - 7);
-        $pdf->MultiCell(40, 7, $g['email'], 1, 'L', $fill);
-        $pdf->SetXY(90, $pdf->GetY() - 7);
-        $pdf->MultiCell(30, 7, $g['phone'] ?? '–', 1, 'C', $fill);
-        $pdf->SetXY(120, $pdf->GetY() - 7);
-        $guest_type = $g['person_type'] === 'child' ? 'Kind' : 'Erw.';
-        if ($g['age']) {
-            $guest_type .= '(' . $g['age'] . ')';
-        }
-        $pdf->MultiCell(30, 7, $guest_type, 1, 'C', $fill);
-        $pdf->SetXY(150, $pdf->GetY() - 7);
-        $pdf->MultiCell(25, 7, $g['order_count'], 1, 'C', $fill);
-        $pdf->Ln();
-        $fill = !$fill;
-    }
-
-    $filename = 'bestellungen_' . $project_id . '_' . date('Ymd_Hi') . '.pdf';
-    $pdf->Output($filename, 'D');
-    exit;
-}
 
 // Projekte für Dropdown
 $projects = $pdo->query("SELECT * FROM {$prefix}projects WHERE is_active = 1 ORDER BY name")->fetchAll();
@@ -254,23 +159,6 @@ $projects = $pdo->query("SELECT * FROM {$prefix}projects WHERE is_active = 1 ORD
             </a>
         </div>
 
-        <!-- PDF Export -->
-        <div class="col-12 col-sm-6 col-lg-4">
-            <?php if ($tcpdf_available): ?>
-                <a href="?project=<?php echo $project_id; ?>&download=1" class="report-icon-btn" title="PDF herunterladen">
-                    <div class="icon">📄</div>
-                    <div class="title">PDF Export</div>
-                    <div class="subtitle">Als PDF herunterladen</div>
-                </a>
-            <?php else: ?>
-                <div class="report-icon-btn" style="opacity: 0.5; cursor: not-allowed;">
-                    <div class="icon">📄</div>
-                    <div class="title">PDF Export</div>
-                    <div class="subtitle">Nicht verfügbar</div>
-                </div>
-            <?php endif; ?>
-        </div>
-
         <!-- CSV Export -->
         <div class="col-12 col-sm-6 col-lg-4">
             <a onclick="exportCSV()" class="report-icon-btn" style="cursor: pointer;">
@@ -333,17 +221,16 @@ $projects = $pdo->query("SELECT * FROM {$prefix}projects WHERE is_active = 1 ORD
                                 <?php else: ?>
                                     <?php foreach ($guests as $g): ?>
                                         <tr>
-                                            <td><?php echo htmlspecialchars(($g['firstname'] ?? '–')); ?></td>
+                                            <td><?php echo htmlspecialchars($g['firstname'] . ' ' . $g['lastname']); ?></td>
                                             <td><small><?php echo htmlspecialchars($g['email']); ?></small></td>
                                             <td class="d-none d-md-table-cell"><small><?php echo htmlspecialchars($g['phone'] ?? '–'); ?></small></td>
                                             <td>
                                                 <span class="badge bg-secondary">
-                                                    <?php echo $g['person_type'] === 'child' ? 'Kind' : 'Erw.'; ?>
-                                                    <?php if ($g['age']): ?>(<?php echo $g['age']; ?>)<?php endif; ?>
-                                                    <?php if ($g['highchair_needed']): ?> 🪑<?php endif; ?>
+                                                    <?php echo $g['guest_type'] === 'family' ? 'Familie' : 'Einzeln'; ?>
+                                                    <?php if ($g['guest_type'] === 'family' && $g['family_size']): ?>(<?php echo $g['family_size']; ?>)<?php endif; ?>
                                                 </span>
                                             </td>
-                                            <td class="d-none d-lg-table-cell"><?php echo $g['order_count']; ?></td>
+                                            <td class="d-none d-lg-table-cell">–</td>
                                         </tr>
                                     <?php endforeach; ?>
                                 <?php endif; ?>
@@ -360,23 +247,23 @@ $projects = $pdo->query("SELECT * FROM {$prefix}projects WHERE is_active = 1 ORD
                     <div class="row g-3">
                         <div class="col-12 col-sm-6 col-lg-4">
                             <div class="bg-light p-3 rounded">
-                                <div class="text-muted small">Gesamt Personen</div>
+                                <div class="text-muted small">Gesamt Gäste</div>
                                 <div class="fs-3 fw-bold"><?php echo count($guests); ?> / <?php echo $project['max_guests']; ?></div>
                                 <div class="progress mt-2" style="height: 8px;">
-                                    <div class="progress-bar" style="width: <?php echo (count($guests) / $project['max_guests']) * 100; ?>%"></div>
+                                    <div class="progress-bar" style="width: <?php echo ($project['max_guests'] > 0) ? (count($guests) / $project['max_guests']) * 100 : 0; ?>%"></div>
                                 </div>
                             </div>
                         </div>
                         <div class="col-12 col-sm-6 col-lg-4">
                             <div class="bg-light p-3 rounded">
-                                <div class="text-muted small">Erwachsene</div>
-                                <div class="fs-3 fw-bold"><?php echo count(array_filter($guests, fn($g) => $g['person_type'] !== 'child')); ?></div>
+                                <div class="text-muted small">Einzelpersonen</div>
+                                <div class="fs-3 fw-bold"><?php echo count(array_filter($guests, fn($g) => $g['guest_type'] === 'individual')); ?></div>
                             </div>
                         </div>
                         <div class="col-12 col-sm-6 col-lg-4">
                             <div class="bg-light p-3 rounded">
-                                <div class="text-muted small">Kinder</div>
-                                <div class="fs-3 fw-bold"><?php echo count(array_filter($guests, fn($g) => $g['person_type'] === 'child')); ?></div>
+                                <div class="text-muted small">Familien</div>
+                                <div class="fs-3 fw-bold"><?php echo count(array_filter($guests, fn($g) => $g['guest_type'] === 'family')); ?></div>
                             </div>
                         </div>
                     </div>
@@ -389,13 +276,13 @@ $projects = $pdo->query("SELECT * FROM {$prefix}projects WHERE is_active = 1 ORD
                 <div class="card-body">
                     <div class="row g-3">
                         <?php if (empty($guests)): ?>
-                            <div class="col-12"><p class="text-muted text-center py-5">Keine Personen vorhanden</p></div>
+                            <div class="col-12"><p class="text-muted text-center py-5">Keine Gäste vorhanden</p></div>
                         <?php else: ?>
                             <?php foreach ($guests as $g): ?>
                             <div class="col-12 col-md-6 col-lg-4">
                                 <div class="card border-0 bg-light">
                                     <div class="card-body">
-                                        <h6 class="card-title"><?php echo htmlspecialchars($g['firstname'] ?? '–'); ?></h6>
+                                        <h6 class="card-title"><?php echo htmlspecialchars($g['firstname'] . ' ' . $g['lastname']); ?></h6>
                                         <p class="card-text small text-muted mb-2">
                                             📧 <a href="mailto:<?php echo htmlspecialchars($g['email']); ?>"><?php echo htmlspecialchars($g['email']); ?></a>
                                         </p>
@@ -405,14 +292,7 @@ $projects = $pdo->query("SELECT * FROM {$prefix}projects WHERE is_active = 1 ORD
                                             </p>
                                         <?php endif; ?>
                                         <p class="card-text small mb-0">
-                                            <span class="badge bg-secondary">
-                                                <?php echo $g['person_type'] === 'child' ? 'Kind' : 'Erwachsener'; ?>
-                                                <?php if ($g['age']): ?>(<?php echo $g['age']; ?>)<?php endif; ?>
-                                            </span>
-                                            <?php if ($g['highchair_needed']): ?>
-                                                <span class="badge bg-warning">🪑 Hochstuhl</span>
-                                            <?php endif; ?>
-                                            <span class="badge bg-info"><?php echo $g['order_count']; ?> Bestellung<?php echo $g['order_count'] !== 1 ? 'en' : ''; ?></span>
+                                            <span class="badge bg-secondary"><?php echo $g['guest_type'] === 'family' ? 'Familie' : 'Einzeln'; ?></span>
                                         </p>
                                     </div>
                                 </div>
