@@ -144,10 +144,12 @@ foreach ($guests_by_id as $guest_id => $guest) {
             $person_type_value = $guest['person_type'] ?? 'adult';
             $person_type = $person_type_value === 'child' ? 'Kind' : 'Erwachsener';
             if ($person_type_value === 'child' && !empty($guest['child_age'])) {
-                $highchair_suffix = !empty($guest['highchair_needed']) ? ', HS' : '';
-                $person_type .= ' (' . $guest['child_age'] . 'J' . $highchair_suffix . ')';
-            }
-            if (!empty($guest['highchair_needed'])) {
+                $person_type .= ' (' . $guest['child_age'] . 'J';
+                if (!empty($guest['highchair_needed'])) {
+                    $person_type .= ' 🪑';
+                }
+                $person_type .= ')';
+            } elseif (!empty($guest['highchair_needed'])) {
                 $person_type .= ' 🪑';
             }
             
@@ -199,10 +201,12 @@ foreach ($guests_by_id as $guest_id => $guest) {
             $person_type_value = $guest['person_type'] ?? 'adult';
             $person_type = $person_type_value === 'child' ? 'Kind' : 'Erwachsener';
             if ($person_type_value === 'child' && !empty($guest['child_age'])) {
-                $highchair_suffix = !empty($guest['highchair_needed']) ? ', HS' : '';
-                $person_type .= ' (' . $guest['child_age'] . 'J' . $highchair_suffix . ')';
-            }
-            if (!empty($guest['highchair_needed'])) {
+                $person_type .= ' (' . $guest['child_age'] . 'J';
+                if (!empty($guest['highchair_needed'])) {
+                    $person_type .= ' 🪑';
+                }
+                $person_type .= ')';
+            } elseif (!empty($guest['highchair_needed'])) {
                 $person_type .= ' 🪑';
             }
             
@@ -259,8 +263,14 @@ foreach ($guests_by_id as $guest_id => $guest) {
                     $member_dishes_text .= $category . ': ' . implode(', ', array_unique($dish_list));
                 }
                 
-                $person_type = $member['member_type'] === 'child' ? ('Kind' . ($member['child_age'] ? ' (' . $member['child_age'] . 'J' . ($member['highchair_needed'] ? ', HS' : '') . ')' : '')) : 'Erwachsener';
-                if ($member['highchair_needed']) {
+                $person_type = $member['member_type'] === 'child' ? 'Kind' : 'Erwachsener';
+                if ($member['member_type'] === 'child' && $member['child_age']) {
+                    $person_type .= ' (' . $member['child_age'] . 'J';
+                    if ($member['highchair_needed']) {
+                        $person_type .= ' 🪑';
+                    }
+                    $person_type .= ')';
+                } elseif ($member['highchair_needed']) {
                     $person_type .= ' 🪑';
                 }
                 
@@ -532,7 +542,10 @@ $projects = $pdo->query("SELECT * FROM {$prefix}projects WHERE is_active = 1 ORD
         <div class="card border-0 shadow mt-5">
             <?php if ($_GET['view'] === 'orders'): ?>
                 <div class="card-header bg-info text-white py-3">
-                    <h5 class="mb-0">Bestellungen: <?php echo htmlspecialchars($project['name']); ?></h5>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Bestellungen: <?php echo htmlspecialchars($project['name']); ?></h5>
+                        <small class="mb-0">🪑 Hochstuhl erforderlich</small>
+                    </div>
                 </div>
                 <div class="card-body">
                     <?php 
