@@ -33,6 +33,39 @@ $stmt = $pdo->prepare("SELECT * FROM {$prefix}guests WHERE project_id = ? ORDER 
 $stmt->execute([$project_id]);
 $guests = $stmt->fetchAll();
 
+// Alle Bestellungen laden (für Website-Anzeige)
+$guests_with_dishes = [];
+foreach ($guests as $g) {
+    $stmt = $pdo->prepare("
+        SELECT mc.name as category, d.name as dish, mc.sort_order
+        FROM {$prefix}order_sessions os
+        LEFT JOIN {$prefix}orders o ON o.order_id = os.order_id
+        LEFT JOIN {$prefix}dishes d ON o.dish_id = d.id
+        LEFT JOIN {$prefix}menu_categories mc ON d.category_id = mc.id
+        WHERE os.email = ? AND os.project_id = ?
+        ORDER BY mc.sort_order, d.name
+    ");
+    $stmt->execute([$g['email'], $project_id]);
+    $dishes = $stmt->fetchAll();
+    
+    // Format dishes by category with newlines
+    $dishes_text = '';
+    if (!empty($dishes)) {
+        $prev_category = null;
+        foreach ($dishes as $d) {
+            if ($d['dish']) {
+                if ($prev_category !== $d['category'] && $prev_category !== null) {
+                    $dishes_text .= "\n";
+                }
+                $dishes_text .= $d['category'] . ': ' . $d['dish'] . "\n";
+                $prev_category = $d['category'];
+            }
+        }
+    }
+    
+    $guests_with_dishes[] = array_merge($g, ['dishes_text' => trim($dishes_text) ?: '–']);
+}
+
 // PDF Download oder Anzeige
 if (isset($_GET['download']) && $_GET['download'] === 'pdf') {
     $action = isset($_GET['action']) ? $_GET['action'] : 'download'; // 'download' oder 'view'
@@ -279,21 +312,21 @@ $projects = $pdo->query("SELECT * FROM {$prefix}projects WHERE is_active = 1 ORD
                 </div>
                 <div class="card-body">
                     <div class="table-responsive">
-                        <table class="table table-hover">
+                        <table class="table table-hover table-sm">
                             <thead class="table-light">
                                 <tr>
-                                    <th>Name</th>
-                                    <th>Email</th>
-                                    <th class="d-none d-md-table-cell">Tel.</th>
-                                    <th>Typ</th>
-                                    <th class="d-none d-lg-table-cell">Bestellungen</th>
+                                    <th style="width: 15%;">Name</th>
+                                    <th style="width: 20%;">Email</th>
+                                    <th class="d-none d-md-table-cell" style="width: 12%;">Tel.</th>
+                                    <th style="width: 10%;">Typ</th>
+                                    <th style="width: 43%;">Bestellungen</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                <?php if (empty($guests)): ?>
+                                <?php if (empty($guests_with_dishes)): ?>
                                     <tr><td colspan="5" class="text-center text-muted py-3">Keine Gäste</td></tr>
                                 <?php else: ?>
-                                    <?php foreach ($guests as $g): ?>
+                                    <?php foreach ($guests_with_dishes as $g): ?>
                                         <tr>
                                             <td><?php echo htmlspecialchars($g['firstname'] . ' ' . $g['lastname']); ?></td>
                                             <td><small><?php echo htmlspecialchars($g['email']); ?></small></td>
@@ -304,7 +337,7 @@ $projects = $pdo->query("SELECT * FROM {$prefix}projects WHERE is_active = 1 ORD
                                                     <?php if ($g['guest_type'] === 'family' && $g['family_size']): ?>(<?php echo $g['family_size']; ?>)<?php endif; ?>
                                                 </span>
                                             </td>
-                                            <td class="d-none d-lg-table-cell">–</td>
+                                            <td><small style="white-space: pre-wrap;"><?php echo htmlspecialchars($g['dishes_text']); ?></small></td>
                                         </tr>
                                     <?php endforeach; ?>
                                 <?php endif; ?>
