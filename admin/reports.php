@@ -33,8 +33,9 @@ $stmt = $pdo->prepare("SELECT * FROM {$prefix}guests WHERE project_id = ? ORDER 
 $stmt->execute([$project_id]);
 $guests = $stmt->fetchAll();
 
-// PDF Download
+// PDF Download oder Anzeige
 if (isset($_GET['download']) && $_GET['download'] === 'pdf') {
+    $action = isset($_GET['action']) ? $_GET['action'] : 'download'; // 'download' oder 'view'
     require_once '../script/tcpdf/tcpdf.php';
 
     $pdf = new TCPDF(PDF_PAGE_ORIENTATION, PDF_UNIT, PDF_PAGE_FORMAT, true, 'UTF-8', false);
@@ -96,7 +97,8 @@ if (isset($_GET['download']) && $_GET['download'] === 'pdf') {
     }
 
     $filename = 'gaeste_' . $project_id . '_' . date('Ymd_Hi') . '.pdf';
-    $pdf->Output($filename, 'D');
+    // 'D' = Download, 'I' = Inline (Anzeige im Browser)
+    $pdf->Output($filename, $action === 'view' ? 'I' : 'D');
     exit;
 }
 
@@ -216,10 +218,10 @@ $projects = $pdo->query("SELECT * FROM {$prefix}projects WHERE is_active = 1 ORD
 
         <!-- Drucken / PDF -->
         <div class="col-12 col-sm-6 col-lg-4">
-            <a href="?project=<?php echo $project_id; ?>&download=pdf" class="report-icon-btn">
+            <a href="#" data-bs-toggle="modal" data-bs-target="#pdfModal" class="report-icon-btn">
                 <div class="icon">🖨️</div>
                 <div class="title">PDF Report</div>
-                <div class="subtitle">Als PDF herunterladen</div>
+                <div class="subtitle">Anzeigen oder herunterladen</div>
             </a>
         </div>
 
@@ -351,6 +353,29 @@ $projects = $pdo->query("SELECT * FROM {$prefix}projects WHERE is_active = 1 ORD
         </div>
     <?php endif; ?>
 
+</div>
+
+<!-- Modal für PDF-Optionen -->
+<div class="modal fade" id="pdfModal" tabindex="-1" aria-labelledby="pdfModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="pdfModalLabel">📄 PDF Report</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Wie möchten Sie mit dem PDF Report verfahren?</p>
+            </div>
+            <div class="modal-footer gap-2">
+                <a href="?project=<?php echo $project_id; ?>&download=pdf&action=view" class="btn btn-primary">
+                    <i class="bi bi-printer"></i> Anzeigen & Drucken
+                </a>
+                <a href="?project=<?php echo $project_id; ?>&download=pdf&action=download" class="btn btn-success">
+                    <i class="bi bi-download"></i> Herunterladen
+                </a>
+            </div>
+        </div>
+    </div>
 </div>
 
 <?php include '../nav/footer.php'; ?>
