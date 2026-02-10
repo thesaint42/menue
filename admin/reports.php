@@ -34,173 +34,174 @@ $stmt->execute([$project_id]);
 $guests = $stmt->fetchAll();
 
 // Alle Personen mit Bestellungen laden (für Website-Anzeige)
+// Struktur: Pro Gast -> Pro Bestellung -> Pro Person
 $guests_with_dishes = [];
 foreach ($guests as $g) {
-    // Lade die neueste Bestellnummer für diesen Gast
-    $stmt = $pdo->prepare("SELECT order_id FROM {$prefix}order_sessions WHERE email = ? AND project_id = ? ORDER BY id DESC LIMIT 1");
+    // Lade ALLE Bestellungen (order_sessions) für diesen Gast
+    $stmt = $pdo->prepare("SELECT DISTINCT order_id FROM {$prefix}order_sessions WHERE email = ? AND project_id = ? ORDER BY id DESC");
     $stmt->execute([$g['email'], $project_id]);
-    $latest_order = $stmt->fetch();
-    $order_id = $latest_order ? $latest_order['order_id'] : '';
+    $all_orders = $stmt->fetchAll();
     
-    if ($g['guest_type'] === 'individual') {
-        // Einzelperson: Nur 1 Datensatz mit eindeutigen Gerichten
-        $stmt = $pdo->prepare("
-            SELECT DISTINCT mc.name as category, d.name as dish, mc.sort_order
-            FROM {$prefix}order_sessions os
-            JOIN {$prefix}orders o ON o.order_id = os.order_id
-            JOIN {$prefix}dishes d ON o.dish_id = d.id
-            JOIN {$prefix}menu_categories mc ON d.category_id = mc.id
-            WHERE os.email = ? AND os.project_id = ?
-            ORDER BY mc.sort_order, d.name
-        ");
-        $stmt->execute([$g['email'], $project_id]);
-        $dishes = $stmt->fetchAll();
-        
-        // Format dishes by category with newlines
-        $dishes_text = '';
-        if (!empty($dishes)) {
-            $prev_category = null;
-            foreach ($dishes as $d) {
-                if ($d['dish']) {
-                    if ($prev_category !== $d['category'] && $prev_category !== null) {
-                        $dishes_text .= "\n";
-                    }
-                    $dishes_text .= $d['category'] . ': ' . $d['dish'];
-                    $prev_category = $d['category'];
-                    if (next($dishes) && key($dishes) < count($dishes) - 1) {
-                        if ($prev_category !== current($dishes)['category']) {
-                            $dishes_text .= "\n";
-                        }
-                    }
-                }
-            }
-        }
-        
-        // Gruppe alle Gerichte pro Kategorie zusammen
-        $dishes_by_category = [];
-        if (!empty($dishes)) {
-            foreach ($dishes as $d) {
-                if ($d['dish']) {
-                    if (!isset($dishes_by_category[$d['category']])) {
-                        $dishes_by_category[$d['category']] = [];
-                    }
-                    $dishes_by_category[$d['category']][] = $d['dish'];
-                }
-            }
-        }
-        
-        $dishes_text = '';
-        foreach ($dishes_by_category as $category => $dish_list) {
-            if ($dishes_text !== '') {
-                $dishes_text .= "\n";
-            }
-            $dishes_text .= $category . ': ' . implode(', ', array_unique($dish_list));
-        }
-        
-        $guests_with_dishes[] = array_merge($g, [
-            'dishes_text' => $dishes_text ?: '–',
-            'order_id' => $order_id,
+    if (empty($all_orders)) {
+        // Kein Bestellung, aber Gast existiert
+        $guests_with_dishes[] = [
+            'firstname' => $g['firstname'],
+            'lastname' => $g['lastname'],
+            'email' => $g['email'],
+            'phone' => $g['phone'],
+            'guest_type' => $g['guest_type'],
+            'family_size' => $g['family_size'],
+            'id' => $g['id'],
+            'dishes_text' => '–',
+            'order_id' => '',
             'person_name' => $g['firstname'] . ' ' . $g['lastname'],
-            'person_type' => 'Einzeln'
-        ]);
-    } else {
-        // Familie: Ein Datensatz pro Familienmitglied
-        // Hauptperson
-        $stmt = $pdo->prepare("
-            SELECT DISTINCT mc.name as category, d.name as dish, mc.sort_order
-            FROM {$prefix}order_sessions os
-            JOIN {$prefix}orders o ON o.order_id = os.order_id AND o.person_id = 0
-            JOIN {$prefix}dishes d ON o.dish_id = d.id
-            JOIN {$prefix}menu_categories mc ON d.category_id = mc.id
-            WHERE os.email = ? AND os.project_id = ?
-            ORDER BY mc.sort_order, d.name
-        ");
-        $stmt->execute([$g['email'], $project_id]);
-        $main_dishes = $stmt->fetchAll();
+            'person_type' => $g['guest_type'] === 'family' ? 'Familie' : 'Einzeln'
+        ];
+        continue;
+    }
+    
+    // Pro Bestellung
+    foreach ($all_orders as $order_row) {
+        $order_id = $order_row['order_id'];
         
-        $main_dishes_by_category = [];
-        if (!empty($main_dishes)) {
-            foreach ($main_dishes as $d) {
-                if ($d['dish']) {
-                    if (!isset($main_dishes_by_category[$d['category']])) {
-                        $main_dishes_by_category[$d['category']] = [];
-                    }
-                    $main_dishes_by_category[$d['category']][] = $d['dish'];
-                }
-            }
-        }
-        
-        $main_dishes_text = '';
-        foreach ($main_dishes_by_category as $category => $dish_list) {
-            if ($main_dishes_text !== '') {
-                $main_dishes_text .= "\n";
-            }
-            $main_dishes_text .= $category . ': ' . implode(', ', array_unique($dish_list));
-        }
-        
-        $guests_with_dishes[] = array_merge($g, [
-            'dishes_text' => $main_dishes_text ?: '–',
-            'order_id' => $order_id,
-            'person_name' => $g['firstname'] . ' ' . $g['lastname'],
-            'person_type' => 'Erwachsen'
-        ]);
-        
-        // Familienmitglieder
-        $stmt = $pdo->prepare("SELECT * FROM {$prefix}family_members WHERE guest_id = ? ORDER BY id");
-        $stmt->execute([$g['id']]);
-        $family_members = $stmt->fetchAll();
-        
-        foreach ($family_members as $idx => $member) {
-            $person_idx = $idx + 1;
+        if ($g['guest_type'] === 'individual') {
+            // Einzelperson: Nur 1 Datensatz mit eindeutigen Gerichten
             $stmt = $pdo->prepare("
                 SELECT DISTINCT mc.name as category, d.name as dish, mc.sort_order
-                FROM {$prefix}order_sessions os
-                JOIN {$prefix}orders o ON o.order_id = os.order_id AND o.person_id = ?
+                FROM {$prefix}orders o
                 JOIN {$prefix}dishes d ON o.dish_id = d.id
                 JOIN {$prefix}menu_categories mc ON d.category_id = mc.id
-                WHERE os.email = ? AND os.project_id = ?
+                WHERE o.order_id = ?
                 ORDER BY mc.sort_order, d.name
             ");
-            $stmt->execute([$person_idx, $g['email'], $project_id]);
-            $member_dishes = $stmt->fetchAll();
+            $stmt->execute([$order_id]);
+            $dishes = $stmt->fetchAll();
             
-            $member_dishes_by_category = [];
-            if (!empty($member_dishes)) {
-                foreach ($member_dishes as $d) {
+            // Gruppe alle Gerichte pro Kategorie zusammen
+            $dishes_by_category = [];
+            if (!empty($dishes)) {
+                foreach ($dishes as $d) {
                     if ($d['dish']) {
-                        if (!isset($member_dishes_by_category[$d['category']])) {
-                            $member_dishes_by_category[$d['category']] = [];
+                        if (!isset($dishes_by_category[$d['category']])) {
+                            $dishes_by_category[$d['category']] = [];
                         }
-                        $member_dishes_by_category[$d['category']][] = $d['dish'];
+                        $dishes_by_category[$d['category']][] = $d['dish'];
                     }
                 }
             }
             
-            $member_dishes_text = '';
-            foreach ($member_dishes_by_category as $category => $dish_list) {
-                if ($member_dishes_text !== '') {
-                    $member_dishes_text .= "\n";
+            $dishes_text = '';
+            foreach ($dishes_by_category as $category => $dish_list) {
+                if ($dishes_text !== '') {
+                    $dishes_text .= "\n";
                 }
-                $member_dishes_text .= $category . ': ' . implode(', ', array_unique($dish_list));
+                $dishes_text .= $category . ': ' . implode(', ', array_unique($dish_list));
             }
             
-            $person_type = $member['member_type'] === 'child' ? ('Kind' . ($member['child_age'] ? ' (' . $member['child_age'] . 'J)' : '')) : 'Erwachsen';
-            if ($member['highchair_needed']) {
-                $person_type .= ' 🪑';
+            $guests_with_dishes[] = array_merge($g, [
+                'dishes_text' => $dishes_text ?: '–',
+                'order_id' => $order_id,
+                'person_name' => $g['firstname'] . ' ' . $g['lastname'],
+                'person_type' => 'Einzeln'
+            ]);
+        } else {
+            // Familie: Ein Datensatz pro Familienmitglied pro Bestellung
+            // Hauptperson
+            $stmt = $pdo->prepare("
+                SELECT DISTINCT mc.name as category, d.name as dish, mc.sort_order
+                FROM {$prefix}orders o
+                JOIN {$prefix}dishes d ON o.dish_id = d.id
+                JOIN {$prefix}menu_categories mc ON d.category_id = mc.id
+                WHERE o.order_id = ? AND o.person_id = 0
+                ORDER BY mc.sort_order, d.name
+            ");
+            $stmt->execute([$order_id]);
+            $main_dishes = $stmt->fetchAll();
+            
+            $main_dishes_by_category = [];
+            if (!empty($main_dishes)) {
+                foreach ($main_dishes as $d) {
+                    if ($d['dish']) {
+                        if (!isset($main_dishes_by_category[$d['category']])) {
+                            $main_dishes_by_category[$d['category']] = [];
+                        }
+                        $main_dishes_by_category[$d['category']][] = $d['dish'];
+                    }
+                }
             }
             
-            $guests_with_dishes[] = [
-                'firstname' => $member['name'],
-                'lastname' => '',
-                'email' => $g['email'],
-                'phone' => $g['phone'],
-                'guest_type' => 'family_member',
-                'family_size' => 0,
-                'dishes_text' => $member_dishes_text ?: '–',
-                'order_id' => '',
-                'person_name' => $member['name'],
-                'person_type' => $person_type
-            ];
+            $main_dishes_text = '';
+            foreach ($main_dishes_by_category as $category => $dish_list) {
+                if ($main_dishes_text !== '') {
+                    $main_dishes_text .= "\n";
+                }
+                $main_dishes_text .= $category . ': ' . implode(', ', array_unique($dish_list));
+            }
+            
+            $guests_with_dishes[] = array_merge($g, [
+                'dishes_text' => $main_dishes_text ?: '–',
+                'order_id' => $order_id,
+                'person_name' => $g['firstname'] . ' ' . $g['lastname'],
+                'person_type' => 'Erwachsen'
+            ]);
+            
+            // Familienmitglieder
+            $stmt = $pdo->prepare("SELECT * FROM {$prefix}family_members WHERE guest_id = ? ORDER BY id");
+            $stmt->execute([$g['id']]);
+            $family_members = $stmt->fetchAll();
+            
+            foreach ($family_members as $idx => $member) {
+                $person_idx = $idx + 1;
+                $stmt = $pdo->prepare("
+                    SELECT DISTINCT mc.name as category, d.name as dish, mc.sort_order
+                    FROM {$prefix}orders o
+                    JOIN {$prefix}dishes d ON o.dish_id = d.id
+                    JOIN {$prefix}menu_categories mc ON d.category_id = mc.id
+                    WHERE o.order_id = ? AND o.person_id = ?
+                    ORDER BY mc.sort_order, d.name
+                ");
+                $stmt->execute([$order_id, $person_idx]);
+                $member_dishes = $stmt->fetchAll();
+                
+                $member_dishes_by_category = [];
+                if (!empty($member_dishes)) {
+                    foreach ($member_dishes as $d) {
+                        if ($d['dish']) {
+                            if (!isset($member_dishes_by_category[$d['category']])) {
+                                $member_dishes_by_category[$d['category']] = [];
+                            }
+                            $member_dishes_by_category[$d['category']][] = $d['dish'];
+                        }
+                    }
+                }
+                
+                $member_dishes_text = '';
+                foreach ($member_dishes_by_category as $category => $dish_list) {
+                    if ($member_dishes_text !== '') {
+                        $member_dishes_text .= "\n";
+                    }
+                    $member_dishes_text .= $category . ': ' . implode(', ', array_unique($dish_list));
+                }
+                
+                $person_type = $member['member_type'] === 'child' ? ('Kind' . ($member['child_age'] ? ' (' . $member['child_age'] . 'J)' : '')) : 'Erwachsen';
+                if ($member['highchair_needed']) {
+                    $person_type .= ' 🪑';
+                }
+                
+                $guests_with_dishes[] = [
+                    'firstname' => $member['name'],
+                    'lastname' => '',
+                    'email' => $g['email'],
+                    'phone' => $g['phone'],
+                    'guest_type' => 'family_member',
+                    'family_size' => 0,
+                    'id' => $g['id'],
+                    'dishes_text' => $member_dishes_text ?: '–',
+                    'order_id' => '',
+                    'person_name' => $member['name'],
+                    'person_type' => $person_type
+                ];
+            }
         }
     }
 }
