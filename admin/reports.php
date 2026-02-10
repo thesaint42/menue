@@ -284,11 +284,11 @@ $projects = $pdo->query("SELECT * FROM {$prefix}projects WHERE is_active = 1 ORD
             </a>
         </div>
 
-        <!-- Gästeübersicht -->
+        <!-- Gäste -->
         <div class="col-12 col-sm-6 col-lg-4">
             <a href="?project=<?php echo $project_id; ?>&view=guests" class="report-icon-btn">
                 <div class="icon">👥</div>
-                <div class="title">Gästeübersicht</div>
+                <div class="title">Gäste</div>
                 <div class="subtitle">Alle Gäste anzeigen</div>
             </a>
         </div>
@@ -378,7 +378,7 @@ $projects = $pdo->query("SELECT * FROM {$prefix}projects WHERE is_active = 1 ORD
 
             <?php elseif ($_GET['view'] === 'guests'): ?>
                 <div class="card-header bg-warning text-dark py-3">
-                    <h5 class="mb-0">Gästeübersicht: <?php echo htmlspecialchars($project['name']); ?></h5>
+                    <h5 class="mb-0">Gäste: <?php echo htmlspecialchars($project['name']); ?></h5>
                 </div>
                 <div class="card-body">
                     <div class="row g-3">
