@@ -393,12 +393,12 @@ $projects = $pdo->query("SELECT * FROM {$prefix}projects WHERE is_active = 1 ORD
                 <p>Wie möchten Sie mit dem PDF Report verfahren?</p>
             </div>
             <div class="modal-footer gap-2">
-                <a href="?project=<?php echo $project_id; ?>&download=pdf&action=view" target="_blank" class="btn btn-primary">
+                <button type="button" class="btn btn-primary" onclick="closePdfModal('view')">
                     <i class="bi bi-printer"></i> Anzeigen & Drucken
-                </a>
-                <a href="?project=<?php echo $project_id; ?>&download=pdf&action=download" class="btn btn-success">
+                </button>
+                <button type="button" class="btn btn-success" onclick="closePdfModal('download')">
                     <i class="bi bi-download"></i> Herunterladen
-                </a>
+                </button>
             </div>
         </div>
     </div>
@@ -407,6 +407,22 @@ $projects = $pdo->query("SELECT * FROM {$prefix}projects WHERE is_active = 1 ORD
 <?php include '../nav/footer.php'; ?>
 
 <script>
+function closePdfModal(action) {
+    // Modal schließen
+    const modal = bootstrap.Modal.getInstance(document.getElementById('pdfModal'));
+    if (modal) {
+        modal.hide();
+    }
+    
+    // Navigiere zur PDF
+    const url = '?project=<?php echo $project_id; ?>&download=pdf&action=' + action;
+    if (action === 'view') {
+        window.open(url, '_blank');
+    } else {
+        window.location.href = url;
+    }
+}
+
 function exportCSV() {
     let csv = 'Name,Email,Telefon,Typ,Bestellungen\n';
     const rows = document.querySelectorAll('table tbody tr');
