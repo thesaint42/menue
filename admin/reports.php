@@ -47,7 +47,10 @@ $stmt = $pdo->prepare("
         g.lastname,
         g.phone,
         g.guest_type,
-        g.family_size
+        g.family_size,
+        g.person_type,
+        g.child_age,
+        g.highchair_needed
     FROM {$prefix}order_sessions os
     LEFT JOIN {$prefix}guests g ON g.email = os.email AND g.project_id = ?
     WHERE os.project_id = ?
@@ -68,6 +71,9 @@ foreach ($order_sessions as $os) {
             'phone' => $os['phone'],
             'guest_type' => $os['guest_type'],
             'family_size' => $os['family_size'],
+            'person_type' => $os['person_type'],
+            'child_age' => $os['child_age'],
+            'highchair_needed' => $os['highchair_needed'],
             'id' => $os['guest_id'],
             'orders' => []
         ];
@@ -188,6 +194,15 @@ foreach ($guests_by_id as $guest_id => $guest) {
                 $main_dishes_text .= $category . ': ' . implode(', ', array_unique($dish_list));
             }
             
+            // Bestimme person_type der Hauptperson mit optional Hochstuhl-Info
+            $person_type = $guest['person_type'] === 'child' ? 'Kind' : 'Erwachsener';
+            if ($guest['person_type'] === 'child' && $guest['child_age']) {
+                $person_type .= ' (' . $guest['child_age'] . 'J)';
+            }
+            if ($guest['highchair_needed']) {
+                $person_type .= ' 🪑';
+            }
+            
             $guests_with_dishes[] = [
                 'firstname' => $guest['firstname'],
                 'lastname' => $guest['lastname'],
@@ -199,7 +214,7 @@ foreach ($guests_by_id as $guest_id => $guest) {
                 'dishes_text' => $main_dishes_text ?: '–',
                 'order_id' => $order_id,
                 'person_name' => $guest['firstname'] . ' ' . $guest['lastname'],
-                'person_type' => 'Erwachsen'
+                'person_type' => $person_type
             ];
             
             // Familienmitglieder
