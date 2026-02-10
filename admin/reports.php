@@ -41,7 +41,7 @@ if (isset($_GET['download']) && $_GET['download'] === 'pdf') {
     // Gäste mit Bestellungen laden
     $stmt = $pdo->prepare("
         SELECT g.id, g.firstname, g.lastname, g.email, g.phone, g.guest_type, g.family_size,
-               GROUP_CONCAT(DISTINCT CONCAT(mc.name, ': ', d.name) ORDER BY mc.name, d.name SEPARATOR ', ') as dishes
+               GROUP_CONCAT(DISTINCT CONCAT(mc.name, ': ', d.name) ORDER BY mc.sort_order, d.name SEPARATOR '\n') as dishes
         FROM {$prefix}guests g
         LEFT JOIN {$prefix}order_sessions os ON os.email = g.email AND os.project_id = ?
         LEFT JOIN {$prefix}orders o ON o.order_id = os.order_id
@@ -106,7 +106,8 @@ if (isset($_GET['download']) && $_GET['download'] === 'pdf') {
         if ($g['guest_type'] === 'family' && $g['family_size']) {
             $type .= ' (' . $g['family_size'] . ')';
         }
-        $dishes = $g['dishes'] ? substr($g['dishes'], 0, 100) : '–';
+        // Split dishes by newline
+        $dishes_text = $g['dishes'] ? $g['dishes'] : '–';
         
         $pdf->MultiCell(30, 7, $name, 1, 'L', $fill);
         $pdf->SetXY(40, $pdf->GetY() - 7);
@@ -116,7 +117,7 @@ if (isset($_GET['download']) && $_GET['download'] === 'pdf') {
         $pdf->SetXY(100, $pdf->GetY() - 7);
         $pdf->MultiCell(25, 7, $type, 1, 'C', $fill);
         $pdf->SetXY(125, $pdf->GetY() - 7);
-        $pdf->MultiCell(60, 7, $dishes, 1, 'L', $fill);
+        $pdf->MultiCell(60, 7, $dishes_text, 1, 'L', $fill);
         $pdf->Ln();
         $fill = !$fill;
     }
