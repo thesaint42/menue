@@ -37,10 +37,10 @@ if (!$project) {
 // Gäste und Bestellungen laden (v3.0 Schema)
 $stmt = $pdo->prepare("
     SELECT 
+        fm.id as person_id,
         os.id as session_id,
         os.email,
         os.phone,
-        fm.id as person_id,
         fm.firstname,
         fm.lastname,
         fm.person_type,
@@ -51,7 +51,7 @@ $stmt = $pdo->prepare("
     LEFT JOIN {$prefix}family_members fm ON os.id = fm.order_session_id
     LEFT JOIN {$prefix}orders o ON fm.id = o.family_member_id
     WHERE os.project_id = ?
-    GROUP BY os.id, fm.id
+    GROUP BY fm.id, os.id, os.email, os.phone, fm.firstname, fm.lastname, fm.person_type, fm.age, fm.highchair_needed
     ORDER BY os.created_at DESC, fm.created_at ASC
 ");
 $stmt->execute([$project_id]);
