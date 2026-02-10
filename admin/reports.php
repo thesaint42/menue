@@ -257,11 +257,11 @@ $projects = $pdo->query("SELECT * FROM {$prefix}projects WHERE is_active = 1 ORD
 
     <!-- REPORT OPTIONEN ALS ICONS -->
     <div class="row g-3 g-md-4">
-        <!-- Bestellübersicht -->
+        <!-- Bestellungen -->
         <div class="col-12 col-sm-6 col-lg-4">
             <a href="?project=<?php echo $project_id; ?>&view=orders" class="report-icon-btn">
                 <div class="icon">📋</div>
-                <div class="title">Bestellübersicht</div>
+                <div class="title">Bestellungen</div>
                 <div class="subtitle">Alle Bestellungen anzeigen</div>
             </a>
         </div>
@@ -308,7 +308,7 @@ $projects = $pdo->query("SELECT * FROM {$prefix}projects WHERE is_active = 1 ORD
         <div class="card border-0 shadow mt-5">
             <?php if ($_GET['view'] === 'orders'): ?>
                 <div class="card-header bg-info text-white py-3">
-                    <h5 class="mb-0">Bestellübersicht: <?php echo htmlspecialchars($project['name']); ?></h5>
+                    <h5 class="mb-0">Bestellungen: <?php echo htmlspecialchars($project['name']); ?></h5>
                 </div>
                 <div class="card-body">
                     <div class="table-responsive">
