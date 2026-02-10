@@ -10,7 +10,7 @@
 function generate_order_id() {
     $part1 = str_pad(mt_rand(0, 99999), 5, '0', STR_PAD_LEFT);
     $part2 = str_pad(mt_rand(0, 99999), 5, '0', STR_PAD_LEFT);
-    return $part1 . ' - ' . $part2;
+    return $part1 . '-' . $part2;
 }
 
 /**
