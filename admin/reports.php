@@ -257,11 +257,11 @@ $projects = $pdo->query("SELECT * FROM {$prefix}projects WHERE is_active = 1 ORD
 
     <!-- REPORT OPTIONEN ALS ICONS -->
     <div class="row g-3 g-md-4">
-        <!-- Bestellungsübersicht -->
+        <!-- Bestellübersicht -->
         <div class="col-12 col-sm-6 col-lg-4">
             <a href="?project=<?php echo $project_id; ?>&view=orders" class="report-icon-btn">
                 <div class="icon">📋</div>
-                <div class="title">Bestellungsübersicht</div>
+                <div class="title">Bestellübersicht</div>
                 <div class="subtitle">Alle Bestellungen anzeigen</div>
             </a>
         </div>
