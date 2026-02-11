@@ -13,6 +13,19 @@ if (!function_exists('debug_log')) {
     }
 }
 
+// Safe Execute Hilfsfunktion mit detaillierten Logs
+function safe_execute($stmt, $params, $label = '') {
+    try {
+        debug_log("SAFE_EXEC[$label]: Executing with params: " . json_encode($params));
+        $result = $stmt->execute($params);
+        debug_log("SAFE_EXEC[$label]: Success");
+        return $result;
+    } catch (Exception $e) {
+        debug_log("SAFE_EXEC[$label]: FAILED - " . $e->getMessage());
+        throw new Exception("SQL Fehler bei $label: " . $e->getMessage());
+    }
+}
+
 /**
  * Generiert eine eindeutige Order-ID im Format "##### - #####"
  */
@@ -136,8 +149,56 @@ function load_order_by_id($pdo, $prefix, $order_id) {
  * @return array ['success' => bool, 'order_id' => string, 'message' => string]
  */
 function save_order($pdo, $prefix, $data) {
+    $transaction_started = false;
+    
     try {
-        $pdo->beginTransaction();
+        // 0. Snapshot Tabellen VOR der Transaktion erstellen (falls nötig)
+        try {
+            $pdo->exec("CREATE TABLE IF NOT EXISTS `{$prefix}order_guest_data` (
+                `order_id` CHAR(36) PRIMARY KEY,
+                `project_id` INT NOT NULL,
+                `email` VARCHAR(150) NOT NULL,
+                `firstname` VARCHAR(100) NOT NULL,
+                `lastname` VARCHAR(100) NOT NULL,
+                `phone` VARCHAR(50),
+                `phone_raw` VARCHAR(50),
+                `guest_type` ENUM('individual', 'family') DEFAULT 'individual',
+                `person_type` ENUM('adult', 'child') DEFAULT 'adult',
+                `child_age` INT,
+                `highchair_needed` TINYINT(1) DEFAULT 0,
+                `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (`order_id`) REFERENCES `{$prefix}order_sessions`(`order_id`) ON DELETE CASCADE,
+                FOREIGN KEY (`project_id`) REFERENCES `{$prefix}projects`(`id`) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+        } catch (Exception $e) {
+            debug_log("CREATE TABLE order_guest_data warning (expected): " . $e->getMessage());
+        }
+
+        try {
+            $pdo->exec("CREATE TABLE IF NOT EXISTS `{$prefix}order_people` (
+                `id` INT AUTO_INCREMENT PRIMARY KEY,
+                `order_id` CHAR(36) NOT NULL,
+                `person_index` INT NOT NULL,
+                `name` VARCHAR(200) NOT NULL,
+                `person_type` ENUM('adult', 'child') DEFAULT 'adult',
+                `child_age` INT,
+                `highchair_needed` TINYINT(1) DEFAULT 0,
+                `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE KEY `unique_order_person` (`order_id`, `person_index`),
+                FOREIGN KEY (`order_id`) REFERENCES `{$prefix}order_sessions`(`order_id`) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+        } catch (Exception $e) {
+            debug_log("CREATE TABLE order_people warning (expected): " . $e->getMessage());
+        }
+        
+        // Jetzt erst die Transaktion starten
+        // Versuche Transaction zu starten
+        try {
+            $pdo->beginTransaction();
+            $transaction_started = true;
+        } catch (Exception $tx_error) {
+            throw new Exception("Fehler beim Starten der Transaktion: " . $tx_error->getMessage());
+        }
         
         $order_id = $data['order_id'] ?? generate_order_id();
         $project_id = $data['project_id'];
@@ -148,17 +209,17 @@ function save_order($pdo, $prefix, $data) {
         
         // 1. Order Session erstellen/prüfen
         $stmt = $pdo->prepare("SELECT id FROM {$prefix}order_sessions WHERE order_id = ?");
-        $stmt->execute([$order_id]);
+        safe_execute($stmt, [$order_id], "select_order_session");
         $session_exists = $stmt->fetch();
         
         if (!$session_exists) {
             $stmt = $pdo->prepare("INSERT INTO {$prefix}order_sessions (order_id, project_id, email) VALUES (?, ?, ?)");
-            $stmt->execute([$order_id, $project_id, $email]);
+            safe_execute($stmt, [$order_id, $project_id, $email], "insert_order_sessions");
         }
         
         // 2. Gast erstellen oder aktualisieren
         $stmt = $pdo->prepare("SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = 'order_id'");
-        $stmt->execute(["{$prefix}guests"]);
+        safe_execute($stmt, ["{$prefix}guests"], "check_guests_has_order_id");
         $has_guest_order_id = $stmt->fetchColumn() > 0;
 
         if (!$has_guest_order_id) {
@@ -168,7 +229,7 @@ function save_order($pdo, $prefix, $data) {
         // Unique Index anpassen (falls vorhanden)
         try {
             $stmt = $pdo->prepare("SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND INDEX_NAME = 'unique_guest'");
-            $stmt->execute(["{$prefix}guests"]);
+            safe_execute($stmt, ["{$prefix}guests"], "check_guests_unique_guest_index");
             if ($stmt->fetchColumn() > 0) {
                 $pdo->exec("ALTER TABLE `{$prefix}guests` DROP INDEX `unique_guest`");
             }
@@ -178,7 +239,7 @@ function save_order($pdo, $prefix, $data) {
 
         try {
             $stmt = $pdo->prepare("SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND INDEX_NAME = 'unique_guest_order'");
-            $stmt->execute(["{$prefix}guests"]);
+            safe_execute($stmt, ["{$prefix}guests"], "check_guests_unique_guest_order_index");
             if ($stmt->fetchColumn() == 0) {
                 $pdo->exec("ALTER TABLE `{$prefix}guests` ADD UNIQUE KEY `unique_guest_order` (`project_id`, `email`, `order_id`)");
             }
@@ -187,10 +248,10 @@ function save_order($pdo, $prefix, $data) {
         }
         if ($has_guest_order_id) {
             $stmt = $pdo->prepare("SELECT id FROM {$prefix}guests WHERE project_id = ? AND order_id = ?");
-            $stmt->execute([$project_id, $order_id]);
+            safe_execute($stmt, [$project_id, $order_id], "select_existing_guest_by_order_id");
         } else {
             $stmt = $pdo->prepare("SELECT id FROM {$prefix}guests WHERE project_id = ? AND email = ? ORDER BY created_at DESC LIMIT 1");
-            $stmt->execute([$project_id, $email]);
+            safe_execute($stmt, [$project_id, $email], "select_existing_guest_by_email");
         }
         $existing_guest = $stmt->fetch();
         
@@ -211,14 +272,14 @@ function save_order($pdo, $prefix, $data) {
         
         // Prüfe ob neue Spalten existieren
         $stmt_check = $pdo->prepare("SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = 'person_type'");
-        $stmt_check->execute(["{$prefix}guests"]);
+        safe_execute($stmt_check, ["{$prefix}guests"], "check_guests_has_person_type");
         $has_person_type_column = $stmt_check->fetchColumn() > 0;
         
         if ($existing_guest) {
             $guest_id = $existing_guest['id'];
             if ($has_person_type_column) {
                 $stmt = $pdo->prepare("UPDATE {$prefix}guests SET firstname = ?, lastname = ?, phone = ?, guest_type = ?, family_size = ?, person_type = ?, child_age = ?, highchair_needed = ?, order_id = ? WHERE id = ?");
-                $stmt->execute([
+                safe_execute($stmt, [
                     $firstname,
                     $lastname,
                     $phone,
@@ -229,10 +290,10 @@ function save_order($pdo, $prefix, $data) {
                     $highchair_needed,
                     $order_id,
                     $guest_id
-                ]);
+                ], "update_guests_with_person_type");
             } else {
                 $stmt = $pdo->prepare("UPDATE {$prefix}guests SET firstname = ?, lastname = ?, phone = ?, guest_type = ?, family_size = ?, order_id = ? WHERE id = ?");
-                $stmt->execute([
+                safe_execute($stmt, [
                     $firstname,
                     $lastname,
                     $phone,
@@ -240,12 +301,12 @@ function save_order($pdo, $prefix, $data) {
                     $family_size,
                     $order_id,
                     $guest_id
-                ]);
+                ], "update_guests_without_person_type");
             }
         } else {
             if ($has_person_type_column) {
                 $stmt = $pdo->prepare("INSERT INTO {$prefix}guests (project_id, firstname, lastname, email, phone, guest_type, family_size, person_type, child_age, highchair_needed, order_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-                $stmt->execute([
+                safe_execute($stmt, [
                     $project_id,
                     $firstname,
                     $lastname,
@@ -257,10 +318,10 @@ function save_order($pdo, $prefix, $data) {
                     $child_age,
                     $highchair_needed,
                     $order_id
-                ]);
+                ], "insert_guests_with_person_type");
             } else {
                 $stmt = $pdo->prepare("INSERT INTO {$prefix}guests (project_id, firstname, lastname, email, phone, guest_type, family_size, order_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
-                $stmt->execute([
+                safe_execute($stmt, [
                     $project_id,
                     $firstname,
                     $lastname,
@@ -269,42 +330,12 @@ function save_order($pdo, $prefix, $data) {
                     $guest_type,
                     $family_size,
                     $order_id
-                ]);
+                ], "insert_guests_without_person_type");
             }
             $guest_id = $pdo->lastInsertId();
         }
 
-        // 2b. Bestell-Snapshot Tabellen sicherstellen
-        $pdo->exec("CREATE TABLE IF NOT EXISTS `{$prefix}order_guest_data` (
-            `order_id` CHAR(36) PRIMARY KEY,
-            `project_id` INT NOT NULL,
-            `email` VARCHAR(150) NOT NULL,
-            `firstname` VARCHAR(100) NOT NULL,
-            `lastname` VARCHAR(100) NOT NULL,
-            `phone` VARCHAR(50),
-            `phone_raw` VARCHAR(50),
-            `guest_type` ENUM('individual', 'family') DEFAULT 'individual',
-            `person_type` ENUM('adult', 'child') DEFAULT 'adult',
-            `child_age` INT,
-            `highchair_needed` TINYINT(1) DEFAULT 0,
-            `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (`order_id`) REFERENCES `{$prefix}order_sessions`(`order_id`) ON DELETE CASCADE,
-            FOREIGN KEY (`project_id`) REFERENCES `{$prefix}projects`(`id`) ON DELETE CASCADE
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
-
-        $pdo->exec("CREATE TABLE IF NOT EXISTS `{$prefix}order_people` (
-            `id` INT AUTO_INCREMENT PRIMARY KEY,
-            `order_id` CHAR(36) NOT NULL,
-            `person_index` INT NOT NULL,
-            `name` VARCHAR(200) NOT NULL,
-            `person_type` ENUM('adult', 'child') DEFAULT 'adult',
-            `child_age` INT,
-            `highchair_needed` TINYINT(1) DEFAULT 0,
-            `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            UNIQUE KEY `unique_order_person` (`order_id`, `person_index`),
-            FOREIGN KEY (`order_id`) REFERENCES `{$prefix}order_sessions`(`order_id`) ON DELETE CASCADE
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
-
+        // 2b. Order Daten speichern (die CREATE TABLE sind bereits VORHER gemacht worden)
         // 2c. Bestell-Snapshot speichern
         $stmt = $pdo->prepare("INSERT INTO {$prefix}order_guest_data
             (order_id, project_id, email, firstname, lastname, phone, phone_raw, guest_type, person_type, child_age, highchair_needed)
@@ -320,7 +351,7 @@ function save_order($pdo, $prefix, $data) {
                 person_type = VALUES(person_type),
                 child_age = VALUES(child_age),
                 highchair_needed = VALUES(highchair_needed)");
-        $stmt->execute([
+        safe_execute($stmt, [
             $order_id,
             $project_id,
             $email,
@@ -332,27 +363,31 @@ function save_order($pdo, $prefix, $data) {
             $person_type,
             $child_age,
             $highchair_needed
-        ]);
+        ], "insert_order_guest_data");
 
         $stmt = $pdo->prepare("DELETE FROM {$prefix}order_people WHERE order_id = ?");
-        $stmt->execute([$order_id]);
+        safe_execute($stmt, [$order_id], "delete_order_people");
 
         $stmt = $pdo->prepare("INSERT INTO {$prefix}order_people (order_id, person_index, name, person_type, child_age, highchair_needed) VALUES (?, ?, ?, ?, ?, ?)");
         foreach ($data['persons'] as $idx => $person) {
             $person_name = $person['name'] ?? '';
-            $stmt->execute([
+            // Stelle sicher dass age_group/age ein Integer oder NULL ist (nicht leerer String)
+            $age_value = $person['age_group'] ?? ($person['age'] ?? null);
+            $age_value = ($age_value === '' || $age_value === null) ? null : intval($age_value);
+            
+            safe_execute($stmt, [
                 $order_id,
                 $idx,
                 $person_name,
                 $person['type'] ?? 'adult',
-                $person['age_group'] ?? ($person['age'] ?? null),
+                $age_value,
                 $person['highchair_needed'] ?? 0
-            ]);
+            ], "insert_order_person_$idx");
         }
         
         // 3. Family Members löschen und neu anlegen
         $stmt = $pdo->prepare("DELETE FROM {$prefix}family_members WHERE guest_id = ?");
-        $stmt->execute([$guest_id]);
+        safe_execute($stmt, [$guest_id], "delete_family_members");
         
         if ($guest_type === 'family' && !empty($data['persons'])) {
             $stmt = $pdo->prepare("INSERT INTO {$prefix}family_members (guest_id, name, member_type, child_age, highchair_needed) VALUES (?, ?, ?, ?, ?)");
@@ -363,41 +398,51 @@ function save_order($pdo, $prefix, $data) {
                 $age = $person['age'] ?? $person['age_group'] ?? null;
                 // Konvertiere leere Strings zu NULL
                 $age = ($age === '' || $age === null) ? null : intval($age);
-                $stmt->execute([
+                safe_execute($stmt, [
                     $guest_id,
                     $person['name'],
                     $person['type'],
                     $age,
                     $person['highchair_needed'] ?? 0
-                ]);
+                ], "insert_family_member_$idx");
             }
         }
         
         // 4. Alte Orders für diese order_id löschen
         $stmt = $pdo->prepare("DELETE FROM {$prefix}orders WHERE order_id = ?");
-        $stmt->execute([$order_id]);
+        safe_execute($stmt, [$order_id], "delete_old_orders");
         
         // 5. Neue Orders einfügen
         if (!empty($data['orders'])) {
             debug_log("DEBUG: Inserting " . count($data['orders']) . " orders");
             $stmt = $pdo->prepare("INSERT INTO {$prefix}orders (order_id, person_id, dish_id, category_id) VALUES (?, ?, ?, ?)");
-            foreach ($data['orders'] as $order) {
+            foreach ($data['orders'] as $idx => $order) {
                 // person_id ist der Index im persons-Array (oder 0 für Einzelgast)
                 $person_id = $order['person_index'];
-                debug_log("DEBUG: Order - person_id=$person_id, dish_id=" . $order['dish_id'] . ", category_id=" . $order['category_id']);
-                $stmt->execute([
+                debug_log("DEBUG: Order $idx - person_id=$person_id, dish_id=" . $order['dish_id'] . ", category_id=" . $order['category_id']);
+                safe_execute($stmt, [
                     $order_id,
                     $person_id,
                     $order['dish_id'],
                     $order['category_id']
-                ]);
+                ], "insert_order_$idx");
             }
         }
         
-        $pdo->commit();
+        // Überprüfe ob Transaction noch aktiv ist VOR commit()
+        if (!$pdo->inTransaction()) {
+            throw new Exception("Transaction wurde während der Ausführung unerwartet beendet. Prüfen Sie die SQL-Statements und Datenbankkonstraints.");
+        }
+        
+        // Commit - auch das kann fehlschlagen
+        try {
+            $pdo->commit();
+        } catch (Exception $commit_error) {
+            throw new Exception("Fehler beim Commit der Transaktion: " . $commit_error->getMessage());
+        }
 
         // Bestätigungs-Mail (v3.0) versenden
-        $mail_message = 'Eine Bestätigungsemail wird in Kürze an ' . htmlspecialchars($email) . ' versendet.';
+        $mail_message = 'Eine Bestätigungsemail wird in Kürze an ' . htmlspecialchars($email) . ' versendet';
         try {
             if (!empty($email) && isset($_SERVER['HTTP_HOST'])) {
                 require_once __DIR__ . '/mailer.php';
@@ -405,7 +450,7 @@ function save_order($pdo, $prefix, $data) {
 
                 // Projekt laden
                 $stmt = $pdo->prepare("SELECT * FROM {$prefix}projects WHERE id = ?");
-                $stmt->execute([$project_id]);
+                safe_execute($stmt, [$project_id], "select_project_for_mail");
                 $project = $stmt->fetch(PDO::FETCH_ASSOC);
 
                 // Orders inkl. Namen laden
@@ -417,7 +462,7 @@ function save_order($pdo, $prefix, $data) {
                     WHERE o.order_id = ?
                     ORDER BY o.person_id, mc.sort_order
                 ");
-                $stmt->execute([$order_id]);
+                safe_execute($stmt, [$order_id], "select_orders_for_mail");
                 $order_rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
                 $persons = [];
@@ -474,9 +519,18 @@ function save_order($pdo, $prefix, $data) {
         ];
         
     } catch (Exception $e) {
-        // Nur rollback wenn eine Transaktion aktiv ist
-        if ($pdo->inTransaction()) {
-            $pdo->rollBack();
+        debug_log("SAVE_ORDER EXCEPTION caught: " . $e->getMessage());
+        debug_log("SAVE_ORDER transaction_started = " . ($transaction_started ? 'true' : 'false'));
+        
+        // Nur rollback wenn Transaction wirklich gestartet wurde
+        if ($transaction_started) {
+            try {
+                $pdo->rollBack();
+                debug_log("SAVE_ORDER rollBack() successful");
+            } catch (Exception $rollback_error) {
+                debug_log("SAVE_ORDER rollBack() failed: " . $rollback_error->getMessage());
+                // Ignoriere Rollback-Fehler
+            }
         }
         debug_log("SAVE_ORDER ERROR: " . $e->getMessage());
         debug_log("SAVE_ORDER ERROR trace: " . $e->getTraceAsString());
