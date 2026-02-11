@@ -1,6 +1,6 @@
 <?php
 /**
- * admin/orders.php - Bestellungsübersicht
+ * admin/orders.php - Bestell­übersicht
  */
 
 require_once '../db.php';
@@ -221,7 +221,7 @@ if ($project_id > 0) {
 <div class="container py-4 page-container">
     <div class="row mb-4">
         <div class="col">
-            <h1>Bestellungsübersicht</h1>
+            <h1>Bestell­übersicht</h1>
         </div>
     </div>
 
@@ -333,7 +333,6 @@ if ($project_id > 0) {
                             <?php endif; ?>
                             </h6>
                             <div class="d-flex gap-2">
-                                <a class="btn btn-sm btn-outline-primary" href="../index.php?pin=<?php echo urlencode($project['access_pin']); ?>&action=edit&order_id=<?php echo urlencode($order_id); ?>">Bearbeiten</a>
                                 <form method="post" onsubmit="return confirm('Diese Person und ihre Auswahl wirklich löschen?');">
                                     <input type="hidden" name="delete_person_order_id" value="<?php echo htmlspecialchars($order_id); ?>">
                                     <input type="hidden" name="delete_person_index" value="<?php echo (int)$person['person_index']; ?>">

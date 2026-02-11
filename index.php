@@ -477,13 +477,10 @@ if ($existing_order && isset($existing_order['orders'])) {
                                 </div>
                                 <div class="col-4">
                                     <label class="form-label fw-bold" style="font-size: 0.9em;">Typ</label>
-                                    <select name="member_0_type" class="form-select form-select-sm member-type-select" id="member_0_type">
-                                        <option value="adult" <?php echo ($form_data['main_type'] === 'adult') ? 'selected' : ''; ?>>Erwachsener</option>
-                                        <option value="child" <?php echo ($form_data['main_type'] === 'child') ? 'selected' : ''; ?>>Kind (≤12)</option>
-                                    </select>
-                                </div>
-                                <div class="col-2 d-flex align-items-end">
-                                    <button type="button" class="btn btn-outline-danger btn-sm w-100 remove-member-btn" title="Löschen">Löschen</button>
+                                    <input type="text" class="form-control form-control-sm bg-secondary" readonly
+                                           value="<?php echo ($form_data['main_type'] === 'adult') ? 'Erwachsener' : 'Kind (≤12)'; ?>">
+                                    <input type="hidden" name="member_0_type" value="<?php echo htmlspecialchars($form_data['main_type']); ?>">
+                                    <small class="text-muted" style="font-size: 0.8em;">wird vom Besteller übernommen</small>
                                 </div>
                                 <div class="col-6 member-age-col <?php echo ($form_data['main_type'] === 'child') ? '' : 'd-none'; ?>">
                                     <label class="form-label fw-bold" style="font-size: 0.9em;">Alter</label>
@@ -749,6 +746,25 @@ function attachMemberListeners() {
         input.removeEventListener('input', validateChildAge);
         input.addEventListener('input', validateChildAge);
     });
+    
+    // Besteller-Daten synchronisieren
+    var mainPersonTypeSelect = document.getElementById('main_person_type');
+    if (mainPersonTypeSelect) {
+        mainPersonTypeSelect.removeEventListener('change', syncMainPersonToFamily);
+        mainPersonTypeSelect.addEventListener('change', syncMainPersonToFamily);
+    }
+    
+    var mainPersonAgeInput = document.getElementById('main_person_age');
+    if (mainPersonAgeInput) {
+        mainPersonAgeInput.removeEventListener('input', syncMainPersonToFamily);
+        mainPersonAgeInput.addEventListener('input', syncMainPersonToFamily);
+    }
+    
+    var mainPersonHighchairCheckbox = document.getElementById('main_person_highchair');
+    if (mainPersonHighchairCheckbox) {
+        mainPersonHighchairCheckbox.removeEventListener('change', syncMainPersonToFamily);
+        mainPersonHighchairCheckbox.addEventListener('change', syncMainPersonToFamily);
+    }
 }
 
 function validateChildAge(e) {
@@ -761,6 +777,76 @@ function validateChildAge(e) {
         e.target.value = '12';
     }
 }
+
+function syncMainPersonToFamily() {
+    var mainPersonTypeSelect = document.getElementById('main_person_type');
+    var mainPersonAgeInput = document.getElementById('main_person_age');
+    var mainPersonHighchairCheckbox = document.getElementById('main_person_highchair');
+    var firstnameInput = document.querySelector('[name="firstname"]');
+    var lastnameInput = document.querySelector('[name="lastname"]');
+    var mainPersonRow = document.getElementById('mainPersonRow');
+    
+    if (!mainPersonRow) return;
+    
+    var typeValue = mainPersonTypeSelect.value;
+    var displayText = typeValue === 'child' ? 'Kind (≤12)' : 'Erwachsener';
+    var fullName = (firstnameInput.value + ' ' + lastnameInput.value).trim();
+    
+    // 1. Name-Feld aktualisieren
+    var nameInput = mainPersonRow.querySelector('#member_0_name');
+    if (nameInput) {
+        nameInput.value = fullName;
+    }
+    
+    // 2. Typ-Anzeigefeld aktualisieren
+    var typeInputs = mainPersonRow.querySelectorAll('input[type="text"]');
+    if (typeInputs.length > 1) {
+        typeInputs[1].value = displayText; // Das zweite text-input ist das Typ-Feld
+    }
+    
+    // 3. Hidden input mit Typ-Wert aktualisieren
+    var typeHidden = mainPersonRow.querySelector('input[name="member_0_type"]');
+    if (typeHidden) {
+        typeHidden.value = typeValue;
+    }
+    
+    // 4. Alter-Feld Sichtbarkeit und Wert synchronisieren
+    var member0AgeCol = mainPersonRow.querySelector('.member-age-col');
+    var member0AgeInput = mainPersonRow.querySelector('.member-age-input');
+    
+    if (typeValue === 'child') {
+        if (member0AgeCol) member0AgeCol.classList.remove('d-none');
+        if (member0AgeInput) {
+            member0AgeInput.required = true;
+            member0AgeInput.value = mainPersonAgeInput.value;
+        }
+    } else {
+        if (member0AgeCol) member0AgeCol.classList.add('d-none');
+        if (member0AgeInput) {
+            member0AgeInput.required = false;
+            member0AgeInput.value = '';
+        }
+    }
+    
+    // 5. Hochstuhl Sichtbarkeit und Wert synchronisieren
+    var member0HighchairCol = mainPersonRow.querySelector('.member-highchair-col');
+    var member0HighchairInput = mainPersonRow.querySelector('.member-highchair-input');
+    
+    if (typeValue === 'child') {
+        if (member0HighchairCol) member0HighchairCol.classList.remove('d-none');
+        if (member0HighchairInput) {
+            member0HighchairInput.checked = mainPersonHighchairCheckbox.checked;
+        }
+    } else {
+        if (member0HighchairCol) member0HighchairCol.classList.add('d-none');
+        if (member0HighchairInput) {
+            member0HighchairInput.checked = false;
+        }
+    }
+    
+    updateMenuSections();
+}
+
 
 function handleMemberTypeChange(e) {
     var row = e.target.closest('.member-row');
@@ -880,6 +966,7 @@ function escapeHtml(text) {
 }
 
 // Init
+syncMainPersonToFamily(); // Initiales Sync
 attachMemberListeners();
 updateMenuSections();
 </script>
