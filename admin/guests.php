@@ -105,47 +105,107 @@ $has_guest_order_id = $stmt->fetchColumn() > 0;
 
 // Bestellung oder Einzelperson löschen
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // Szenario 1: Ganze Bestellung löschen
-    if (isset($_POST['delete_order_id'])) {
-        $delete_order_id = trim($_POST['delete_order_id'] ?? '');
-        if ($delete_order_id !== '') {
-            if ($has_order_people) {
-                $stmt = $pdo->prepare("DELETE FROM {$prefix}order_people WHERE order_id = ?");
+    try {
+        // Szenario 1: Ganze Bestellung löschen
+        if (isset($_POST['delete_order_id'])) {
+            $delete_order_id = trim($_POST['delete_order_id'] ?? '');
+            if ($delete_order_id !== '') {
+                if ($has_order_people) {
+                    $stmt = $pdo->prepare("DELETE FROM {$prefix}order_people WHERE order_id = ?");
+                    $stmt->execute([$delete_order_id]);
+                }
+                if ($has_order_guest_data) {
+                    $stmt = $pdo->prepare("DELETE FROM {$prefix}order_guest_data WHERE order_id = ?");
+                    $stmt->execute([$delete_order_id]);
+                }
+                $stmt = $pdo->prepare("DELETE FROM {$prefix}orders WHERE order_id = ?");
                 $stmt->execute([$delete_order_id]);
-            }
-            if ($has_order_guest_data) {
-                $stmt = $pdo->prepare("DELETE FROM {$prefix}order_guest_data WHERE order_id = ?");
+                $stmt = $pdo->prepare("DELETE FROM {$prefix}order_sessions WHERE order_id = ?");
                 $stmt->execute([$delete_order_id]);
+                
+                // Nach erfolgreichem Löschen Redirect
+                header("Location: " . $_SERVER['PHP_SELF'] . "?project=" . $project_id);
+                exit;
             }
-            $stmt = $pdo->prepare("DELETE FROM {$prefix}orders WHERE order_id = ?");
-            $stmt->execute([$delete_order_id]);
-            $stmt = $pdo->prepare("DELETE FROM {$prefix}order_sessions WHERE order_id = ?");
-            $stmt->execute([$delete_order_id]);
         }
-    }
-    
-    // Szenario 2: Einzelne Person aus Bestellung löschen
-    if (isset($_POST['delete_person_order_id']) && isset($_POST['delete_person_index'])) {
-        $person_order_id = trim($_POST['delete_person_order_id'] ?? '');
-        $person_index = (int)$_POST['delete_person_index'];
         
-        if ($person_order_id !== '' && $person_index >= 0) {
-            // Lösche alle Menüauswahlen dieser Person
-            $stmt = $pdo->prepare("DELETE FROM {$prefix}orders WHERE order_id = ? AND person_index = ?");
-            $stmt->execute([$person_order_id, $person_index]);
+        // Szenario 2: Einzelne Person aus Bestellung löschen
+        if (isset($_POST['delete_person_order_id']) && isset($_POST['delete_person_index'])) {
+            $person_order_id = trim($_POST['delete_person_order_id'] ?? '');
+            $person_index = (int)$_POST['delete_person_index'];
             
-            // Lösche Person aus order_guest_data
-            if ($has_order_guest_data) {
-                $stmt = $pdo->prepare("DELETE FROM {$prefix}order_guest_data WHERE order_id = ? AND person_index = ?");
-                $stmt->execute([$person_order_id, $person_index]);
-            }
-            
-            // Lösche Person aus order_people (Legacy)
-            if ($has_order_people) {
-                $stmt = $pdo->prepare("DELETE FROM {$prefix}order_people WHERE order_id = ? AND person_index = ?");
-                $stmt->execute([$person_order_id, $person_index]);
+            if ($person_order_id !== '' && $person_index >= 0) {
+                try {
+                    // WICHTIG: orders.person_id speichert den person_index!
+                    // Lösche Menüauswahlen dieser Person mit person_id
+                    $stmt = $pdo->prepare("DELETE FROM {$prefix}orders WHERE order_id = ? AND person_id = ?");
+                    $stmt->execute([$person_order_id, $person_index]);
+                    
+                    // WENN Haupt-Person (person_index = 0): Lösche KOMPLETTE BESTELLUNG
+                    if ($person_index === 0) {
+                        // Lösche order_guest_data
+                        if ($has_order_guest_data) {
+                            $stmt = $pdo->prepare("DELETE FROM {$prefix}order_guest_data WHERE order_id = ?");
+                            $stmt->execute([$person_order_id]);
+                        }
+                        
+                        // Lösche order_people
+                        if ($has_order_people) {
+                            $stmt = $pdo->prepare("DELETE FROM {$prefix}order_people WHERE order_id = ?");
+                            $stmt->execute([$person_order_id]);
+                        }
+                        
+                        // Lösche order_sessions
+                        $stmt = $pdo->prepare("DELETE FROM {$prefix}order_sessions WHERE order_id = ?");
+                        $stmt->execute([$person_order_id]);
+                        
+                        // Finde und lösche guest + alle family_members
+                        $stmt = $pdo->prepare("SELECT id FROM {$prefix}guests WHERE project_id = ? AND order_id = ? LIMIT 1");
+                        $stmt->execute([$project_id, $person_order_id]);
+                        $guest = $stmt->fetch();
+                        if ($guest) {
+                            $stmt = $pdo->prepare("DELETE FROM {$prefix}family_members WHERE guest_id = ?");
+                            $stmt->execute([$guest['id']]);
+                            
+                            $stmt = $pdo->prepare("DELETE FROM {$prefix}guests WHERE id = ?");
+                            $stmt->execute([$guest['id']]);
+                        }
+                    } else {
+                        // FAMILIENMITGLIED (person_index > 0): Lösche NUR diese Person
+                        // Lösche aus order_people
+                        if ($has_order_people) {
+                            $stmt = $pdo->prepare("DELETE FROM {$prefix}order_people WHERE order_id = ? AND person_index = ?");
+                            $stmt->execute([$person_order_id, $person_index]);
+                        }
+                        
+                        // Finde guest und lösche das Familienmitglied MIT PASSENDEM INDEX
+                        $stmt = $pdo->prepare("SELECT id FROM {$prefix}guests WHERE project_id = ? AND order_id = ? LIMIT 1");
+                        $stmt->execute([$project_id, $person_order_id]);
+                        $guest = $stmt->fetch();
+                        if ($guest) {
+                            // Lösche das family_member mit der richtigen Position
+                            $stmt = $pdo->prepare("SELECT id FROM {$prefix}family_members WHERE guest_id = ? ORDER BY id LIMIT 1 OFFSET ?");
+                            $stmt->execute([$guest['id'], $person_index - 1]);
+                            $fam_member = $stmt->fetch();
+                            if ($fam_member) {
+                                $stmt = $pdo->prepare("DELETE FROM {$prefix}family_members WHERE id = ?");
+                                $stmt->execute([$fam_member['id']]);
+                            }
+                        }
+                    }
+                    
+                    // Nach erfolgreichem Löschen Redirect
+                    header("Location: " . $_SERVER['PHP_SELF'] . "?project=" . $project_id);
+                    exit;
+                } catch (Exception $e) {
+                    error_log("Delete person error: " . $e->getMessage());
+                    die("Fehler beim Löschen: " . htmlspecialchars($e->getMessage()));
+                }
             }
         }
+    } catch (Exception $e) {
+        error_log("Delete error: " . $e->getMessage());
+        die("Fehler beim Löschen: " . htmlspecialchars($e->getMessage()));
     }
 }
 
