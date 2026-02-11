@@ -153,8 +153,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $member_highchair = ($member_type === 'child' && isset($_POST["member_{$i}_highchair"])) ? 1 : 0;
             
             if (empty($member_name)) {
-                $errors[] = "Name von Person #{$i} ist erforderlich.";
-                continue;
+                continue; // Überspringe leere Einträge
             }
             
             if ($member_type === 'child') {
@@ -261,7 +260,12 @@ if ($existing_order && isset($existing_order['persons_snapshot']) && !empty($exi
     }
 } elseif ($existing_order && isset($existing_order['family_members']) && !empty($existing_order['family_members'])) {
     // Fallback auf Legacy family_members aus guests Tabelle
+    $main_fullname = trim($form_data['firstname'] . ' ' . $form_data['lastname']);
     foreach ($existing_order['family_members'] as $member) {
+        // Skip Hauptperson (check by name)
+        if (trim($member['name'] ?? '') === $main_fullname) {
+            continue;
+        }
         $form_data['members'][] = [
             'name' => $member['name'] ?? '',
             'type' => $member['member_type'] ?? 'adult',
@@ -462,6 +466,43 @@ if ($existing_order && isset($existing_order['orders'])) {
                         <button type="button" class="btn btn-outline-primary btn-sm" id="addMemberBtn">+ Person hinzufügen</button>
                     </div>
                     <div id="membersContainer">
+                        <!-- Hauptperson als erstes Mitglied -->
+                        <div class="member-row border-bottom pb-2 mb-2" id="mainPersonRow">
+                            <div class="row g-2">
+                                <div class="col-6">
+                                    <label class="form-label fw-bold" style="font-size: 0.9em;">Name</label>
+                                    <input type="text" id="member_0_name" name="member_0_name" class="form-control form-control-sm bg-secondary" 
+                                           placeholder="Name" value="<?php echo htmlspecialchars($form_data['firstname'] . ' ' . $form_data['lastname']); ?>" readonly>
+                                    <small class="text-muted" style="font-size: 0.8em;">Hauptperson (wird automatisch übernommen)</small>
+                                </div>
+                                <div class="col-4">
+                                    <label class="form-label fw-bold" style="font-size: 0.9em;">Typ</label>
+                                    <select name="member_0_type" class="form-select form-select-sm member-type-select" id="member_0_type">
+                                        <option value="adult" <?php echo ($form_data['main_type'] === 'adult') ? 'selected' : ''; ?>>Erwachsener</option>
+                                        <option value="child" <?php echo ($form_data['main_type'] === 'child') ? 'selected' : ''; ?>>Kind (≤12)</option>
+                                    </select>
+                                </div>
+                                <div class="col-2 d-flex align-items-end">
+                                    <button type="button" class="btn btn-outline-danger btn-sm w-100 remove-member-btn" title="Löschen">Löschen</button>
+                                </div>
+                                <div class="col-6 member-age-col <?php echo ($form_data['main_type'] === 'child') ? '' : 'd-none'; ?>">
+                                    <label class="form-label fw-bold" style="font-size: 0.9em;">Alter</label>
+                                    <input type="number" name="member_0_age" class="form-control form-control-sm member-age-input" 
+                                           placeholder="Alter" min="1" max="12" value="<?php echo $form_data['main_age'] ?? ''; ?>">
+                                </div>
+                                <div class="col-6 member-highchair-col <?php echo ($form_data['main_type'] === 'child') ? '' : 'd-none'; ?> d-flex align-items-end">
+                                    <div class="form-check d-flex align-items-center">
+                                        <input class="form-check-input member-highchair-input" type="checkbox" 
+                                               name="member_0_highchair" value="1"
+                                               id="member_0_highchair"
+                                               <?php echo (isset($form_data['main_highchair']) && $form_data['main_highchair']) ? 'checked' : ''; ?>>
+                                        <label class="form-check-label ms-2" for="member_0_highchair" style="font-size: 0.9em; margin-bottom: 0;">
+                                            🪑 Hochstuhl
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                         <?php foreach ($form_data['members'] as $idx => $member): ?>
                         <div class="member-row border-bottom pb-2 mb-2">
                             <div class="row g-2">
@@ -613,9 +654,26 @@ document.getElementById('main_person_type').addEventListener('change', function(
 // Hauptperson Alter Validierung
 document.getElementById('main_person_age').addEventListener('input', validateChildAge);
 
-// Namensfelder: Bei Eingabe Menüsektion aktualisieren
-document.querySelector('[name="firstname"]').addEventListener('input', updateMenuSections);
-document.querySelector('[name="lastname"]').addEventListener('input', updateMenuSections);
+// Namensfelder: Bei Eingabe Menüsektion aktualisieren UND Hauptperson-Name synchronisieren
+document.querySelector('[name="firstname"]').addEventListener('input', function() {
+    updateMainPersonName();
+    updateMenuSections();
+});
+document.querySelector('[name="lastname"]').addEventListener('input', function() {
+    updateMainPersonName();
+    updateMenuSections();
+});
+
+// Funktion zum Synchronisieren des Hauptperson-Namens
+function updateMainPersonName() {
+    var firstname = document.querySelector('[name="firstname"]').value.trim();
+    var lastname = document.querySelector('[name="lastname"]').value.trim();
+    var fullName = (firstname + ' ' + lastname).trim();
+    var member0NameInput = document.getElementById('member_0_name');
+    if (member0NameInput) {
+        member0NameInput.value = fullName || 'Ihr Name';
+    }
+}
 
 // Gast-Typ Toggle
 document.querySelectorAll('[name="guest_type"]').forEach(function(radio){
@@ -724,8 +782,8 @@ function handleMemberTypeChange(e) {
 function handleRemoveMember(e) {
     e.target.closest('.member-row').remove();
     memberCounter--;
-    document.getElementById('member_count').value = document.querySelectorAll('.member-row').length;
-    updateMenuSections();
+    var memberRows = Array.from(document.querySelectorAll('.member-row')).filter(row => row.id !== 'mainPersonRow');
+    document.getElementById('member_count').value = memberRows.length;
 }
 
 function updateMenuSections() {
@@ -750,16 +808,22 @@ function updateMenuSections() {
             type: 'guest'
         }];
         
-        // Familie: alle Mitglieder hinzufügen
+        // Familie: alle Mitglieder hinzufügen (außer Hauptperson, die bereits in sections[0] ist)
         if (guestType === 'family') {
-            document.querySelectorAll('.member-row').forEach(function(row, idx){
+            var memberIdx = 1;
+            document.querySelectorAll('.member-row').forEach(function(row){
+                // Überspringe mainPersonRow (member_0), da diese bereits als sections[0] hinzugefügt wurde
+                if (row.id === 'mainPersonRow') {
+                    return;
+                }
                 var nameInput = row.querySelector('[name^="member_"][name$="_name"]');
                 var typeSelect = row.querySelector('[name^="member_"][name$="_type"]');
                 sections.push({
-                    idx: idx + 1,
-                    name: nameInput.value || 'Person ' + (idx + 1),
+                    idx: memberIdx,
+                    name: nameInput.value || 'Person ' + memberIdx,
                     type: typeSelect.value
                 });
+                memberIdx++;
             });
             menuTypeLabel.textContent = '(Mehrfachbestellung)';
         } else {
