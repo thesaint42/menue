@@ -454,44 +454,47 @@ if ($existing_order && isset($existing_order['orders'])) {
             <!-- Familienmitglieder -->
             <div class="card mb-4 <?php echo ($form_data['guest_type'] === 'family') ? '' : 'd-none'; ?>" id="familySection">
                 <div class="card-header">
-                    <h5 class="mb-0">🍽️ Menüauswahl <span class="text-muted" style="font-size: 0.9em;">(Mehrfachbestellung)</span></h5>
-                    <small class="text-muted">Wählen Sie für jede Person ein Gericht pro Gang</small>
+                    <h5 class="mb-0">👥 Familienmitglieder <span class="text-muted" style="font-size: 0.9em;">(Mehrfachbestellung)</span></h5>
+                    <small class="text-muted">Tragen Sie alle Familienmitglieder ein</small>
                 </div>
                 <div class="card-body">
-                    <div class="d-grid mb-3">
-                        <button type="button" class="btn btn-outline-primary" id="addMemberBtn">+ Person hinzufügen</button>
+                    <div class="mb-3">
+                        <button type="button" class="btn btn-outline-primary btn-sm" id="addMemberBtn">+ Person hinzufügen</button>
                     </div>
                     <div id="membersContainer">
                         <?php foreach ($form_data['members'] as $idx => $member): ?>
-                        <div class="member-row border-bottom pb-3 mb-3">
+                        <div class="member-row border-bottom pb-2 mb-2">
                             <div class="row g-2">
-                                <div class="col-12">
-                                    <input type="text" name="member_<?php echo $idx + 1; ?>_name" class="form-control form-control-lg" 
+                                <div class="col-6">
+                                    <label class="form-label fw-bold" style="font-size: 0.9em;">Name</label>
+                                    <input type="text" name="member_<?php echo $idx + 1; ?>_name" class="form-control form-control-sm" 
                                            placeholder="Name" value="<?php echo htmlspecialchars($member['name']); ?>" required>
                                 </div>
-                                <div class="col-8">
-                                    <select name="member_<?php echo $idx + 1; ?>_type" class="form-select form-select-lg member-type-select">
+                                <div class="col-4">
+                                    <label class="form-label fw-bold" style="font-size: 0.9em;">Typ</label>
+                                    <select name="member_<?php echo $idx + 1; ?>_type" class="form-select form-select-sm member-type-select">
                                         <option value="adult" <?php echo ($member['type'] === 'adult') ? 'selected' : ''; ?>>Erwachsener</option>
                                         <option value="child" <?php echo ($member['type'] === 'child') ? 'selected' : ''; ?>>Kind (≤12)</option>
                                     </select>
                                 </div>
-                                <div class="col-4 member-age-col <?php echo ($member['type'] === 'child') ? '' : 'd-none'; ?>">
-                                    <input type="number" name="member_<?php echo $idx + 1; ?>_age" class="form-control form-control-lg member-age-input" 
+                                <div class="col-2 d-flex align-items-end">
+                                    <button type="button" class="btn btn-outline-danger btn-sm w-100 remove-member-btn" title="Löschen">Löschen</button>
+                                </div>
+                                <div class="col-6 member-age-col <?php echo ($member['type'] === 'child') ? '' : 'd-none'; ?>">
+                                    <label class="form-label fw-bold" style="font-size: 0.9em;">Alter</label>
+                                    <input type="number" name="member_<?php echo $idx + 1; ?>_age" class="form-control form-control-sm member-age-input" 
                                            placeholder="Alter" min="1" max="12" value="<?php echo $member['age_group'] ?? ''; ?>">
                                 </div>
-                                <div class="col-12 member-highchair-col <?php echo ($member['type'] === 'child') ? '' : 'd-none'; ?>">
-                                    <div class="form-check">
+                                <div class="col-6 member-highchair-col <?php echo ($member['type'] === 'child') ? '' : 'd-none'; ?> d-flex align-items-end">
+                                    <div class="form-check d-flex align-items-center">
                                         <input class="form-check-input member-highchair-input" type="checkbox" 
                                                name="member_<?php echo $idx + 1; ?>_highchair" value="1"
                                                id="member_<?php echo $idx + 1; ?>_highchair"
                                                <?php echo (isset($member['highchair']) && $member['highchair']) ? 'checked' : ''; ?>>
-                                        <label class="form-check-label" for="member_<?php echo $idx + 1; ?>_highchair">
-                                            🪑 Hochstuhl benötigt
+                                        <label class="form-check-label ms-2" for="member_<?php echo $idx + 1; ?>_highchair" style="font-size: 0.9em; margin-bottom: 0;">
+                                            🪑 Hochstuhl
                                         </label>
                                     </div>
-                                </div>
-                                <div class="col-12 mt-2">
-                                    <button type="button" class="btn btn-outline-danger w-100 remove-member-btn">Entfernen</button>
                                 </div>
                             </div>
                         </div>
@@ -510,29 +513,31 @@ if ($existing_order && isset($existing_order['orders'])) {
                 <div class="card-body" id="menuSelection">
                     <!-- Dynamisch gefüllt via JS oder Server -->
                     <div class="person-menu-section mb-4" data-person-idx="0">
-                        <h6 class="border-bottom pb-2">
+                        <h6 class="border-bottom pb-2 mb-3">
                             <span class="person-name-display text-warning fw-bold"><?php echo htmlspecialchars($form_data['firstname'] . ' ' . $form_data['lastname']); ?></span>
                             <?php if ($form_data['guest_type'] === 'family'): ?>
                                 <small class="text-muted">(Hauptperson)</small>
                             <?php endif; ?>
                         </h6>
-                        <?php foreach ($categories as $cat): ?>
-                        <div class="mb-3">
-                            <label class="form-label fw-bold"><?php echo htmlspecialchars($cat['name']); ?></label>
-                            <select name="person_0_cat_<?php echo $cat['id']; ?>" class="form-select form-select-lg">
-                                <option value="">-- Bitte wählen --</option>
-                                <?php foreach ($cat['dishes'] as $dish): ?>
-                                <option value="<?php echo $dish['id']; ?>" 
-                                        <?php echo (isset($form_data['orders'][0][$cat['id']]) && $form_data['orders'][0][$cat['id']] == $dish['id']) ? 'selected' : ''; ?>>
-                                    <?php echo htmlspecialchars($dish['name']); ?>
-                                    <?php if ($project['show_prices'] && $dish['price']): ?>
-                                        (<?php echo number_format($dish['price'], 2, ',', '.'); ?> €)
-                                    <?php endif; ?>
-                                </option>
-                                <?php endforeach; ?>
-                            </select>
+                        <div class="row g-2">
+                            <?php foreach ($categories as $cat): ?>
+                            <div class="col-md-6 col-lg-4">
+                                <label class="form-label fw-bold" style="font-size: 0.95em;"><?php echo htmlspecialchars($cat['name']); ?></label>
+                                <select name="person_0_cat_<?php echo $cat['id']; ?>" class="form-select form-select-sm">
+                                    <option value="">-- Bitte wählen --</option>
+                                    <?php foreach ($cat['dishes'] as $dish): ?>
+                                    <option value="<?php echo $dish['id']; ?>" 
+                                            <?php echo (isset($form_data['orders'][0][$cat['id']]) && $form_data['orders'][0][$cat['id']] == $dish['id']) ? 'selected' : ''; ?>>
+                                        <?php echo htmlspecialchars($dish['name']); ?>
+                                        <?php if ($project['show_prices'] && $dish['price']): ?>
+                                            (<?php echo number_format($dish['price'], 2, ',', '.'); ?> €)
+                                        <?php endif; ?>
+                                    </option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                            <?php endforeach; ?>
                         </div>
-                        <?php endforeach; ?>
                     </div>
                 </div>
             </div>
@@ -630,31 +635,34 @@ var memberCounter = <?php echo count($form_data['members']); ?>;
 document.getElementById('addMemberBtn').addEventListener('click', function(){
     memberCounter++;
     var html = `
-        <div class="member-row border-bottom pb-3 mb-3">
+        <div class="member-row border-bottom pb-2 mb-2">
             <div class="row g-2">
-                <div class="col-12">
-                    <input type="text" name="member_${memberCounter}_name" class="form-control form-control-lg member-name-input" placeholder="Name" required>
+                <div class="col-6">
+                    <label class="form-label fw-bold" style="font-size: 0.9em;">Name</label>
+                    <input type="text" name="member_${memberCounter}_name" class="form-control form-control-sm member-name-input" placeholder="Name" required>
                 </div>
-                <div class="col-8">
-                    <select name="member_${memberCounter}_type" class="form-select form-select-lg member-type-select">
+                <div class="col-4">
+                    <label class="form-label fw-bold" style="font-size: 0.9em;">Typ</label>
+                    <select name="member_${memberCounter}_type" class="form-select form-select-sm member-type-select">
                         <option value="adult">Erwachsener</option>
                         <option value="child">Kind (≤12)</option>
                     </select>
                 </div>
-                <div class="col-4 member-age-col d-none">
-                    <input type="number" name="member_${memberCounter}_age" class="form-control form-control-lg member-age-input" placeholder="Alter" min="1" max="12">
+                <div class="col-2 d-flex align-items-end">
+                    <button type="button" class="btn btn-outline-danger btn-sm w-100 remove-member-btn" title="Löschen">Löschen</button>
                 </div>
-                <div class="col-12 member-highchair-col d-none">
-                    <div class="form-check">
+                <div class="col-6 member-age-col d-none">
+                    <label class="form-label fw-bold" style="font-size: 0.9em;">Alter</label>
+                    <input type="number" name="member_${memberCounter}_age" class="form-control form-control-sm member-age-input" placeholder="Alter" min="1" max="12">
+                </div>
+                <div class="col-6 member-highchair-col d-none d-flex align-items-end">
+                    <div class="form-check d-flex align-items-center">
                         <input class="form-check-input member-highchair-input" type="checkbox" 
                                name="member_${memberCounter}_highchair" value="1" id="member_${memberCounter}_highchair">
-                        <label class="form-check-label" for="member_${memberCounter}_highchair">
-                            🪑 Hochstuhl benötigt
+                        <label class="form-check-label ms-2" for="member_${memberCounter}_highchair" style="font-size: 0.9em; margin-bottom: 0;">
+                            🪑 Hochstuhl
                         </label>
                     </div>
-                </div>
-                <div class="col-12 mt-2">
-                    <button type="button" class="btn btn-outline-danger w-100 remove-member-btn">Entfernen</button>
                 </div>
             </div>
         </div>
@@ -771,17 +779,18 @@ function updateMenuSections() {
         sections.forEach(function(person){
             var sectionHtml = `
                 <div class="person-menu-section mb-4" data-person-idx="${person.idx}">
-                    <h6 class="border-bottom pb-2">
+                    <h6 class="border-bottom pb-2 mb-3">
                         <span class="person-name-display text-warning fw-bold">${escapeHtml(person.name)}</span>
                         ${person.idx === 0 && guestType === 'family' ? '<small class="text-muted">(Hauptperson)</small>' : ''}
                         ${person.type === 'child' ? '<small class="badge bg-info">Kind</small>' : ''}
                     </h6>
+                    <div class="row g-2">
             `;
             
             categoriesData.forEach(function(cat){
-                sectionHtml += `<div class="mb-3">
-                    <label class="form-label fw-bold">${escapeHtml(cat.name)}</label>
-                    <select name="person_${person.idx}_cat_${cat.id}" class="form-select form-select-lg">
+                sectionHtml += `<div class="col-md-6 col-lg-4">
+                    <label class="form-label fw-bold" style="font-size: 0.95em;">${escapeHtml(cat.name)}</label>
+                    <select name="person_${person.idx}_cat_${cat.id}" class="form-select form-select-sm">
                         <option value="">-- Bitte wählen --</option>`;
                 
                 cat.dishes.forEach(function(dish){
@@ -793,7 +802,7 @@ function updateMenuSections() {
                 sectionHtml += `</select></div>`;
             });
             
-            sectionHtml += `</div>`;
+            sectionHtml += `</div></div>`;
             menuSelection.insertAdjacentHTML('beforeend', sectionHtml);
         });
     } catch (e) {
