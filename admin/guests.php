@@ -103,16 +103,11 @@ $stmt = $pdo->prepare("SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TAB
 $stmt->execute(["{$prefix}guests"]);
 $has_guest_order_id = $stmt->fetchColumn() > 0;
 
-// Gast löschen (inkl. Bestellung)
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_guest_id'])) {
-    $delete_guest_id = (int)$_POST['delete_guest_id'];
-    $delete_order_id = trim($_POST['delete_order_id'] ?? '');
-
-    if ($delete_guest_id > 0) {
-        $stmt = $pdo->prepare("SELECT * FROM {$prefix}guests WHERE id = ? AND project_id = ? LIMIT 1");
-        $stmt->execute([$delete_guest_id, $project_id]);
-        $guest_row = $stmt->fetch();
-
+// Bestellung oder Einzelperson löschen
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // Szenario 1: Ganze Bestellung löschen
+    if (isset($_POST['delete_order_id'])) {
+        $delete_order_id = trim($_POST['delete_order_id'] ?? '');
         if ($delete_order_id !== '') {
             if ($has_order_people) {
                 $stmt = $pdo->prepare("DELETE FROM {$prefix}order_people WHERE order_id = ?");
@@ -126,46 +121,97 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_guest_id'])) {
             $stmt->execute([$delete_order_id]);
             $stmt = $pdo->prepare("DELETE FROM {$prefix}order_sessions WHERE order_id = ?");
             $stmt->execute([$delete_order_id]);
-        } elseif ($guest_row) {
-            // Legacy: alle Bestellungen dieses Gasts löschen
-            $stmt = $pdo->prepare("SELECT order_id FROM {$prefix}order_sessions WHERE project_id = ? AND email = ?");
-            $stmt->execute([$project_id, $guest_row['email']]);
-            $order_ids = $stmt->fetchAll(PDO::FETCH_COLUMN);
-            foreach ($order_ids as $oid) {
-                if ($has_order_people) {
-                    $stmt = $pdo->prepare("DELETE FROM {$prefix}order_people WHERE order_id = ?");
-                    $stmt->execute([$oid]);
-                }
-                if ($has_order_guest_data) {
-                    $stmt = $pdo->prepare("DELETE FROM {$prefix}order_guest_data WHERE order_id = ?");
-                    $stmt->execute([$oid]);
-                }
-                $stmt = $pdo->prepare("DELETE FROM {$prefix}orders WHERE order_id = ?");
-                $stmt->execute([$oid]);
-                $stmt = $pdo->prepare("DELETE FROM {$prefix}order_sessions WHERE order_id = ?");
-                $stmt->execute([$oid]);
+        }
+    }
+    
+    // Szenario 2: Einzelne Person aus Bestellung löschen
+    if (isset($_POST['delete_person_order_id']) && isset($_POST['delete_person_index'])) {
+        $person_order_id = trim($_POST['delete_person_order_id'] ?? '');
+        $person_index = (int)$_POST['delete_person_index'];
+        
+        if ($person_order_id !== '' && $person_index >= 0) {
+            // Lösche alle Menüauswahlen dieser Person
+            $stmt = $pdo->prepare("DELETE FROM {$prefix}orders WHERE order_id = ? AND person_index = ?");
+            $stmt->execute([$person_order_id, $person_index]);
+            
+            // Lösche Person aus order_guest_data
+            if ($has_order_guest_data) {
+                $stmt = $pdo->prepare("DELETE FROM {$prefix}order_guest_data WHERE order_id = ? AND person_index = ?");
+                $stmt->execute([$person_order_id, $person_index]);
+            }
+            
+            // Lösche Person aus order_people (Legacy)
+            if ($has_order_people) {
+                $stmt = $pdo->prepare("DELETE FROM {$prefix}order_people WHERE order_id = ? AND person_index = ?");
+                $stmt->execute([$person_order_id, $person_index]);
             }
         }
-
-        $stmt = $pdo->prepare("DELETE FROM {$prefix}family_members WHERE guest_id = ?");
-        $stmt->execute([$delete_guest_id]);
-        $stmt = $pdo->prepare("DELETE FROM {$prefix}guests WHERE id = ?");
-        $stmt->execute([$delete_guest_id]);
     }
 }
 
-// Gäste laden (Orders via order_sessions -> orders)
-$order_id_select = $has_guest_order_id ? 'g.order_id' : 'NULL';
-$stmt = $pdo->prepare("SELECT g.*, p.name as project_name,
-                       COALESCE({$order_id_select}, MAX(os.order_id)) as order_id_display,
-                       COUNT(DISTINCT os.order_id) as order_count
-                       FROM {$prefix}guests g
-                       JOIN {$prefix}projects p ON p.id = g.project_id
-                       LEFT JOIN {$prefix}order_sessions os ON g.email = os.email AND os.project_id = g.project_id
-                       LEFT JOIN {$prefix}orders o ON os.order_id = o.order_id
-                       WHERE g.project_id = ? GROUP BY g.id ORDER BY g.created_at DESC");
+// Bestellungen laden (gruppiert nach order_id)
+$stmt = $pdo->prepare("SELECT DISTINCT os.order_id, os.created_at, os.email
+                       FROM {$prefix}order_sessions os
+                       WHERE os.project_id = ?
+                       ORDER BY os.created_at DESC");
 $stmt->execute([$project_id]);
-$guests = $stmt->fetchAll();
+$orders_list = $stmt->fetchAll();
+
+// Strukturiere Bestellungen mit Personen
+$orders_with_people = [];
+foreach ($orders_list as $order_row) {
+    $order_id = $order_row['order_id'];
+    
+    // Zähle Menüauswahlen (Gerichte) dieser Bestellung
+    $stmt = $pdo->prepare("SELECT COUNT(*) as dish_count FROM {$prefix}orders WHERE order_id = ?");
+    $stmt->execute([$order_id]);
+    $dish_count = (int)$stmt->fetchColumn();
+    
+    // Lade alle Personen dieser Bestellung
+    $people = [];
+    
+    if ($has_order_people) {
+        $stmt = $pdo->prepare("SELECT * FROM {$prefix}order_people WHERE order_id = ? ORDER BY person_index");
+        $stmt->execute([$order_id]);
+        $people = $stmt->fetchAll();
+    }
+    
+    // Fallback: Versuche aus order_guest_data + legacy guests zu laden
+    if (empty($people) && $has_order_guest_data) {
+        // Lade Haupt-Gast aus order_guest_data
+        $stmt = $pdo->prepare("SELECT * FROM {$prefix}order_guest_data WHERE order_id = ? LIMIT 1");
+        $stmt->execute([$order_id]);
+        $guest_data = $stmt->fetch();
+        
+        if ($guest_data) {
+            // Nutzer das Haupt-Gast als person_index 0
+            $people[] = [
+                'person_index' => 0,
+                'name' => ($guest_data['firstname'] ?? '') . ' ' . ($guest_data['lastname'] ?? ''),
+                'email' => $guest_data['email'] ?? '',
+                'person_type' => $guest_data['person_type'] ?? 'adult',
+                'child_age' => $guest_data['child_age'] ?? null,
+                'highchair_needed' => $guest_data['highchair_needed'] ?? 0
+            ];
+        }
+    }
+    
+    $orders_with_people[] = [
+        'order_id' => $order_id,
+        'created_at' => $order_row['created_at'],
+        'email' => $order_row['email'],
+        'dish_count' => $dish_count,
+        'people' => $people,
+        'highchair_count' => count(array_filter($people, fn($p) => isset($p['highchair_needed']) && $p['highchair_needed']))
+    ];
+}
+
+// DEBUG auf Seite anzeigen
+$debug_info = "Project: $project_id | Found: " . count($orders_list) . " orders | Loaded: " . count($orders_with_people) . " with people";
+if (!empty($orders_with_people)) {
+    $first_order = $orders_with_people[0];
+    $debug_info .= " | First: ID=" . $first_order['order_id'] . ", dishes=" . $first_order['dish_count'] . ", people=" . count($first_order['people']);
+}
 
 // Projekte für Dropdown
 $projects = $pdo->query("SELECT * FROM {$prefix}projects WHERE is_active = 1 ORDER BY name")->fetchAll();
@@ -207,58 +253,88 @@ $projects = $pdo->query("SELECT * FROM {$prefix}projects WHERE is_active = 1 ORD
     <!-- GÄSTE TABELLE -->
     <div class="card border-0 shadow">
         <div class="card-header bg-success text-white py-3">
-            <h5 class="mb-0"><?php echo htmlspecialchars($project['name']); ?> - <?php echo count($guests); ?> Gäste</h5>
+            <h5 class="mb-0"><?php echo htmlspecialchars($project['name']); ?> - <?php echo count($orders_with_people); ?> Bestellung(en)</h5>
         </div>
         <div class="table-responsive">
             <table class="table table-hover mb-0">
                 <thead class="table-dark">
                     <tr>
-                        <th>Projekt</th>
-                        <th>Bestell-Nr.</th>
+                        <th colspan="2">Bestell-Nr. / Person</th>
                         <th>Name</th>
                         <th>Email</th>
-                        <th>Tel.</th>
                         <th>Typ</th>
                         <th>Alter</th>
-                        <th>Bestellungen</th>
+                        <th class="text-center">Bestellung</th>
                         <th>Aktionen</th>
                     </tr>
                 </thead>
                 <tbody>
-                    <?php if (empty($guests)): ?>
-                        <tr><td colspan="9" class="text-center text-muted py-4">Noch keine Gäste angemeldet.</td></tr>
+                    <?php if (empty($orders_with_people)): ?>
+                        <tr><td colspan="8" class="text-center text-muted py-4">Noch keine Bestellungen vorhanden.</td></tr>
                     <?php else: ?>
-                        <?php foreach ($guests as $g): ?>
-                            <tr>
-                                <td><?php echo htmlspecialchars($g['project_name'] ?? '–'); ?></td>
-                                <td><?php echo htmlspecialchars($g['order_id_display'] ?? '–'); ?></td>
-                                <td>
-                                    <strong><?php echo htmlspecialchars($g['firstname'] . ' ' . $g['lastname']); ?></strong>
+                        <?php foreach ($orders_with_people as $order_data): ?>
+                            <!-- BESTELLUNGS-HAUPTZEILE -->
+                            <tr class="order-header" style="background-color: #3d3d3d; font-weight: bold;">
+                                <td colspan="2">
+                                    📦 Bestellung #<?php echo htmlspecialchars($order_data['order_id']); ?>
+                                    <small class="text-muted ms-2"><?php echo date('d.m.Y H:i', strtotime($order_data['created_at'])); ?></small>
                                 </td>
-                                <td><?php echo htmlspecialchars($g['email']); ?></td>
-                                <td><?php echo htmlspecialchars($g['phone'] ?? '–'); ?></td>
+                                <td></td>
+                                <td><?php echo htmlspecialchars($order_data['email']); ?></td>
                                 <td>
-                                    <?php echo $g['guest_type'] === 'family' ? 'Familie' : 'Einzelperson'; ?>
-                                    <?php if ($g['guest_type'] === 'family'): ?>
-                                        <small class="text-muted">(<?php echo $g['family_size']; ?> Pers.)</small>
+                                    <?php if ($order_data['highchair_count'] > 0): ?>
+                                        <?php echo $order_data['highchair_count']; ?> x 🪑
                                     <?php endif; ?>
                                 </td>
-                                <td>
-                                    <?php 
-                                        $ageGroup = $g['person_type'] ?? 'adult';
-                                        $childAge = $g['child_age'] ?? null;
-                                        echo $ageGroup === 'child' && $childAge ? 'Kind ' . $childAge . 'J.' : 'Erwachsen';
-                                    ?>
+                                <td></td>
+                                <td class="text-center fw-bold" style="background-color: #4d4d4d;">
+                                    <?php echo count($order_data['people']); ?>
                                 </td>
-                                <td><?php echo $g['order_count']; ?></td>
                                 <td>
-                                    <form method="post" onsubmit="return confirm('Gast und zugehörige Bestellung wirklich löschen?');">
-                                        <input type="hidden" name="delete_guest_id" value="<?php echo (int)$g['id']; ?>">
-                                        <input type="hidden" name="delete_order_id" value="<?php echo htmlspecialchars($g['order_id_display'] ?? ''); ?>">
-                                        <button type="submit" class="btn btn-sm btn-danger">Löschen</button>
+                                    <form method="post" style="display: inline;" onsubmit="return confirm('Bestellung und alle Personen/Gerichte wirklich löschen?');">
+                                        <input type="hidden" name="delete_order_id" value="<?php echo htmlspecialchars($order_data['order_id']); ?>">
+                                        <button type="submit" class="btn btn-sm btn-danger">Alles löschen</button>
                                     </form>
                                 </td>
                             </tr>
+                            
+                            <!-- PERSONEN-UNTERZEILEN -->
+                            <?php foreach ($order_data['people'] as $person): ?>
+                                <tr class="order-person" style="padding-left: 2em;">
+                                    <td style="width: 1%; color: #888;">└─</td>
+                                    <td style="padding-left: 1em;">
+                                        Person <?php echo ($person['person_index'] + 1); ?>
+                                    </td>
+                                    <td><?php echo htmlspecialchars($person['name'] ?? 'N/A'); ?></td>
+                                    <td><?php echo htmlspecialchars($person['email'] ?? '–'); ?></td>
+                                    <td>
+                                        <?php 
+                                            $type = strtolower($person['person_type'] ?? 'adult');
+                                            echo $type === 'child' ? 'Kind' : 'Erwachsen';
+                                            if ($type === 'child' && isset($person['highchair_needed']) && $person['highchair_needed']) {
+                                                echo ' 🪑';
+                                            }
+                                        ?>
+                                    </td>
+                                    <td>
+                                        <?php 
+                                            if (strtolower($person['person_type'] ?? 'adult') === 'child') {
+                                                echo htmlspecialchars($person['child_age'] ?? '–');
+                                            } else {
+                                                echo '–';
+                                            }
+                                        ?>
+                                    </td>
+                                    <td class="text-center">1</td>
+                                    <td>
+                                        <form method="post" style="display: inline;" onsubmit="return confirm('Person und zugehörige Gerichte löschen?');">
+                                            <input type="hidden" name="delete_person_order_id" value="<?php echo htmlspecialchars($order_data['order_id']); ?>">
+                                            <input type="hidden" name="delete_person_index" value="<?php echo (int)$person['person_index']; ?>">
+                                            <button type="submit" class="btn btn-sm btn-warning">Löschen</button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
                         <?php endforeach; ?>
                     <?php endif; ?>
                 </tbody>
