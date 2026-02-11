@@ -110,18 +110,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (isset($_POST['delete_order_id'])) {
             $delete_order_id = trim($_POST['delete_order_id'] ?? '');
             if ($delete_order_id !== '') {
+                // Lösche Menüauswahlen (orders)
+                $stmt = $pdo->prepare("DELETE FROM {$prefix}orders WHERE order_id = ?");
+                $stmt->execute([$delete_order_id]);
+                
+                // Lösche order_people
                 if ($has_order_people) {
                     $stmt = $pdo->prepare("DELETE FROM {$prefix}order_people WHERE order_id = ?");
                     $stmt->execute([$delete_order_id]);
                 }
+                
+                // Lösche order_guest_data
                 if ($has_order_guest_data) {
                     $stmt = $pdo->prepare("DELETE FROM {$prefix}order_guest_data WHERE order_id = ?");
                     $stmt->execute([$delete_order_id]);
                 }
-                $stmt = $pdo->prepare("DELETE FROM {$prefix}orders WHERE order_id = ?");
-                $stmt->execute([$delete_order_id]);
+                
+                // Lösche order_sessions
                 $stmt = $pdo->prepare("DELETE FROM {$prefix}order_sessions WHERE order_id = ?");
                 $stmt->execute([$delete_order_id]);
+                
+                // Finde und lösche guest + alle family_members
+                $stmt = $pdo->prepare("SELECT id FROM {$prefix}guests WHERE project_id = ? AND order_id = ? LIMIT 1");
+                $stmt->execute([$project_id, $delete_order_id]);
+                $guest = $stmt->fetch();
+                if ($guest) {
+                    // Lösche alle family_members
+                    $stmt = $pdo->prepare("DELETE FROM {$prefix}family_members WHERE guest_id = ?");
+                    $stmt->execute([$guest['id']]);
+                    
+                    // Lösche den Gast selbst
+                    $stmt = $pdo->prepare("DELETE FROM {$prefix}guests WHERE id = ?");
+                    $stmt->execute([$guest['id']]);
+                }
                 
                 // Nach erfolgreichem Löschen Redirect
                 header("Location: " . $_SERVER['PHP_SELF'] . "?project=" . $project_id);
