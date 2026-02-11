@@ -13,8 +13,10 @@ $project_id = isset($_GET['project']) ? (int)$_GET['project'] : null;
 $message = "";
 $messageType = "info";
 
+// Projekte IMMER laden für Dropdown
+$projects = $pdo->query("SELECT * FROM {$prefix}projects WHERE is_active = 1 ORDER BY name")->fetchAll();
+
 if (!$project_id) {
-    $projects = $pdo->query("SELECT * FROM {$prefix}projects WHERE is_active = 1 ORDER BY name")->fetchAll();
     if (empty($projects)) {
         // Saubere Fehlerseite anzeigen: kein Projekt angelegt
         ?>
@@ -48,31 +50,32 @@ if (!$project_id) {
         <?php
         exit;
     }
-    $project_id = $projects[0]['id'];
 }
 
-// Projekt laden
-$stmt = $pdo->prepare("SELECT * FROM {$prefix}projects WHERE id = ?");
-$stmt->execute([$project_id]);
-$project = $stmt->fetch();
+// Projekt laden - nur wenn project_id gesetzt ist
+$project = null;
+if ($project_id) {
+    $stmt = $pdo->prepare("SELECT * FROM {$prefix}projects WHERE id = ?");
+    $stmt->execute([$project_id]);
+    $project = $stmt->fetch();
 
-if (!$project) {
-    // Projekt nicht gefunden – saubere Fehlerseite
-    ?>
-    <!DOCTYPE html>
-    <html lang="de" data-bs-theme="dark">
-    <head>
-        <meta charset="UTF-8">
-        <title>Projekt nicht gefunden - EMOS</title>
-        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-        <link href="../assets/css/style.css" rel="stylesheet">
-    </head>
-    <body>
-    <?php include '../nav/top_nav.php'; ?>
-    <div class="container py-5">
-        <div class="row justify-content-center">
-            <div class="col-12 col-md-8">
-                <div class="card border-0 shadow">
+    if (!$project) {
+        // Projekt nicht gefunden – saubere Fehlerseite
+        ?>
+        <!DOCTYPE html>
+        <html lang="de" data-bs-theme="dark">
+        <head>
+            <meta charset="UTF-8">
+            <title>Projekt nicht gefunden - EMOS</title>
+            <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+            <link href="../assets/css/style.css" rel="stylesheet">
+        </head>
+        <body>
+        <?php include '../nav/top_nav.php'; ?>
+        <div class="container py-5">
+            <div class="row justify-content-center">
+                <div class="col-12 col-md-8">
+                    <div class="card border-0 shadow">
                     <div class="card-body text-center py-5">
                         <h3 class="mb-3">Projekt nicht gefunden</h3>
                         <p class="text-muted">Das angeforderte Projekt existiert nicht oder wurde gelöscht.</p>
@@ -81,36 +84,38 @@ if (!$project) {
                 </div>
             </div>
         </div>
-    </div>
-    <?php include '../nav/footer.php'; ?>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    </body>
-    </html>
-    <?php
-    exit;
+        <?php include '../nav/footer.php'; ?>
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+        </body>
+        </html>
+        <?php
+        exit;
+    }
 }
 
-// Tabellenverfügbarkeit für Snapshot prüfen
-$stmt = $pdo->prepare("SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?");
-$stmt->execute(["{$prefix}order_guest_data"]);
-$has_order_guest_data = $stmt->fetchColumn() > 0;
+// Weitere Verarbeitung nur wenn project_id gesetzt ist
+if ($project_id) {
+    // Tabellenverfügbarkeit für Snapshot prüfen
+    $stmt = $pdo->prepare("SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?");
+    $stmt->execute(["{$prefix}order_guest_data"]);
+    $has_order_guest_data = $stmt->fetchColumn() > 0;
 
-$stmt = $pdo->prepare("SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?");
-$stmt->execute(["{$prefix}order_people"]);
-$has_order_people = $stmt->fetchColumn() > 0;
+    $stmt = $pdo->prepare("SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?");
+    $stmt->execute(["{$prefix}order_people"]);
+    $has_order_people = $stmt->fetchColumn() > 0;
 
-$stmt = $pdo->prepare("SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = 'order_id'");
-$stmt->execute(["{$prefix}guests"]);
-$has_guest_order_id = $stmt->fetchColumn() > 0;
+    $stmt = $pdo->prepare("SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = 'order_id'");
+    $stmt->execute(["{$prefix}guests"]);
+    $has_guest_order_id = $stmt->fetchColumn() > 0;
 
-// Bestellung oder Einzelperson löschen
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    try {
-        // Szenario 1: Ganze Bestellung löschen
-        if (isset($_POST['delete_order_id'])) {
-            $delete_order_id = trim($_POST['delete_order_id'] ?? '');
-            if ($delete_order_id !== '') {
-                // Lösche Menüauswahlen (orders)
+    // Bestellung oder Einzelperson löschen
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        try {
+            // Szenario 1: Ganze Bestellung löschen
+            if (isset($_POST['delete_order_id'])) {
+                $delete_order_id = trim($_POST['delete_order_id'] ?? '');
+                if ($delete_order_id !== '') {
+                    // Lösche Menüauswahlen (orders)
                 $stmt = $pdo->prepare("DELETE FROM {$prefix}orders WHERE order_id = ?");
                 $stmt->execute([$delete_order_id]);
                 
@@ -230,72 +235,74 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-// Bestellungen laden (gruppiert nach order_id)
-$stmt = $pdo->prepare("SELECT DISTINCT os.order_id, os.created_at, os.email
-                       FROM {$prefix}order_sessions os
+    // Bestellungen laden (gruppiert nach order_id)
+    $stmt = $pdo->prepare("SELECT DISTINCT os.order_id, os.created_at, os.email
+                           FROM {$prefix}order_sessions os
                        WHERE os.project_id = ?
                        ORDER BY os.created_at DESC");
-$stmt->execute([$project_id]);
-$orders_list = $stmt->fetchAll();
+    $stmt->execute([$project_id]);
+    $orders_list = $stmt->fetchAll();
 
-// Strukturiere Bestellungen mit Personen
-$orders_with_people = [];
-foreach ($orders_list as $order_row) {
-    $order_id = $order_row['order_id'];
-    
-    // Zähle Menüauswahlen (Gerichte) dieser Bestellung
-    $stmt = $pdo->prepare("SELECT COUNT(*) as dish_count FROM {$prefix}orders WHERE order_id = ?");
-    $stmt->execute([$order_id]);
-    $dish_count = (int)$stmt->fetchColumn();
-    
-    // Lade alle Personen dieser Bestellung
-    $people = [];
-    
-    if ($has_order_people) {
-        $stmt = $pdo->prepare("SELECT * FROM {$prefix}order_people WHERE order_id = ? ORDER BY person_index");
-        $stmt->execute([$order_id]);
-        $people = $stmt->fetchAll();
-    }
-    
-    // Fallback: Versuche aus order_guest_data + legacy guests zu laden
-    if (empty($people) && $has_order_guest_data) {
-        // Lade Haupt-Gast aus order_guest_data
-        $stmt = $pdo->prepare("SELECT * FROM {$prefix}order_guest_data WHERE order_id = ? LIMIT 1");
-        $stmt->execute([$order_id]);
-        $guest_data = $stmt->fetch();
+    // Strukturiere Bestellungen mit Personen
+    $orders_with_people = [];
+    foreach ($orders_list as $order_row) {
+        $order_id = $order_row['order_id'];
         
-        if ($guest_data) {
-            // Nutzer das Haupt-Gast als person_index 0
-            $people[] = [
-                'person_index' => 0,
-                'name' => ($guest_data['firstname'] ?? '') . ' ' . ($guest_data['lastname'] ?? ''),
-                'email' => $guest_data['email'] ?? '',
-                'person_type' => $guest_data['person_type'] ?? 'adult',
-                'child_age' => $guest_data['child_age'] ?? null,
-                'highchair_needed' => $guest_data['highchair_needed'] ?? 0
-            ];
+        // Zähle Menüauswahlen (Gerichte) dieser Bestellung
+        $stmt = $pdo->prepare("SELECT COUNT(*) as dish_count FROM {$prefix}orders WHERE order_id = ?");
+        $stmt->execute([$order_id]);
+        $dish_count = (int)$stmt->fetchColumn();
+        
+        // Lade alle Personen dieser Bestellung
+        $people = [];
+        
+        if ($has_order_people) {
+            $stmt = $pdo->prepare("SELECT * FROM {$prefix}order_people WHERE order_id = ? ORDER BY person_index");
+            $stmt->execute([$order_id]);
+            $people = $stmt->fetchAll();
         }
+        
+        // Fallback: Versuche aus order_guest_data + legacy guests zu laden
+        if (empty($people) && $has_order_guest_data) {
+            // Lade Haupt-Gast aus order_guest_data
+            $stmt = $pdo->prepare("SELECT * FROM {$prefix}order_guest_data WHERE order_id = ? LIMIT 1");
+            $stmt->execute([$order_id]);
+            $guest_data = $stmt->fetch();
+            
+            if ($guest_data) {
+                // Nutzer das Haupt-Gast als person_index 0
+                $people[] = [
+                    'person_index' => 0,
+                    'name' => ($guest_data['firstname'] ?? '') . ' ' . ($guest_data['lastname'] ?? ''),
+                    'email' => $guest_data['email'] ?? '',
+                    'person_type' => $guest_data['person_type'] ?? 'adult',
+                    'child_age' => $guest_data['child_age'] ?? null,
+                    'highchair_needed' => $guest_data['highchair_needed'] ?? 0
+                ];
+            }
+        }
+        
+        $orders_with_people[] = [
+            'order_id' => $order_id,
+            'created_at' => $order_row['created_at'],
+            'email' => $order_row['email'],
+            'dish_count' => $dish_count,
+            'people' => $people,
+            'highchair_count' => count(array_filter($people, fn($p) => isset($p['highchair_needed']) && $p['highchair_needed']))
+        ];
     }
-    
-    $orders_with_people[] = [
-        'order_id' => $order_id,
-        'created_at' => $order_row['created_at'],
-        'email' => $order_row['email'],
-        'dish_count' => $dish_count,
-        'people' => $people,
-        'highchair_count' => count(array_filter($people, fn($p) => isset($p['highchair_needed']) && $p['highchair_needed']))
-    ];
-}
 
-// DEBUG auf Seite anzeigen
-$debug_info = "Project: $project_id | Found: " . count($orders_list) . " orders | Loaded: " . count($orders_with_people) . " with people";
-if (!empty($orders_with_people)) {
-    $first_order = $orders_with_people[0];
-    $debug_info .= " | First: ID=" . $first_order['order_id'] . ", dishes=" . $first_order['dish_count'] . ", people=" . count($first_order['people']);
+    // DEBUG auf Seite anzeigen
+    $debug_info = "Project: $project_id | Found: " . count($orders_list) . " orders | Loaded: " . count($orders_with_people) . " with people";
+    if (!empty($orders_with_people)) {
+        $first_order = $orders_with_people[0];
+        $debug_info .= " | First: ID=" . $first_order['order_id'] . ", dishes=" . $first_order['dish_count'] . ", people=" . count($first_order['people']);
+    }
+} else {
+    // Initialisiere $orders_with_people wenn project_id nicht gesetzt ist
+    $orders_with_people = [];
+    $debug_info = "";
 }
-
-// Projekte für Dropdown
-$projects = $pdo->query("SELECT * FROM {$prefix}projects WHERE is_active = 1 ORDER BY name")->fetchAll();
 ?>
 <!DOCTYPE html>
 <html lang="de" data-bs-theme="dark">
@@ -319,9 +326,9 @@ $projects = $pdo->query("SELECT * FROM {$prefix}projects WHERE is_active = 1 ORD
                 <div class="col-md-6">
                     <label class="form-label">Projekt auswählen</label>
                     <select name="project" class="form-select" onchange="this.form.submit()">
-                        <option value="">-- Bitte wählen --</option>
+                        <option value="" <?php echo ($project_id === null) ? 'selected' : ''; ?>>-- Bitte wählen --</option>
                         <?php foreach ($projects as $p): ?>
-                            <option value="<?php echo $p['id']; ?>" <?php echo ($p['id'] == $project_id) ? 'selected' : ''; ?>>
+                            <option value="<?php echo $p['id']; ?>" <?php echo ($project_id !== null && $p['id'] == $project_id) ? 'selected' : ''; ?>>
                                 <?php echo htmlspecialchars($p['name']); ?>
                             </option>
                         <?php endforeach; ?>
@@ -331,7 +338,8 @@ $projects = $pdo->query("SELECT * FROM {$prefix}projects WHERE is_active = 1 ORD
         </div>
     </div>
 
-    <!-- GÄSTE TABELLE -->
+    <!-- GÄSTE TABELLE - Nur wenn Projekt ausgewählt -->
+    <?php if ($project_id): ?>
     <div class="card border-0 shadow">
         <div class="card-header bg-success text-white py-3">
             <h5 class="mb-0"><?php echo htmlspecialchars($project['name']); ?> - <?php echo count($orders_with_people); ?> Bestellung(en)</h5>
@@ -422,6 +430,7 @@ $projects = $pdo->query("SELECT * FROM {$prefix}projects WHERE is_active = 1 ORD
             </table>
         </div>
     </div>
+    <?php endif; ?>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
