@@ -46,7 +46,7 @@
                     <hr class="my-4">
                     
                     <div class="text-center">
-                        <a href="index.php" class="text-muted small">↩️ Zur PIN-Eingabe</a>
+                        <a href="index.php" class="text-muted small">↩️ Andere Projekt-PIN...</a>
                     </div>
                 </div>
             </div>

@@ -17,7 +17,7 @@
                 <div class="card-body p-5 text-center">
                     <div class="mb-4" style="font-size: 4rem;">🍽️</div>
                     <h2 class="card-title mb-4">Event Menue Order System (EMOS)</h2>
-                    <p class="text-muted mb-4">Bitte geben Sie Ihre Zugangs-PIN ein:</p>
+                    <p class="text-muted mb-4">Bitte geben Sie die Projekt-PIN ein:</p>
                     
                     <form method="get" action="index.php">
                         <div class="mb-3">

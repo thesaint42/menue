@@ -784,7 +784,7 @@ function handleRemoveMember(e) {
     memberCounter--;
     var memberRows = Array.from(document.querySelectorAll('.member-row')).filter(row => row.id !== 'mainPersonRow');
     document.getElementById('member_count').value = memberRows.length;
-}
+    updateMenuSections();}
 
 function updateMenuSections() {
     try {
