@@ -70,8 +70,9 @@
                     <div class="mb-3">
                         <label class="form-label">Order-ID</label>
                         <input type="text" name="order_id" class="form-control font-monospace" 
-                               placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" 
-                               pattern="[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}" 
+                               placeholder="12345-67890" 
+                               pattern="\d{5}-\d{5}" 
+                               inputmode="numeric"
                                required>
                         <div class="form-text">Geben Sie die Order-ID ein, die Sie bei der Bestellung erhalten haben.</div>
                     </div>

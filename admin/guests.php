@@ -90,9 +90,79 @@ if (!$project) {
     exit;
 }
 
-// Gäste laden
-$stmt = $pdo->prepare("SELECT g.*, COUNT(o.id) as order_count FROM {$prefix}guests g 
-                       LEFT JOIN {$prefix}orders o ON g.id = o.guest_id 
+// Tabellenverfügbarkeit für Snapshot prüfen
+$stmt = $pdo->prepare("SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?");
+$stmt->execute(["{$prefix}order_guest_data"]);
+$has_order_guest_data = $stmt->fetchColumn() > 0;
+
+$stmt = $pdo->prepare("SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?");
+$stmt->execute(["{$prefix}order_people"]);
+$has_order_people = $stmt->fetchColumn() > 0;
+
+$stmt = $pdo->prepare("SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = 'order_id'");
+$stmt->execute(["{$prefix}guests"]);
+$has_guest_order_id = $stmt->fetchColumn() > 0;
+
+// Gast löschen (inkl. Bestellung)
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_guest_id'])) {
+    $delete_guest_id = (int)$_POST['delete_guest_id'];
+    $delete_order_id = trim($_POST['delete_order_id'] ?? '');
+
+    if ($delete_guest_id > 0) {
+        $stmt = $pdo->prepare("SELECT * FROM {$prefix}guests WHERE id = ? AND project_id = ? LIMIT 1");
+        $stmt->execute([$delete_guest_id, $project_id]);
+        $guest_row = $stmt->fetch();
+
+        if ($delete_order_id !== '') {
+            if ($has_order_people) {
+                $stmt = $pdo->prepare("DELETE FROM {$prefix}order_people WHERE order_id = ?");
+                $stmt->execute([$delete_order_id]);
+            }
+            if ($has_order_guest_data) {
+                $stmt = $pdo->prepare("DELETE FROM {$prefix}order_guest_data WHERE order_id = ?");
+                $stmt->execute([$delete_order_id]);
+            }
+            $stmt = $pdo->prepare("DELETE FROM {$prefix}orders WHERE order_id = ?");
+            $stmt->execute([$delete_order_id]);
+            $stmt = $pdo->prepare("DELETE FROM {$prefix}order_sessions WHERE order_id = ?");
+            $stmt->execute([$delete_order_id]);
+        } elseif ($guest_row) {
+            // Legacy: alle Bestellungen dieses Gasts löschen
+            $stmt = $pdo->prepare("SELECT order_id FROM {$prefix}order_sessions WHERE project_id = ? AND email = ?");
+            $stmt->execute([$project_id, $guest_row['email']]);
+            $order_ids = $stmt->fetchAll(PDO::FETCH_COLUMN);
+            foreach ($order_ids as $oid) {
+                if ($has_order_people) {
+                    $stmt = $pdo->prepare("DELETE FROM {$prefix}order_people WHERE order_id = ?");
+                    $stmt->execute([$oid]);
+                }
+                if ($has_order_guest_data) {
+                    $stmt = $pdo->prepare("DELETE FROM {$prefix}order_guest_data WHERE order_id = ?");
+                    $stmt->execute([$oid]);
+                }
+                $stmt = $pdo->prepare("DELETE FROM {$prefix}orders WHERE order_id = ?");
+                $stmt->execute([$oid]);
+                $stmt = $pdo->prepare("DELETE FROM {$prefix}order_sessions WHERE order_id = ?");
+                $stmt->execute([$oid]);
+            }
+        }
+
+        $stmt = $pdo->prepare("DELETE FROM {$prefix}family_members WHERE guest_id = ?");
+        $stmt->execute([$delete_guest_id]);
+        $stmt = $pdo->prepare("DELETE FROM {$prefix}guests WHERE id = ?");
+        $stmt->execute([$delete_guest_id]);
+    }
+}
+
+// Gäste laden (Orders via order_sessions -> orders)
+$order_id_select = $has_guest_order_id ? 'g.order_id' : 'NULL';
+$stmt = $pdo->prepare("SELECT g.*, p.name as project_name,
+                       COALESCE({$order_id_select}, MAX(os.order_id)) as order_id_display,
+                       COUNT(DISTINCT os.order_id) as order_count
+                       FROM {$prefix}guests g
+                       JOIN {$prefix}projects p ON p.id = g.project_id
+                       LEFT JOIN {$prefix}order_sessions os ON g.email = os.email AND os.project_id = g.project_id
+                       LEFT JOIN {$prefix}orders o ON os.order_id = o.order_id
                        WHERE g.project_id = ? GROUP BY g.id ORDER BY g.created_at DESC");
 $stmt->execute([$project_id]);
 $guests = $stmt->fetchAll();
@@ -143,21 +213,25 @@ $projects = $pdo->query("SELECT * FROM {$prefix}projects WHERE is_active = 1 ORD
             <table class="table table-hover mb-0">
                 <thead class="table-dark">
                     <tr>
+                        <th>Projekt</th>
+                        <th>Bestell-Nr.</th>
                         <th>Name</th>
                         <th>Email</th>
                         <th>Tel.</th>
                         <th>Typ</th>
                         <th>Alter</th>
                         <th>Bestellungen</th>
-                        <th>Status</th>
+                        <th>Aktionen</th>
                     </tr>
                 </thead>
                 <tbody>
                     <?php if (empty($guests)): ?>
-                        <tr><td colspan="7" class="text-center text-muted py-4">Noch keine Gäste angemeldet.</td></tr>
+                        <tr><td colspan="9" class="text-center text-muted py-4">Noch keine Gäste angemeldet.</td></tr>
                     <?php else: ?>
                         <?php foreach ($guests as $g): ?>
                             <tr>
+                                <td><?php echo htmlspecialchars($g['project_name'] ?? '–'); ?></td>
+                                <td><?php echo htmlspecialchars($g['order_id_display'] ?? '–'); ?></td>
                                 <td>
                                     <strong><?php echo htmlspecialchars($g['firstname'] . ' ' . $g['lastname']); ?></strong>
                                 </td>
@@ -170,16 +244,19 @@ $projects = $pdo->query("SELECT * FROM {$prefix}projects WHERE is_active = 1 ORD
                                     <?php endif; ?>
                                 </td>
                                 <td>
-                                    <?php echo $g['age_group'] === 'child' ? 'Kind ' . $g['child_age'] . 'J.' : 'Erwachsen'; ?>
+                                    <?php 
+                                        $ageGroup = $g['person_type'] ?? 'adult';
+                                        $childAge = $g['child_age'] ?? null;
+                                        echo $ageGroup === 'child' && $childAge ? 'Kind ' . $childAge . 'J.' : 'Erwachsen';
+                                    ?>
                                 </td>
                                 <td><?php echo $g['order_count']; ?></td>
                                 <td>
-                                    <span class="badge bg-<?php echo $g['order_status'] === 'confirmed' ? 'success' : 'warning'; ?>">
-                                        <?php 
-                                            $status_map = ['pending' => 'Ausstehend', 'confirmed' => 'Bestätigt', 'cancelled' => 'Storniert'];
-                                            echo $status_map[$g['order_status']] ?? $g['order_status'];
-                                        ?>
-                                    </span>
+                                    <form method="post" onsubmit="return confirm('Gast und zugehörige Bestellung wirklich löschen?');">
+                                        <input type="hidden" name="delete_guest_id" value="<?php echo (int)$g['id']; ?>">
+                                        <input type="hidden" name="delete_order_id" value="<?php echo htmlspecialchars($g['order_id_display'] ?? ''); ?>">
+                                        <button type="submit" class="btn btn-sm btn-danger">Löschen</button>
+                                    </form>
                                 </td>
                             </tr>
                         <?php endforeach; ?>

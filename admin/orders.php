@@ -18,33 +18,169 @@ $projects = $stmt->fetchAll();
 
 // Bestellungen abrufen
 $orders = [];
+$project = null;
 if ($project_id > 0) {
     try {
-        // v3.0 Schema: order_sessions + family_members + orders
-        $sql = "SELECT
-                os.order_id,
-                os.email,
-                os.created_at as order_date,
-                g.firstname,
-                g.lastname,
-                g.phone,
-                g.guest_type,
-                fm.name as person_name,
-                fm.member_type,
-                fm.child_age,
-                fm.highchair_needed,
-                o.person_id,
-                d.name as dish_name,
-                mc.name as category_name,
-                mc.sort_order as category_sort
-            FROM `{$config['database']['prefix']}order_sessions` os
-            JOIN `{$config['database']['prefix']}guests` g ON os.email = g.email AND os.project_id = g.project_id
-            LEFT JOIN `{$config['database']['prefix']}orders` o ON os.order_id = o.order_id
-            LEFT JOIN `{$config['database']['prefix']}family_members` fm ON g.id = fm.guest_id AND o.person_id = fm.id
-            LEFT JOIN `{$config['database']['prefix']}dishes` d ON o.dish_id = d.id
-            LEFT JOIN `{$config['database']['prefix']}menu_categories` mc ON o.category_id = mc.id
-            WHERE os.project_id = ?
-            ORDER BY os.created_at DESC, os.order_id, o.person_id, mc.sort_order";
+        $stmt = $pdo->prepare("SELECT id, name, access_pin FROM `{$config['database']['prefix']}projects` WHERE id = ?");
+        $stmt->execute([$project_id]);
+        $project = $stmt->fetch();
+
+        $prefix = $config['database']['prefix'];
+        $stmt = $pdo->prepare("SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?");
+        $stmt->execute(["{$prefix}order_guest_data"]);
+        $has_order_guest_data = $stmt->fetchColumn() > 0;
+
+        $stmt = $pdo->prepare("SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?");
+        $stmt->execute(["{$prefix}order_people"]);
+        $has_order_people = $stmt->fetchColumn() > 0;
+
+        $stmt = $pdo->prepare("SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = 'order_id'");
+        $stmt->execute(["{$prefix}guests"]);
+        $has_guest_order_id = $stmt->fetchColumn() > 0;
+
+        // POST-Aktionen: Bestellung oder Person löschen
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            if (isset($_POST['delete_order_id'])) {
+                $delete_order_id = trim($_POST['delete_order_id']);
+                if ($delete_order_id !== '') {
+                    $stmt = $pdo->prepare("SELECT email FROM `{$prefix}order_sessions` WHERE order_id = ? AND project_id = ? LIMIT 1");
+                    $stmt->execute([$delete_order_id, $project_id]);
+                    $order_email = $stmt->fetchColumn();
+
+                    if ($has_order_people) {
+                        $stmt = $pdo->prepare("DELETE FROM `{$prefix}order_people` WHERE order_id = ?");
+                        $stmt->execute([$delete_order_id]);
+                    }
+                    if ($has_order_guest_data) {
+                        $stmt = $pdo->prepare("DELETE FROM `{$prefix}order_guest_data` WHERE order_id = ?");
+                        $stmt->execute([$delete_order_id]);
+                    }
+
+                    $stmt = $pdo->prepare("DELETE FROM `{$prefix}orders` WHERE order_id = ?");
+                    $stmt->execute([$delete_order_id]);
+                    $stmt = $pdo->prepare("DELETE FROM `{$prefix}order_sessions` WHERE order_id = ?");
+                    $stmt->execute([$delete_order_id]);
+
+                    if ($order_email) {
+                        $stmt = $pdo->prepare("SELECT COUNT(*) FROM `{$prefix}order_sessions` WHERE project_id = ? AND email = ?");
+                        $stmt->execute([$project_id, $order_email]);
+                        $remaining_orders = (int)$stmt->fetchColumn();
+
+                        if ($remaining_orders === 0) {
+                            $stmt = $pdo->prepare("SELECT id FROM `{$prefix}guests` WHERE project_id = ? AND email = ?");
+                            $stmt->execute([$project_id, $order_email]);
+                            $guest_ids = $stmt->fetchAll(PDO::FETCH_COLUMN);
+
+                            if (!empty($guest_ids)) {
+                                $stmt = $pdo->prepare("DELETE FROM `{$prefix}family_members` WHERE guest_id = ?");
+                                foreach ($guest_ids as $gid) {
+                                    $stmt->execute([$gid]);
+                                }
+                            }
+
+                            $stmt = $pdo->prepare("DELETE FROM `{$prefix}guests` WHERE project_id = ? AND email = ?");
+                            $stmt->execute([$project_id, $order_email]);
+                        }
+                    }
+                }
+            }
+
+            if (isset($_POST['delete_person_order_id'], $_POST['delete_person_index'])) {
+                $delete_order_id = trim($_POST['delete_person_order_id']);
+                $delete_person_index = (int)$_POST['delete_person_index'];
+                if ($delete_order_id !== '') {
+                    $stmt = $pdo->prepare("DELETE FROM `{$prefix}orders` WHERE order_id = ? AND person_id = ?");
+                    $stmt->execute([$delete_order_id, $delete_person_index]);
+                    if ($has_order_people) {
+                        $stmt = $pdo->prepare("DELETE FROM `{$prefix}order_people` WHERE order_id = ? AND person_index = ?");
+                        $stmt->execute([$delete_order_id, $delete_person_index]);
+                    }
+
+                    // Familienmitglied entfernen, wenn keine Bestellungen mehr vorhanden
+                    if ($delete_person_index !== 0) {
+                        $stmt = $pdo->prepare("SELECT COUNT(*) FROM `{$prefix}orders` WHERE order_id = ? AND person_id = ?");
+                        $stmt->execute([$delete_order_id, $delete_person_index]);
+                        $remaining_person_orders = (int)$stmt->fetchColumn();
+
+                        if ($remaining_person_orders === 0) {
+                            if ($has_guest_order_id) {
+                                $stmt = $pdo->prepare("SELECT id FROM `{$prefix}guests` WHERE project_id = ? AND order_id = ? LIMIT 1");
+                                $stmt->execute([$project_id, $delete_order_id]);
+                            } else {
+                                $stmt = $pdo->prepare("SELECT email FROM `{$prefix}order_sessions` WHERE order_id = ? AND project_id = ? LIMIT 1");
+                                $stmt->execute([$delete_order_id, $project_id]);
+                                $email = $stmt->fetchColumn();
+                                $stmt = $pdo->prepare("SELECT id FROM `{$prefix}guests` WHERE project_id = ? AND email = ? LIMIT 1");
+                                $stmt->execute([$project_id, $email]);
+                            }
+                            $guest_row = $stmt->fetch();
+                            if ($guest_row && isset($guest_row['id'])) {
+                                $stmt = $pdo->prepare("DELETE FROM `{$prefix}family_members` WHERE id = ? AND guest_id = ?");
+                                $stmt->execute([$delete_person_index, $guest_row['id']]);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        if ($has_order_guest_data && $has_order_people) {
+            // v3.0 Snapshot: order_sessions + order_guest_data + order_people + orders
+            $sql = "SELECT
+                    os.order_id,
+                    os.email,
+                    os.created_at as order_date,
+                    og.firstname,
+                    og.lastname,
+                    og.phone,
+                    og.guest_type,
+                    op.name as person_name,
+                    op.person_type as member_type,
+                    op.child_age,
+                    op.highchair_needed,
+                    o.person_id,
+                    d.name as dish_name,
+                    mc.name as category_name,
+                    mc.sort_order as category_sort
+                FROM `{$prefix}order_sessions` os
+                LEFT JOIN `{$prefix}order_guest_data` og ON og.order_id = os.order_id
+                LEFT JOIN `{$prefix}orders` o ON os.order_id = o.order_id
+                LEFT JOIN `{$prefix}order_people` op ON op.order_id = os.order_id AND op.person_index = o.person_id
+                LEFT JOIN `{$prefix}dishes` d ON o.dish_id = d.id
+                LEFT JOIN `{$prefix}menu_categories` mc ON o.category_id = mc.id
+                WHERE os.project_id = ?
+                ORDER BY os.created_at DESC, os.order_id, o.person_id, mc.sort_order";
+        } else {
+            // Legacy: guests + family_members + orders
+            $guest_join = $has_guest_order_id
+                ? "g.project_id = os.project_id AND g.order_id = os.order_id"
+                : "g.project_id = os.project_id AND g.email = os.email";
+
+            $sql = "SELECT
+                    os.order_id,
+                    os.email,
+                    os.created_at as order_date,
+                    g.firstname,
+                    g.lastname,
+                    g.phone,
+                    g.guest_type,
+                    fm.name as person_name,
+                    fm.member_type,
+                    fm.child_age,
+                    fm.highchair_needed,
+                    o.person_id,
+                    d.name as dish_name,
+                    mc.name as category_name,
+                    mc.sort_order as category_sort
+                FROM `{$prefix}order_sessions` os
+                LEFT JOIN `{$prefix}guests` g ON {$guest_join}
+                LEFT JOIN `{$prefix}orders` o ON os.order_id = o.order_id
+                LEFT JOIN `{$prefix}family_members` fm ON g.id = fm.guest_id
+                LEFT JOIN `{$prefix}dishes` d ON o.dish_id = d.id
+                LEFT JOIN `{$prefix}menu_categories` mc ON o.category_id = mc.id
+                WHERE os.project_id = ?
+                ORDER BY os.created_at DESC, os.order_id, o.person_id, mc.sort_order";
+        }
         $stmt = $pdo->prepare($sql);
         $stmt->execute([$project_id]);
         $orders = $stmt->fetchAll();
@@ -126,6 +262,7 @@ if ($project_id > 0) {
                         'phone' => $order['phone'],
                         'guest_type' => $order['guest_type'],
                         'order_date' => $order['order_date'],
+                        'order_id' => $order_id,
                         'persons' => []
                     ];
                 }
@@ -138,6 +275,7 @@ if ($project_id > 0) {
                         'type' => $order['member_type'] ?? 'adult',
                         'age' => $order['child_age'] ?? null,
                         'highchair' => $order['highchair_needed'] ?? 0,
+                        'person_index' => $person_id,
                         'dishes' => []
                     ];
                 }
@@ -170,12 +308,20 @@ if ($project_id > 0) {
                             <small class="d-block">Order-ID: <code><?php echo htmlspecialchars($order_id); ?></code></small>
                             <small><?php echo date('d.m.Y H:i', strtotime($order_data['order_date'])); ?></small>
                         </div>
+                        <div class="d-flex gap-2">
+                            <a class="btn btn-sm btn-outline-light" href="../index.php?pin=<?php echo urlencode($project['access_pin']); ?>&action=edit&order_id=<?php echo urlencode($order_id); ?>">Bearbeiten</a>
+                            <form method="post" onsubmit="return confirm('Diese Bestellung wirklich löschen?');">
+                                <input type="hidden" name="delete_order_id" value="<?php echo htmlspecialchars($order_id); ?>">
+                                <button type="submit" class="btn btn-sm btn-danger">Löschen</button>
+                            </form>
+                        </div>
                     </div>
                 </div>
                 <div class="card-body">
                     <?php foreach ($order_data['persons'] as $person): ?>
                     <div class="mb-3 pb-3 border-bottom">
-                        <h6 class="fw-bold">
+                        <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-2">
+                            <h6 class="fw-bold mb-0">
                             👤 <?php echo htmlspecialchars($person['name']); ?>
                             <?php if ($person['type'] === 'child'): ?>
                                 <span class="badge bg-info">Kind (<?php echo $person['age']; ?> Jahre)</span>
@@ -185,7 +331,16 @@ if ($project_id > 0) {
                             <?php else: ?>
                                 <span class="badge bg-secondary">Erwachsener</span>
                             <?php endif; ?>
-                        </h6>
+                            </h6>
+                            <div class="d-flex gap-2">
+                                <a class="btn btn-sm btn-outline-primary" href="../index.php?pin=<?php echo urlencode($project['access_pin']); ?>&action=edit&order_id=<?php echo urlencode($order_id); ?>">Bearbeiten</a>
+                                <form method="post" onsubmit="return confirm('Diese Person und ihre Auswahl wirklich löschen?');">
+                                    <input type="hidden" name="delete_person_order_id" value="<?php echo htmlspecialchars($order_id); ?>">
+                                    <input type="hidden" name="delete_person_index" value="<?php echo (int)$person['person_index']; ?>">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">Löschen</button>
+                                </form>
+                            </div>
+                        </div>
                         <ul class="list-unstyled mb-0 ms-0 ms-md-3">
                             <?php foreach ($person['dishes'] as $dish): ?>
                             <li>

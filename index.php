@@ -243,7 +243,34 @@ $form_data = [
     'members' => []
 ];
 
-if ($existing_order && isset($existing_order['persons'])) {
+// DEBUG
+error_log("DEBUG: existing_order keys = " . json_encode(array_keys($existing_order ?? [])));
+error_log("DEBUG: family_members count = " . count($existing_order['family_members'] ?? []));
+error_log("DEBUG: persons_snapshot count = " . count($existing_order['persons_snapshot'] ?? []));
+
+if ($existing_order && isset($existing_order['persons_snapshot']) && !empty($existing_order['persons_snapshot'])) {
+    // Nutze die Snapshot-Personen
+    foreach ($existing_order['persons_snapshot'] as $person) {
+        if ($person['person_index'] === 0) continue; // Skip Hauptperson
+        $form_data['members'][] = [
+            'name' => $person['name'] ?? '',
+            'type' => $person['person_type'] ?? 'adult',
+            'age_group' => $person['child_age'] ?? null,
+            'highchair' => $person['highchair_needed'] ?? 0
+        ];
+    }
+} elseif ($existing_order && isset($existing_order['family_members']) && !empty($existing_order['family_members'])) {
+    // Fallback auf Legacy family_members aus guests Tabelle
+    foreach ($existing_order['family_members'] as $member) {
+        $form_data['members'][] = [
+            'name' => $member['name'] ?? '',
+            'type' => $member['member_type'] ?? 'adult',
+            'age_group' => $member['child_age'] ?? null,
+            'highchair' => $member['highchair_needed'] ?? 0
+        ];
+    }
+} elseif ($existing_order && isset($existing_order['persons']) && !empty($existing_order['persons'])) {
+    // Fallback auf legacy persons array
     foreach ($existing_order['persons'] as $idx => $person) {
         if ($idx === 0) continue; // Skip Hauptperson
         $form_data['members'][] = [
@@ -269,7 +296,8 @@ if ($existing_order && isset($existing_order['persons'])) {
 $form_data['orders'] = [];
 if ($existing_order && isset($existing_order['orders'])) {
     foreach ($existing_order['orders'] as $order) {
-        $form_data['orders'][$order['person_index']][$order['category_id']] = $order['dish_id'];
+        $person_idx = $order['person_index'] ?? $order['person_id'] ?? 0;
+        $form_data['orders'][$person_idx][$order['category_id']] = $order['dish_id'];
     }
 } elseif (isset($_POST)) {
     foreach ($_POST as $key => $value) {
@@ -693,71 +721,84 @@ function handleRemoveMember(e) {
 }
 
 function updateMenuSections() {
-    var guestType = document.querySelector('[name="guest_type"]:checked').value;
-    var menuSelection = document.getElementById('menuSelection');
-    var menuTypeLabel = document.getElementById('menu-order-type-label');
-    
-    // Hauptperson immer vorhanden
-    var firstname = document.querySelector('[name="firstname"]').value.trim();
-    var lastname = document.querySelector('[name="lastname"]').value.trim();
-    var fullName = (firstname + ' ' + lastname).trim() || 'Ihr Name';
-    
-    var sections = [{
-        idx: 0,
-        name: fullName,
-        type: 'guest'
-    }];
-    
-    // Familie: alle Mitglieder hinzufügen
-    if (guestType === 'family') {
-        document.querySelectorAll('.member-row').forEach(function(row, idx){
-            var nameInput = row.querySelector('[name^="member_"][name$="_name"]');
-            var typeSelect = row.querySelector('[name^="member_"][name$="_type"]');
-            sections.push({
-                idx: idx + 1,
-                name: nameInput.value || 'Person ' + (idx + 1),
-                type: typeSelect.value
+    try {
+        var guestTypeInput = document.querySelector('[name="guest_type"]:checked');
+        if (!guestTypeInput) {
+            console.warn('guest_type radio not found');
+            return;
+        }
+        var guestType = guestTypeInput.value;
+        var menuSelection = document.getElementById('menuSelection');
+        var menuTypeLabel = document.getElementById('menu-order-type-label');
+        
+        // Hauptperson immer vorhanden
+        var firstname = document.querySelector('[name="firstname"]').value.trim();
+        var lastname = document.querySelector('[name="lastname"]').value.trim();
+        var fullName = (firstname + ' ' + lastname).trim() || 'Ihr Name';
+        
+        var sections = [{
+            idx: 0,
+            name: fullName,
+            type: 'guest'
+        }];
+        
+        // Familie: alle Mitglieder hinzufügen
+        if (guestType === 'family') {
+            document.querySelectorAll('.member-row').forEach(function(row, idx){
+                var nameInput = row.querySelector('[name^="member_"][name$="_name"]');
+                var typeSelect = row.querySelector('[name^="member_"][name$="_type"]');
+                sections.push({
+                    idx: idx + 1,
+                    name: nameInput.value || 'Person ' + (idx + 1),
+                    type: typeSelect.value
+                });
             });
+            menuTypeLabel.textContent = '(Mehrfachbestellung)';
+        } else {
+            menuTypeLabel.textContent = '(Einzelbestellung)';
+        }
+        
+        // Menu sections neu generieren
+        var categoriesData = <?php echo json_encode(array_values($categories)); ?>;
+        if (!Array.isArray(categoriesData) || categoriesData.length === 0) {
+            console.warn('categoriesData is empty or not an array');
+            return;
+        }
+        var showPrices = <?php echo $project['show_prices'] ? 'true' : 'false'; ?>;
+        var formOrders = <?php echo json_encode($form_data['orders']); ?>;
+        
+        menuSelection.innerHTML = '';
+        sections.forEach(function(person){
+            var sectionHtml = `
+                <div class="person-menu-section mb-4" data-person-idx="${person.idx}">
+                    <h6 class="border-bottom pb-2">
+                        <span class="person-name-display text-warning fw-bold">${escapeHtml(person.name)}</span>
+                        ${person.idx === 0 && guestType === 'family' ? '<small class="text-muted">(Hauptperson)</small>' : ''}
+                        ${person.type === 'child' ? '<small class="badge bg-info">Kind</small>' : ''}
+                    </h6>
+            `;
+            
+            categoriesData.forEach(function(cat){
+                sectionHtml += `<div class="mb-3">
+                    <label class="form-label fw-bold">${escapeHtml(cat.name)}</label>
+                    <select name="person_${person.idx}_cat_${cat.id}" class="form-select form-select-lg">
+                        <option value="">-- Bitte wählen --</option>`;
+                
+                cat.dishes.forEach(function(dish){
+                    var selected = (formOrders[person.idx] && formOrders[person.idx][cat.id] == dish.id) ? 'selected' : '';
+                    var priceText = (showPrices && dish.price) ? ` (${parseFloat(dish.price).toFixed(2).replace('.', ',')} €)` : '';
+                    sectionHtml += `<option value="${dish.id}" ${selected}>${escapeHtml(dish.name)}${priceText}</option>`;
+                });
+                
+                sectionHtml += `</select></div>`;
+            });
+            
+            sectionHtml += `</div>`;
+            menuSelection.insertAdjacentHTML('beforeend', sectionHtml);
         });
-        menuTypeLabel.textContent = '(Mehrfachbestellung)';
-    } else {
-        menuTypeLabel.textContent = '(Einzelbestellung)';
+    } catch (e) {
+        console.error('Error in updateMenuSections:', e);
     }
-    
-    // Menu sections neu generieren
-    var categoriesData = <?php echo json_encode(array_values($categories)); ?>;
-    var showPrices = <?php echo $project['show_prices'] ? 'true' : 'false'; ?>;
-    var formOrders = <?php echo json_encode($form_data['orders']); ?>;
-    
-    menuSelection.innerHTML = '';
-    sections.forEach(function(person){
-        var sectionHtml = `
-            <div class="person-menu-section mb-4" data-person-idx="${person.idx}">
-                <h6 class="border-bottom pb-2">
-                    <span class="person-name-display text-warning fw-bold">${escapeHtml(person.name)}</span>
-                    ${person.idx === 0 && guestType === 'family' ? '<small class="text-muted">(Hauptperson)</small>' : ''}
-                    ${person.type === 'child' ? '<small class="badge bg-info">Kind</small>' : ''}
-                </h6>
-        `;
-        
-        categoriesData.forEach(function(cat){
-            sectionHtml += `<div class="mb-3">
-                <label class="form-label fw-bold">${escapeHtml(cat.name)}</label>
-                <select name="person_${person.idx}_cat_${cat.id}" class="form-select form-select-lg">
-                    <option value="">-- Bitte wählen --</option>`;
-            
-            cat.dishes.forEach(function(dish){
-                var selected = (formOrders[person.idx] && formOrders[person.idx][cat.id] == dish.id) ? 'selected' : '';
-                var priceText = (showPrices && dish.price) ? ` (${parseFloat(dish.price).toFixed(2).replace('.', ',')} €)` : '';
-                sectionHtml += `<option value="${dish.id}" ${selected}>${escapeHtml(dish.name)}${priceText}</option>`;
-            });
-            
-            sectionHtml += `</select></div>`;
-        });
-        
-        sectionHtml += `</div>`;
-        menuSelection.insertAdjacentHTML('beforeend', sectionHtml);
-    });
 }
 
 function escapeHtml(text) {
@@ -767,6 +808,7 @@ function escapeHtml(text) {
 
 // Init
 attachMemberListeners();
+updateMenuSections();
 </script>
 </body>
 </html>
