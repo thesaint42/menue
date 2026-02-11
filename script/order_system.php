@@ -4,6 +4,15 @@
  * Version 3.0 mit order-id, personenspezifischer Menüwahl und Preisunterstützung
  */
 
+// Debug Logging Funktion - schreibt direkt in Datei
+if (!function_exists('debug_log')) {
+    function debug_log($msg) {
+        $file = __DIR__ . '/../storage/logs/debug.log';
+        $timestamp = date('Y-m-d H:i:s');
+        file_put_contents($file, "[$timestamp] $msg\n", FILE_APPEND);
+    }
+}
+
 /**
  * Generiert eine eindeutige Order-ID im Format "##### - #####"
  */
@@ -106,7 +115,7 @@ function load_order_by_id($pdo, $prefix, $order_id) {
             'project_id' => $session['project_id'] ?? null
         ];
     } catch (Exception $e) {
-        error_log("Error loading order: " . $e->getMessage());
+        debug_log("Error loading order: " . $e->getMessage());
         return null;
     }
 }
@@ -370,10 +379,12 @@ function save_order($pdo, $prefix, $data) {
         
         // 5. Neue Orders einfügen
         if (!empty($data['orders'])) {
+            debug_log("DEBUG: Inserting " . count($data['orders']) . " orders");
             $stmt = $pdo->prepare("INSERT INTO {$prefix}orders (order_id, person_id, dish_id, category_id) VALUES (?, ?, ?, ?)");
             foreach ($data['orders'] as $order) {
                 // person_id ist der Index im persons-Array (oder 0 für Einzelgast)
                 $person_id = $order['person_index'];
+                debug_log("DEBUG: Order - person_id=$person_id, dish_id=" . $order['dish_id'] . ", category_id=" . $order['category_id']);
                 $stmt->execute([
                     $order_id,
                     $person_id,
@@ -453,7 +464,7 @@ function save_order($pdo, $prefix, $data) {
             }
         } catch (Exception $e) {
             $mail_message = 'Bestellung gespeichert. Hinweis: Bestätigungs-E-Mail konnte nicht gesendet werden.';
-            error_log('Mail send error: ' . $e->getMessage());
+            debug_log('Mail send error: ' . $e->getMessage());
         }
 
         return [
@@ -463,9 +474,12 @@ function save_order($pdo, $prefix, $data) {
         ];
         
     } catch (Exception $e) {
-        $pdo->rollBack();
-        error_log("SAVE_ORDER ERROR: " . $e->getMessage());
-        error_log("SAVE_ORDER ERROR trace: " . $e->getTraceAsString());
+        // Nur rollback wenn eine Transaktion aktiv ist
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+        debug_log("SAVE_ORDER ERROR: " . $e->getMessage());
+        debug_log("SAVE_ORDER ERROR trace: " . $e->getTraceAsString());
         return [
             'success' => false,
             'order_id' => null,
