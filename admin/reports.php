@@ -530,21 +530,21 @@ $projects = $pdo->query("SELECT * FROM {$prefix}projects WHERE is_active = 1 ORD
             </a>
         </div>
 
-        <!-- CSV Export -->
-        <div class="col-12 col-sm-6 col-lg-4">
-            <a onclick="exportCSV()" class="report-icon-btn" style="cursor: pointer;">
-                <div class="icon">📊</div>
-                <div class="title">CSV Export</div>
-                <div class="subtitle">Als CSV herunterladen</div>
-            </a>
-        </div>
-
         <!-- Drucken / PDF -->
         <div class="col-12 col-sm-6 col-lg-4">
             <a href="#" data-bs-toggle="modal" data-bs-target="#pdfModal" class="report-icon-btn">
                 <div class="icon">🖨️</div>
                 <div class="title">PDF Report</div>
                 <div class="subtitle">Anzeigen oder herunterladen</div>
+            </a>
+        </div>
+
+        <!-- CSV Export -->
+        <div class="col-12 col-sm-6 col-lg-4">
+            <a onclick="exportCSV()" class="report-icon-btn" style="cursor: pointer;">
+                <div class="icon">📊</div>
+                <div class="title">CSV Export</div>
+                <div class="subtitle">Als CSV herunterladen</div>
             </a>
         </div>
 
