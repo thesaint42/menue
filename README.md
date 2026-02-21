@@ -70,7 +70,7 @@ Ein vollständiges PHP-basiertes System zur Verwaltung von Menüauswahl für Gä
 
 Öffnen Sie im Browser:
 ```
-http://localhost/11_Menüwahl/install.php
+http://localhost/install.php
 ```
 
 Folgen Sie den Installationsschritten:
@@ -83,12 +83,12 @@ Folgen Sie den Installationsschritten:
 
 Admin-Login:
 ```
-http://localhost/11_Menüwahl/admin/login.php
+http://localhost/admin/login.php
 ```
 
 Gast-Formular:
 ```
-http://localhost/11_Menüwahl/index.php?project=1
+http://localhost/index.php
 ```
 
 ---
