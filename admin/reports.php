@@ -135,7 +135,7 @@ if ($project_id && !$project_not_found) {
                 'guest_type' => $order['guest_type'],
                 'order_date' => $order['order_date'],
                 'persons' => [],
-                'highchair_count' => 0  // Zähler für Hochstühle
+                'highchair_count' => 0
             ];
         }
         
@@ -167,34 +167,45 @@ if ($project_id && !$project_not_found) {
             $orders_by_id[$order_id]['persons'][$person_id] = [
                 'name' => $person_name,
                 'type' => $type_display,
-                'dishes_by_category' => []
+                'age' => $child_age,
+                'highchair' => $highchair,
+                'person_index' => $person_id,
+                'dishes' => []
             ];
         }
         
-        // Sammle Gerichte nach Kategorie
-        if ($order['dish_name'] && $order['category_name']) {
-            $category = $order['category_name'];
-            if (!isset($orders_by_id[$order_id]['persons'][$person_id]['dishes_by_category'][$category])) {
-                $orders_by_id[$order_id]['persons'][$person_id]['dishes_by_category'][$category] = [];
-            }
-            if (!in_array($order['dish_name'], $orders_by_id[$order_id]['persons'][$person_id]['dishes_by_category'][$category])) {
-                $orders_by_id[$order_id]['persons'][$person_id]['dishes_by_category'][$category][] = $order['dish_name'];
-            }
+        // Sammle Gerichte - exakt wie in orders.php
+        if ($order['dish_name']) {
+            $orders_by_id[$order_id]['persons'][$person_id]['dishes'][] = [
+                'category' => $order['category_name'],
+                'dish' => $order['dish_name']
+            ];
         }
     }
     
-    // Formatiere Gerichte als Text
+    // Formatiere Gerichte als Text für HTML-Anzeige
     foreach ($orders_by_id as $order_id => &$order_data) {
         foreach ($order_data['persons'] as $person_id => &$person) {
+            $dishes_by_category = [];
+            foreach ($person['dishes'] as $dish_entry) {
+                $category = $dish_entry['category'];
+                $dish = $dish_entry['dish'];
+                if (!isset($dishes_by_category[$category])) {
+                    $dishes_by_category[$category] = [];
+                }
+                if (!in_array($dish, $dishes_by_category[$category])) {
+                    $dishes_by_category[$category][] = $dish;
+                }
+            }
+            
             $dishes_text = '';
-            foreach ($person['dishes_by_category'] as $category => $dishes) {
+            foreach ($dishes_by_category as $category => $dish_list) {
                 if ($dishes_text !== '') {
                     $dishes_text .= "\n";
                 }
-                $dishes_text .= $category . ': ' . implode(', ', $dishes);
+                $dishes_text .= $category . ': ' . implode(', ', $dish_list);
             }
-            $person['dishes'] = $dishes_text ?: '–';
-            unset($person['dishes_by_category']);
+            $person['dishes_text'] = $dishes_text ?: '–';
         }
     }
 }
@@ -515,7 +526,7 @@ $projects = $pdo->query("SELECT * FROM {$prefix}projects WHERE is_active = 1 ORD
                                                         <small><?php echo htmlspecialchars($person['type']); ?></small>
                                                     </td>
                                                     <td style="padding: 0.25rem 0.3rem; vertical-align: top;">
-                                                        <small style="white-space: pre-wrap; line-height: 1.2;"><?php echo htmlspecialchars($person['dishes']); ?></small>
+                                                        <small style="white-space: pre-wrap; line-height: 1.2;"><?php echo htmlspecialchars($person['dishes_text']); ?></small>
                                                     </td>
                                                 </tr>
                                             <?php endforeach; ?>
