@@ -530,8 +530,8 @@ $projects = $pdo->query("SELECT * FROM {$prefix}projects WHERE is_active = 1 ORD
             </a>
         </div>
 
-        <div></div>
-        
+        <div>Test1</div>
+
         <!-- Drucken / PDF -->
         <div class="col-12 col-sm-6 col-lg-4">
             <a href="#" data-bs-toggle="modal" data-bs-target="#pdfModal" class="report-icon-btn">
@@ -550,7 +550,7 @@ $projects = $pdo->query("SELECT * FROM {$prefix}projects WHERE is_active = 1 ORD
             </a>
         </div>
 
-        <div></div>
+        <div>Test2</div>
 
         <!-- CSV Export -->
         <div class="col-12 col-sm-6 col-lg-4">
@@ -560,6 +560,8 @@ $projects = $pdo->query("SELECT * FROM {$prefix}projects WHERE is_active = 1 ORD
                 <div class="subtitle">Als CSV herunterladen</div>
             </a>
         </div>
+
+        <div>Test3</div>
     </div>
     <?php endif; ?>
 
