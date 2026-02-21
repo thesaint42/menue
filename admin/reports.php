@@ -530,6 +530,8 @@ $projects = $pdo->query("SELECT * FROM {$prefix}projects WHERE is_active = 1 ORD
             </a>
         </div>
 
+        <div></div>
+        
         <!-- Drucken / PDF -->
         <div class="col-12 col-sm-6 col-lg-4">
             <a href="#" data-bs-toggle="modal" data-bs-target="#pdfModal" class="report-icon-btn">
@@ -538,8 +540,6 @@ $projects = $pdo->query("SELECT * FROM {$prefix}projects WHERE is_active = 1 ORD
                 <div class="subtitle">Anzeigen oder herunterladen</div>
             </a>
         </div>
-
-        <div></div>
 
         <!-- Bestellte Gerichte (Küche) -->
         <div class="col-12 col-sm-6 col-lg-4">
