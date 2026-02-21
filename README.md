@@ -310,13 +310,27 @@ system:
 - Host: `smtp.gmail.com`
 - Port: 587
 - Benutzername: `your-email@gmail.com`
-- Passwort: App-Passwort
+- Passwort: App-Passwort (kein normales Passwort!)
 - Verschlüsselung: TLS
 
 **Strato:**
 - Host: `smtp.strato.de`
 - Port: 587
 - Verschlüsselung: TLS
+
+**1&1 IONOS:**
+- Host: `smtp.ionos.de`
+- Port: 587
+- Verschlüsselung: TLS
+
+### Email-Bestätigungen
+
+**Gast-Bestätigungen (automatisch):**
+- Enthalten Order-ID für spätere Bearbeitung
+- Admin erhält BCC-Kopie
+- Versandhistorie in Mail-Logs
+
+**NEU v1.7:** Order-ID wird prominent in der Bestätigungs-Email angezeigt und kann direkt auf index.php zur Bearbeitung verwendet werden.
 
 ---
 
@@ -354,6 +368,33 @@ require_once 'script/mailer.php';
 sendOrderConfirmation($pdo, $prefix, $guest_id);
 ```
 
+### Order-ID Bestellung laden
+
+```php
+// Bestellung über Order-ID laden (v1.7)
+$order_id = '12345-67890';
+$existing_order = load_order_by_id($pdo, $prefix, $order_id);
+if ($existing_order) {
+    $project_id = $existing_order['project_id'];
+    // Projekt laden und fortfahren
+}
+```
+
+### HTML-Sanitization für Rich-Text (v1.7)
+
+```php
+// Projektbeschreibung sanitizen
+function sanitize_project_description($html) {
+    $allowed = '<p><br><strong><b><em><i><u><ul><ol><li><a><span><h1><h2><h3>';
+    $clean = strip_tags((string)$html, $allowed);
+    // Event Handler entfernen
+    $clean = preg_replace('/\s*on\w+\s*=\s*["\'][^"\']*["\']/', '', $clean);
+    // javascript: URLs entfernen
+    $clean = preg_replace('/javascript:/i', '', $clean);
+    return trim($clean);
+}
+```
+
 ### Log-Eintrag erstellen
 
 ```php
@@ -373,15 +414,32 @@ setLanguage('en');
 **"Datenbankfehler" bei der Installation:**
 - Überprüfen Sie DB-Host, Benutzer, Passwort
 - Stellen Sie sicher, dass der DB-Benutzer Datenbanken erstellen darf
+- Bei Migration: Verwenden Sie `migrate.php` für Versionsupdates
 
 **Emails werden nicht versendet:**
 - Überprüfen Sie SMTP-Konfiguration
 - Klicken Sie auf "Test-Email versenden"
 - Überprüfen Sie Mail-Logs im Admin-Bereich
+- Bei Gmail: Verwenden Sie App-Passwort, kein normales Passwort
 
 **Installation wird nicht angezeigt:**
 - Überprüfen Sie, dass `script/` Schreibrechte hat
 - Überprüfen Sie PHP Error Logs
+- install.php wird nach erfolgreicher Installation automatisch ausgeblendet
+
+**WYSIWYG-Editor zeigt keine Formatierung (v1.7):**
+- Quill CSS muss eingebunden sein: `<link href="https://cdn.quilljs.com/1.3.7/quill.snow.css" rel="stylesheet">`
+- Browser-Cache leeren
+- JavaScript-Konsole auf Fehler prüfen
+
+**Order-ID funktioniert nicht (v1.7):**
+- Format prüfen: `12345-67890` (5 Ziffern - 5 Ziffern)
+- Order-ID aus Bestätigungs-Email kopieren
+- Sicherstellen, dass Bestellung existiert
+
+**Formatierung wird nicht gespeichert (v1.7):**
+- Überprüfen Sie, dass die sanitize_project_description() Funktion die benötigten Tags erlaubt
+- Prüfen Sie, ob HTML in der Datenbank gespeichert wird (nicht nur Plain Text)
 
 ---
 
@@ -391,8 +449,14 @@ setLanguage('en');
 - ✅ Prepared Statements gegen SQL-Injection
 - ✅ Session-basierte Authentifizierung
 - ✅ Admin-Funktionen nur für authorisierte Benutzer
-- ⚠️ SSL/HTTPS empfohlen für Production
+- ✅ **NEU v1.7:** HTML-Sanitization für Rich-Text-Content
+- ✅ **NEU v1.7:** Whitelist-basierte Tag-Filterung (nur sichere HTML-Tags erlaubt)
+- ✅ **NEU v1.7:** XSS-Schutz durch Entfernung von Event-Handlern und JavaScript-URLs
+- ✅ **NEU v1.7:** Style-Attribut-Filterung (nur erlaubte CSS-Properties)
+- ✅ Unique Order-IDs mit UUID-Format
+- ⚠️ SSL/HTTPS **dringend** empfohlen für Production (Schutz der Order-IDs)
 - ⚠️ Regelmäßige Backups durchführen
+- ⚠️ `install.php` nach Installation löschen oder Zugriff einschränken
 
 ---
 
