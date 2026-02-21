@@ -43,158 +43,152 @@ if ($project_id && !$project_not_found) {
     $guests = $stmt->fetchAll();
 }
 
-// Alle Bestellungen laden - neue Logik: strukturiert pro order_id
+// Alle Bestellungen laden - Logik übernommen von orders.php
 $orders_by_id = [];
 if ($project_id && !$project_not_found) {
-    // Lade alle order_sessions mit den entsprechenden Gästen
-    $stmt = $pdo->prepare("
-        SELECT DISTINCT 
-            os.order_id,
-            os.email,
-            g.id as guest_id,
-            g.firstname,
-            g.lastname,
-            g.phone,
-            g.guest_type,
-            g.person_type,
-            g.child_age,
-            g.highchair_needed
-        FROM {$prefix}order_sessions os
-        LEFT JOIN {$prefix}guests g ON g.email = os.email AND g.project_id = ?
-        WHERE os.project_id = ?
-        ORDER BY os.order_id, g.id
-    ");
-    $stmt->execute([$project_id, $project_id]);
-    $order_sessions = $stmt->fetchAll();
+    $prefix = $config['database']['prefix'];
     
-    // Gruppiere nach order_id
-    foreach ($order_sessions as $os) {
-        $order_id = $os['order_id'];
-        
+    // Prüfe welches Datenbankschema verwendet wird
+    $stmt = $pdo->prepare("SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?");
+    $stmt->execute(["{$prefix}order_guest_data"]);
+    $has_order_guest_data = $stmt->fetchColumn() > 0;
+
+    $stmt = $pdo->prepare("SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?");
+    $stmt->execute(["{$prefix}order_people"]);
+    $has_order_people = $stmt->fetchColumn() > 0;
+
+    $stmt = $pdo->prepare("SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = 'order_id'");
+    $stmt->execute(["{$prefix}guests"]);
+    $has_guest_order_id = $stmt->fetchColumn() > 0;
+
+    if ($has_order_guest_data && $has_order_people) {
+        // v3.0 Snapshot: order_sessions + order_guest_data + order_people + orders
+        $sql = "SELECT
+                os.order_id,
+                os.email,
+                os.created_at as order_date,
+                og.firstname,
+                og.lastname,
+                og.phone,
+                og.guest_type,
+                op.name as person_name,
+                op.person_type as member_type,
+                op.child_age,
+                op.highchair_needed,
+                o.person_id,
+                d.name as dish_name,
+                mc.name as category_name,
+                mc.sort_order as category_sort
+            FROM `{$prefix}order_sessions` os
+            LEFT JOIN `{$prefix}order_guest_data` og ON og.order_id = os.order_id
+            LEFT JOIN `{$prefix}orders` o ON os.order_id = o.order_id
+            LEFT JOIN `{$prefix}order_people` op ON op.order_id = os.order_id AND op.person_index = o.person_id
+            LEFT JOIN `{$prefix}dishes` d ON o.dish_id = d.id
+            LEFT JOIN `{$prefix}menu_categories` mc ON o.category_id = mc.id
+            WHERE os.project_id = ?
+            ORDER BY os.created_at DESC, os.order_id, o.person_id, mc.sort_order";
+    } else {
+        // Legacy: guests + family_members + orders
+        $guest_join = $has_guest_order_id
+            ? "g.project_id = os.project_id AND g.order_id = os.order_id"
+            : "g.project_id = os.project_id AND g.email = os.email";
+
+        $sql = "SELECT
+                os.order_id,
+                os.email,
+                os.created_at as order_date,
+                g.firstname,
+                g.lastname,
+                g.phone,
+                g.guest_type,
+                fm.name as person_name,
+                fm.member_type,
+                fm.child_age,
+                fm.highchair_needed,
+                o.person_id,
+                d.name as dish_name,
+                mc.name as category_name,
+                mc.sort_order as category_sort
+            FROM `{$prefix}order_sessions` os
+            LEFT JOIN `{$prefix}guests` g ON {$guest_join}
+            LEFT JOIN `{$prefix}orders` o ON os.order_id = o.order_id
+            LEFT JOIN `{$prefix}family_members` fm ON g.id = fm.guest_id
+            LEFT JOIN `{$prefix}dishes` d ON o.dish_id = d.id
+            LEFT JOIN `{$prefix}menu_categories` mc ON o.category_id = mc.id
+            WHERE os.project_id = ?
+            ORDER BY os.created_at DESC, os.order_id, o.person_id, mc.sort_order";
+    }
+    
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute([$project_id]);
+    $raw_orders = $stmt->fetchAll();
+    
+    // Gruppiere nach Order-ID und Person - exakt wie in orders.php
+    foreach ($raw_orders as $order) {
+        $order_id = $order['order_id'];
         if (!isset($orders_by_id[$order_id])) {
             $orders_by_id[$order_id] = [
-                'email' => $os['email'],
-                'firstname' => $os['firstname'],
-                'lastname' => $os['lastname'],
-                'phone' => $os['phone'],
-                'guest_id' => $os['guest_id'],
+                'email' => $order['email'],
+                'firstname' => $order['firstname'],
+                'lastname' => $order['lastname'],
+                'phone' => $order['phone'],
+                'guest_type' => $order['guest_type'],
+                'order_date' => $order['order_date'],
                 'persons' => []
             ];
         }
         
-        // Hauptperson (person_id = 0 in orders)
-        if ($os['guest_id']) {
-            // Lade die Bestellungen der Hauptperson (person_id = 0)
-            $stmt_main = $pdo->prepare("
-                SELECT DISTINCT mc.name as category, d.name as dish, mc.sort_order
-                FROM {$prefix}orders o
-                JOIN {$prefix}dishes d ON o.dish_id = d.id
-                JOIN {$prefix}menu_categories mc ON d.category_id = mc.id
-                WHERE o.order_id = ? AND o.person_id = 0
-                ORDER BY mc.sort_order, d.name
-            ");
-            $stmt_main->execute([$order_id]);
-            $main_dishes = $stmt_main->fetchAll();
+        // Gruppiere nach Person
+        $person_id = $order['person_id'] ?? 0;
+        if (!isset($orders_by_id[$order_id]['persons'][$person_id])) {
+            $person_name = $order['person_name'] ?? ($order['firstname'] . ' ' . $order['lastname']);
+            $member_type = $order['member_type'] ?? 'adult';
+            $child_age = $order['child_age'] ?? null;
+            $highchair = $order['highchair_needed'] ?? 0;
             
-            $main_dishes_by_category = [];
-            foreach ($main_dishes as $d) {
-                if ($d['dish']) {
-                    if (!isset($main_dishes_by_category[$d['category']])) {
-                        $main_dishes_by_category[$d['category']] = [];
-                    }
-                    $main_dishes_by_category[$d['category']][] = $d['dish'];
+            // Formatiere Typ-Anzeige
+            $type_display = ($member_type === 'child') ? 'Kind' : 'Erwachsener';
+            if ($member_type === 'child' && $child_age) {
+                $type_display .= ' (' . $child_age . 'J';
+                if ($highchair) {
+                    $type_display .= ' 🪑';
                 }
+                $type_display .= ')';
+            } elseif ($highchair) {
+                $type_display .= ' 🪑';
             }
             
-            $main_dishes_text = '';
-            foreach ($main_dishes_by_category as $category => $dish_list) {
-                if ($main_dishes_text !== '') {
-                    $main_dishes_text .= "\n";
-                }
-                $main_dishes_text .= $category . ': ' . implode(', ', array_unique($dish_list));
-            }
-            
-            // Bestimme person_type mit optional Hochstuhl-Info
-            $person_type_value = $os['person_type'] ?? 'adult';
-            $person_type = $person_type_value === 'child' ? 'Kind' : 'Erwachsener';
-            if ($person_type_value === 'child' && !empty($os['child_age'])) {
-                $person_type .= ' (' . $os['child_age'] . 'J';
-                if (!empty($os['highchair_needed'])) {
-                    $person_type .= ' 🪑';
-                }
-                $person_type .= ')';
-            } elseif (!empty($os['highchair_needed'])) {
-                $person_type .= ' 🪑';
-            }
-            
-            $person_key = $os['firstname'] . ' ' . $os['lastname'];
-            if (!isset($orders_by_id[$order_id]['persons'][$person_key])) {
-                $orders_by_id[$order_id]['persons'][$person_key] = [
-                    'name' => $os['firstname'] . ' ' . $os['lastname'],
-                    'type' => $person_type,
-                    'dishes' => $main_dishes_text ?: '–'
-                ];
-            }
+            $orders_by_id[$order_id]['persons'][$person_id] = [
+                'name' => $person_name,
+                'type' => $type_display,
+                'dishes_by_category' => []
+            ];
         }
         
-        // Familienmitglieder (person_id > 0)
-        if ($os['guest_id']) {
-            $stmt_family = $pdo->prepare("SELECT * FROM {$prefix}family_members WHERE guest_id = ? ORDER BY id");
-            $stmt_family->execute([$os['guest_id']]);
-            $family_members = $stmt_family->fetchAll();
-            
-            foreach ($family_members as $idx => $member) {
-                $person_idx = $idx + 1;
-                
-                $stmt_member = $pdo->prepare("
-                    SELECT DISTINCT mc.name as category, d.name as dish, mc.sort_order
-                    FROM {$prefix}orders o
-                    JOIN {$prefix}dishes d ON o.dish_id = d.id
-                    JOIN {$prefix}menu_categories mc ON d.category_id = mc.id
-                    WHERE o.order_id = ? AND o.person_id = ?
-                    ORDER BY mc.sort_order, d.name
-                ");
-                $stmt_member->execute([$order_id, $person_idx]);
-                $member_dishes = $stmt_member->fetchAll();
-                
-                $member_dishes_by_category = [];
-                foreach ($member_dishes as $d) {
-                    if ($d['dish']) {
-                        if (!isset($member_dishes_by_category[$d['category']])) {
-                            $member_dishes_by_category[$d['category']] = [];
-                        }
-                        $member_dishes_by_category[$d['category']][] = $d['dish'];
-                    }
-                }
-                
-                $member_dishes_text = '';
-                foreach ($member_dishes_by_category as $category => $dish_list) {
-                    if ($member_dishes_text !== '') {
-                        $member_dishes_text .= "\n";
-                    }
-                    $member_dishes_text .= $category . ': ' . implode(', ', array_unique($dish_list));
-                }
-                
-                $person_type = $member['member_type'] === 'child' ? 'Kind' : 'Erwachsener';
-                if ($member['member_type'] === 'child' && $member['child_age']) {
-                    $person_type .= ' (' . $member['child_age'] . 'J';
-                    if ($member['highchair_needed']) {
-                        $person_type .= ' 🪑';
-                    }
-                    $person_type .= ')';
-                } elseif ($member['highchair_needed']) {
-                    $person_type .= ' 🪑';
-                }
-                
-                $person_key = $member['name'];
-                if (!isset($orders_by_id[$order_id]['persons'][$person_key])) {
-                    $orders_by_id[$order_id]['persons'][$person_key] = [
-                        'name' => $member['name'],
-                        'type' => $person_type,
-                        'dishes' => $member_dishes_text ?: '–'
-                    ];
-                }
+        // Sammle Gerichte nach Kategorie
+        if ($order['dish_name'] && $order['category_name']) {
+            $category = $order['category_name'];
+            if (!isset($orders_by_id[$order_id]['persons'][$person_id]['dishes_by_category'][$category])) {
+                $orders_by_id[$order_id]['persons'][$person_id]['dishes_by_category'][$category] = [];
             }
+            if (!in_array($order['dish_name'], $orders_by_id[$order_id]['persons'][$person_id]['dishes_by_category'][$category])) {
+                $orders_by_id[$order_id]['persons'][$person_id]['dishes_by_category'][$category][] = $order['dish_name'];
+            }
+        }
+    }
+    
+    // Formatiere Gerichte als Text
+    foreach ($orders_by_id as $order_id => &$order_data) {
+        foreach ($order_data['persons'] as $person_id => &$person) {
+            $dishes_text = '';
+            foreach ($person['dishes_by_category'] as $category => $dishes) {
+                if ($dishes_text !== '') {
+                    $dishes_text .= "\n";
+                }
+                $dishes_text .= $category . ': ' . implode(', ', $dishes);
+            }
+            $person['dishes'] = $dishes_text ?: '–';
+            unset($person['dishes_by_category']);
         }
     }
 }
