@@ -35,7 +35,7 @@ if ($project_id) {
     $project = null;
 }
 
-// Gäste laden
+// Gäste laden (für Gäste-View)
 $guests = [];
 if ($project_id && !$project_not_found) {
     $stmt = $pdo->prepare("SELECT * FROM {$prefix}guests WHERE project_id = ? ORDER BY created_at DESC");
@@ -43,170 +43,172 @@ if ($project_id && !$project_not_found) {
     $guests = $stmt->fetchAll();
 }
 
-// Alle Bestellungen laden - Logik übernommen von orders.php
+// Alle Bestellungen laden - EXAKT CODE VON orders.php
 $orders_by_id = [];
 if ($project_id && !$project_not_found) {
-    $prefix = $config['database']['prefix'];
-    
-    // Prüfe welches Datenbankschema verwendet wird
-    $stmt = $pdo->prepare("SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?");
-    $stmt->execute(["{$prefix}order_guest_data"]);
-    $has_order_guest_data = $stmt->fetchColumn() > 0;
+    try {
+        $prefix = $config['database']['prefix'];
+        $stmt = $pdo->prepare("SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?");
+        $stmt->execute(["{$prefix}order_guest_data"]);
+        $has_order_guest_data = $stmt->fetchColumn() > 0;
 
-    $stmt = $pdo->prepare("SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?");
-    $stmt->execute(["{$prefix}order_people"]);
-    $has_order_people = $stmt->fetchColumn() > 0;
+        $stmt = $pdo->prepare("SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?");
+        $stmt->execute(["{$prefix}order_people"]);
+        $has_order_people = $stmt->fetchColumn() > 0;
 
-    $stmt = $pdo->prepare("SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = 'order_id'");
-    $stmt->execute(["{$prefix}guests"]);
-    $has_guest_order_id = $stmt->fetchColumn() > 0;
+        $stmt = $pdo->prepare("SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = 'order_id'");
+        $stmt->execute(["{$prefix}guests"]);
+        $has_guest_order_id = $stmt->fetchColumn() > 0;
 
-    if ($has_order_guest_data && $has_order_people) {
-        // v3.0 Snapshot: order_sessions + order_guest_data + order_people + orders
-        $sql = "SELECT
-                os.order_id,
-                os.email,
-                os.created_at as order_date,
-                og.firstname,
-                og.lastname,
-                og.phone,
-                og.guest_type,
-                op.name as person_name,
-                op.person_type as member_type,
-                op.child_age,
-                op.highchair_needed,
-                o.person_id,
-                d.name as dish_name,
-                mc.name as category_name,
-                mc.sort_order as category_sort
-            FROM `{$prefix}order_sessions` os
-            LEFT JOIN `{$prefix}order_guest_data` og ON og.order_id = os.order_id
-            LEFT JOIN `{$prefix}orders` o ON os.order_id = o.order_id
-            LEFT JOIN `{$prefix}order_people` op ON op.order_id = os.order_id AND op.person_index = o.person_id
-            LEFT JOIN `{$prefix}dishes` d ON o.dish_id = d.id
-            LEFT JOIN `{$prefix}menu_categories` mc ON o.category_id = mc.id
-            WHERE os.project_id = ?
-            ORDER BY os.created_at DESC, os.order_id, o.person_id, mc.sort_order";
-    } else {
-        // Legacy: guests + family_members + orders
-        $guest_join = $has_guest_order_id
-            ? "g.project_id = os.project_id AND g.order_id = os.order_id"
-            : "g.project_id = os.project_id AND g.email = os.email";
+        if ($has_order_guest_data && $has_order_people) {
+            // v3.0 Snapshot: order_sessions + order_guest_data + order_people + orders
+            $sql = "SELECT
+                    os.order_id,
+                    os.email,
+                    os.created_at as order_date,
+                    og.firstname,
+                    og.lastname,
+                    og.phone,
+                    og.guest_type,
+                    op.name as person_name,
+                    op.person_type as member_type,
+                    op.child_age,
+                    op.highchair_needed,
+                    o.person_id,
+                    d.name as dish_name,
+                    mc.name as category_name,
+                    mc.sort_order as category_sort
+                FROM `{$prefix}order_sessions` os
+                LEFT JOIN `{$prefix}order_guest_data` og ON og.order_id = os.order_id
+                LEFT JOIN `{$prefix}orders` o ON os.order_id = o.order_id
+                LEFT JOIN `{$prefix}order_people` op ON op.order_id = os.order_id AND op.person_index = o.person_id
+                LEFT JOIN `{$prefix}dishes` d ON o.dish_id = d.id
+                LEFT JOIN `{$prefix}menu_categories` mc ON o.category_id = mc.id
+                WHERE os.project_id = ?
+                ORDER BY os.created_at DESC, os.order_id, o.person_id, mc.sort_order";
+        } else {
+            // Legacy: guests + family_members + orders
+            $guest_join = $has_guest_order_id
+                ? "g.project_id = os.project_id AND g.order_id = os.order_id"
+                : "g.project_id = os.project_id AND g.email = os.email";
 
-        $sql = "SELECT
-                os.order_id,
-                os.email,
-                os.created_at as order_date,
-                g.firstname,
-                g.lastname,
-                g.phone,
-                g.guest_type,
-                fm.name as person_name,
-                fm.member_type,
-                fm.child_age,
-                fm.highchair_needed,
-                o.person_id,
-                d.name as dish_name,
-                mc.name as category_name,
-                mc.sort_order as category_sort
-            FROM `{$prefix}order_sessions` os
-            LEFT JOIN `{$prefix}guests` g ON {$guest_join}
-            LEFT JOIN `{$prefix}orders` o ON os.order_id = o.order_id
-            LEFT JOIN `{$prefix}family_members` fm ON g.id = fm.guest_id
-            LEFT JOIN `{$prefix}dishes` d ON o.dish_id = d.id
-            LEFT JOIN `{$prefix}menu_categories` mc ON o.category_id = mc.id
-            WHERE os.project_id = ?
-            ORDER BY os.created_at DESC, os.order_id, o.person_id, mc.sort_order";
-    }
-    
-    $stmt = $pdo->prepare($sql);
-    $stmt->execute([$project_id]);
-    $raw_orders = $stmt->fetchAll();
-    
-    // Gruppiere nach Order-ID und Person - exakt wie in orders.php
-    foreach ($raw_orders as $order) {
-        $order_id = $order['order_id'];
-        if (!isset($orders_by_id[$order_id])) {
-            $orders_by_id[$order_id] = [
-                'email' => $order['email'],
-                'firstname' => $order['firstname'],
-                'lastname' => $order['lastname'],
-                'phone' => $order['phone'],
-                'guest_type' => $order['guest_type'],
-                'order_date' => $order['order_date'],
-                'persons' => [],
-                'highchair_count' => 0
-            ];
+            $sql = "SELECT
+                    os.order_id,
+                    os.email,
+                    os.created_at as order_date,
+                    g.firstname,
+                    g.lastname,
+                    g.phone,
+                    g.guest_type,
+                    fm.name as person_name,
+                    fm.member_type,
+                    fm.child_age,
+                    fm.highchair_needed,
+                    o.person_id,
+                    d.name as dish_name,
+                    mc.name as category_name,
+                    mc.sort_order as category_sort
+                FROM `{$prefix}order_sessions` os
+                LEFT JOIN `{$prefix}guests` g ON {$guest_join}
+                LEFT JOIN `{$prefix}orders` o ON os.order_id = o.order_id
+                LEFT JOIN `{$prefix}family_members` fm ON g.id = fm.guest_id
+                LEFT JOIN `{$prefix}dishes` d ON o.dish_id = d.id
+                LEFT JOIN `{$prefix}menu_categories` mc ON o.category_id = mc.id
+                WHERE os.project_id = ?
+                ORDER BY os.created_at DESC, os.order_id, o.person_id, mc.sort_order";
         }
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute([$project_id]);
+        $raw_orders = $stmt->fetchAll();
         
-        // Gruppiere nach Person
-        $person_id = $order['person_id'] ?? 0;
-        if (!isset($orders_by_id[$order_id]['persons'][$person_id])) {
-            $person_name = $order['person_name'] ?? ($order['firstname'] . ' ' . $order['lastname']);
-            $member_type = $order['member_type'] ?? 'adult';
-            $child_age = $order['child_age'] ?? null;
-            $highchair = $order['highchair_needed'] ?? 0;
-            
-            // Zähle Hochstühle pro Bestellung
-            if ($highchair) {
-                $orders_by_id[$order_id]['highchair_count']++;
+        // Gruppiere exakt wie in orders.php
+        foreach ($raw_orders as $order) {
+            $order_id = $order['order_id'];
+            if (!isset($orders_by_id[$order_id])) {
+                $orders_by_id[$order_id] = [
+                    'email' => $order['email'],
+                    'firstname' => $order['firstname'],
+                    'lastname' => $order['lastname'],
+                    'phone' => $order['phone'],
+                    'guest_type' => $order['guest_type'],
+                    'order_date' => $order['order_date'],
+                    'order_id' => $order_id,
+                    'persons' => [],
+                    'highchair_count' => 0
+                ];
             }
             
-            // Formatiere Typ-Anzeige
-            $type_display = ($member_type === 'child') ? 'Kind' : 'Erwachsener';
-            if ($member_type === 'child' && $child_age) {
-                $type_display .= ' (' . $child_age . 'J';
+            // Gruppiere nach Person
+            $person_id = $order['person_id'] ?? 0;
+            if (!isset($orders_by_id[$order_id]['persons'][$person_id])) {
+                $person_name = $order['person_name'] ?? ($order['firstname'] . ' ' . $order['lastname']);
+                $member_type = $order['member_type'] ?? 'adult';
+                $child_age = $order['child_age'] ?? null;
+                $highchair = $order['highchair_needed'] ?? 0;
+                
+                // Zähle Hochstühle pro Bestellung
                 if ($highchair) {
+                    $orders_by_id[$order_id]['highchair_count']++;
+                }
+                
+                // Formatiere Typ-Anzeige
+                $type_display = ($member_type === 'child') ? 'Kind' : 'Erwachsener';
+                if ($member_type === 'child' && $child_age) {
+                    $type_display .= ' (' . $child_age . 'J';
+                    if ($highchair) {
+                        $type_display .= ' 🪑';
+                    }
+                    $type_display .= ')';
+                } elseif ($highchair) {
                     $type_display .= ' 🪑';
                 }
-                $type_display .= ')';
-            } elseif ($highchair) {
-                $type_display .= ' 🪑';
+                
+                $orders_by_id[$order_id]['persons'][$person_id] = [
+                    'name' => $person_name,
+                    'type' => $type_display,
+                    'age' => $child_age,
+                    'highchair' => $highchair,
+                    'person_index' => $person_id,
+                    'dishes' => []
+                ];
             }
             
-            $orders_by_id[$order_id]['persons'][$person_id] = [
-                'name' => $person_name,
-                'type' => $type_display,
-                'age' => $child_age,
-                'highchair' => $highchair,
-                'person_index' => $person_id,
-                'dishes' => []
-            ];
+            // Sammle Gerichte
+            if ($order['dish_name']) {
+                $orders_by_id[$order_id]['persons'][$person_id]['dishes'][] = [
+                    'category' => $order['category_name'],
+                    'dish' => $order['dish_name']
+                ];
+            }
         }
         
-        // Sammle Gerichte - exakt wie in orders.php
-        if ($order['dish_name']) {
-            $orders_by_id[$order_id]['persons'][$person_id]['dishes'][] = [
-                'category' => $order['category_name'],
-                'dish' => $order['dish_name']
-            ];
-        }
-    }
-    
-    // Formatiere Gerichte als Text für HTML-Anzeige
-    foreach ($orders_by_id as $order_id => &$order_data) {
-        foreach ($order_data['persons'] as $person_id => &$person) {
-            $dishes_by_category = [];
-            foreach ($person['dishes'] as $dish_entry) {
-                $category = $dish_entry['category'];
-                $dish = $dish_entry['dish'];
-                if (!isset($dishes_by_category[$category])) {
-                    $dishes_by_category[$category] = [];
+        // Formatiere Gerichte als Text für HTML-Anzeige
+        foreach ($orders_by_id as $order_id => $order_data) {
+            foreach ($order_data['persons'] as $person_id => $person) {
+                $dishes_by_category = [];
+                foreach ($person['dishes'] as $dish_entry) {
+                    $category = $dish_entry['category'];
+                    $dish = $dish_entry['dish'];
+                    if (!isset($dishes_by_category[$category])) {
+                        $dishes_by_category[$category] = [];
+                    }
+                    if (!in_array($dish, $dishes_by_category[$category])) {
+                        $dishes_by_category[$category][] = $dish;
+                    }
                 }
-                if (!in_array($dish, $dishes_by_category[$category])) {
-                    $dishes_by_category[$category][] = $dish;
+                
+                $dishes_text = '';
+                foreach ($dishes_by_category as $category => $dish_list) {
+                    if ($dishes_text !== '') {
+                        $dishes_text .= "\n";
+                    }
+                    $dishes_text .= $category . ': ' . implode(', ', $dish_list);
                 }
+                $orders_by_id[$order_id]['persons'][$person_id]['dishes_text'] = $dishes_text ?: '–';
             }
-            
-            $dishes_text = '';
-            foreach ($dishes_by_category as $category => $dish_list) {
-                if ($dishes_text !== '') {
-                    $dishes_text .= "\n";
-                }
-                $dishes_text .= $category . ': ' . implode(', ', $dish_list);
-            }
-            $person['dishes_text'] = $dishes_text ?: '–';
         }
+    } catch (Throwable $e) {
+        // Error handling
     }
 }
 
@@ -224,26 +226,9 @@ if (isset($_GET['download']) && $_GET['download'] === 'pdf') {
     $action = isset($_GET['action']) ? $_GET['action'] : 'download'; // 'download' oder 'view'
     require_once '../script/tcpdf/tcpdf.php';
 
-    // Gäste mit Bestellungen laden
-    $stmt = $pdo->prepare("
-        SELECT g.id, g.firstname, g.lastname, g.email, g.phone, g.guest_type, g.family_size,
-               os.order_id,
-               GROUP_CONCAT(DISTINCT CONCAT(mc.name, ': ', d.name) ORDER BY mc.sort_order, d.name SEPARATOR '\n') as dishes
-        FROM {$prefix}guests g
-        LEFT JOIN {$prefix}order_sessions os ON os.email = g.email AND os.project_id = ?
-        LEFT JOIN {$prefix}orders o ON o.order_id = os.order_id
-        LEFT JOIN {$prefix}dishes d ON o.dish_id = d.id
-        LEFT JOIN {$prefix}menu_categories mc ON d.category_id = mc.id
-        WHERE g.project_id = ?
-        GROUP BY g.id
-        ORDER BY g.created_at DESC
-    ");
-    $stmt->execute([$project_id, $project_id]);
-    $guests_with_orders = $stmt->fetchAll();
-
     $pdf = new TCPDF(PDF_PAGE_ORIENTATION, PDF_UNIT, PDF_PAGE_FORMAT, true, 'UTF-8', false);
     $pdf->SetCreator('Event Menue Order System (EMOS)');
-    $pdf->SetTitle('Gästeübersicht - ' . $project['name']);
+    $pdf->SetTitle('Bestellübersicht - ' . $project['name']);
     $pdf->SetMargins(10, 10, 10);
     $pdf->SetAutoPageBreak(true, 15);
     $pdf->AddPage();
@@ -252,7 +237,7 @@ if (isset($_GET['download']) && $_GET['download'] === 'pdf') {
     $pdf->SetFillColor(13, 110, 253);
     $pdf->SetTextColor(255, 255, 255);
     $pdf->SetFont('helvetica', 'B', 16);
-    $pdf->Cell(0, 10, 'Gästeübersicht - ' . $project['name'], 0, 1, 'C', true);
+    $pdf->Cell(0, 10, 'Bestellübersicht - ' . $project['name'], 0, 1, 'C', true);
     
     $pdf->SetTextColor(0, 0, 0);
     $pdf->SetFont('helvetica', '', 10);
@@ -260,59 +245,130 @@ if (isset($_GET['download']) && $_GET['download'] === 'pdf') {
     $pdf->Ln(5);
 
     // Projekt Info
-    $pdf->SetFont('helvetica', 'B', 11);
-    $pdf->Cell(0, 6, 'Projektdetails:', 0, 1);
     $pdf->SetFont('helvetica', '', 10);
     $pdf->Cell(0, 5, 'Name: ' . $project['name'], 0, 1);
     if ($project['location']) {
         $pdf->Cell(0, 5, 'Ort: ' . $project['location'], 0, 1);
     }
-    $pdf->Cell(0, 5, 'Anmeldungen: ' . count($guests_with_orders) . ' / ' . $project['max_guests'], 0, 1);
+    $pdf->Ln(3);
+    $pdf->Cell(0, 5, 'Anzahl Bestellungen: ' . count($orders_by_id), 0, 1);
+    
+    // Berechne Gesamtanzahl Personen
+    $total_persons = 0;
+    foreach ($orders_by_id as $order_data) {
+        $total_persons += count($order_data['persons']);
+    }
+    $pdf->Cell(0, 5, 'Anzahl Personen: ' . $total_persons, 0, 1);
+    
+    // Berechne Gesamtanzahl Hochstühle
+    $total_highchairs = 0;
+    foreach ($orders_by_id as $order_data) {
+        $total_highchairs += $order_data['highchair_count'];
+    }
+    $pdf->Cell(0, 5, 'Anzahl Hochstühle (HS): ' . $total_highchairs, 0, 1);
     $pdf->Ln(5);
 
     // Tabelle
     $pdf->SetFont('helvetica', 'B', 9);
     $pdf->SetFillColor(200, 200, 200);
-    $pdf->Cell(30, 7, 'Name', 1, 0, 'L', true);
-    $pdf->Cell(35, 7, 'Email', 1, 0, 'L', true);
-    $pdf->Cell(25, 7, 'Telefon', 1, 0, 'L', true);
-    $pdf->Cell(25, 7, 'Typ', 1, 0, 'C', true);
-    $pdf->Cell(60, 7, 'Gerichte', 1, 1, 'L', true);
+    $pdf->Cell(40, 7, 'Bestellung', 1, 0, 'L', true);
+    $pdf->Cell(40, 7, 'Besteller', 1, 0, 'L', true);
+    $pdf->Cell(30, 7, 'Personen', 1, 0, 'C', true);
+    $pdf->Cell(80, 7, 'Gerichte', 1, 1, 'L', true);
 
     $pdf->SetFont('helvetica', '', 8);
-    $pdf->SetFillColor(245, 245, 245);
     $fill = false;
 
-    foreach ($guests_with_orders as $g) {
+    foreach ($orders_by_id as $order_id => $order_data) {
+        $guest_name = $order_data['firstname'] . ' ' . $order_data['lastname'];
+        $person_count = count($order_data['persons']);
+        $highchair_count = $order_data['highchair_count'];
+        
+        // Formatiere Personen-Anzeige mit Hochstühlen
+        $person_display = $person_count;
+        if ($highchair_count > 0) {
+            $person_display .= " (HS: " . $highchair_count . ")";
+        }
+        
+        // Erste Zeile: Bestellung, Besteller, Personen
+        // Prüfe ob genug Platz für mindestens diese Bestellung + nächste vorhanden ist
+        if ($pdf->GetY() > 250) { // Genug Raum für eine volle Bestellung?
+            $pdf->AddPage();
+        }
+        
         $pdf->SetFillColor($fill ? 245 : 255, $fill ? 245 : 255, $fill ? 245 : 255);
+        $pdf->Cell(40, 6, $order_id, 1, 0, 'L', $fill);
+        $pdf->Cell(40, 6, $guest_name, 1, 0, 'L', $fill);
+        $pdf->Cell(30, 6, $person_display, 1, 0, 'C', $fill);
         
-        $name = $g['firstname'] . ' ' . $g['lastname'];
-        if ($g['order_id']) {
-            $name .= "\n(" . $g['order_id'] . ")";
+        // Sammle alle Personen mit ihren Gerichten
+        $person_list = [];
+        foreach ($order_data['persons'] as $person_id => $person) {
+            $person_info = $person['name'];
+            
+            // Gerichte pro Kategorie
+            $by_category = [];
+            foreach ($person['dishes'] as $dish) {
+                $category = $dish['category'];
+                if (!isset($by_category[$category])) {
+                    $by_category[$category] = [];
+                }
+                if (!in_array($dish['dish'], $by_category[$category])) {
+                    $by_category[$category][] = $dish['dish'];
+                }
+            }
+            
+            $dishes_for_person = [];
+            foreach ($by_category as $category => $dish_list) {
+                foreach ($dish_list as $dish) {
+                    $dishes_for_person[] = "• " . $category . ": " . $dish;
+                }
+            }
+            
+            $person_list[] = array(
+                'name' => $person_info,
+                'dishes' => $dishes_for_person
+            );
         }
-        $email = $g['email'];
-        $phone = $g['phone'] ?? '–';
-        $type = $g['guest_type'] === 'family' ? 'Familie' : 'Einzeln';
-        if ($g['guest_type'] === 'family' && $g['family_size']) {
-            $type .= ' (' . $g['family_size'] . ')';
-        }
-        // Split dishes by newline
-        $dishes_text = $g['dishes'] ? $g['dishes'] : '–';
         
-        $pdf->MultiCell(30, 7, $name, 1, 'L', $fill);
-        $pdf->SetXY(40, $pdf->GetY() - 7);
-        $pdf->MultiCell(35, 7, $email, 1, 'L', $fill);
-        $pdf->SetXY(75, $pdf->GetY() - 7);
-        $pdf->MultiCell(25, 7, $phone, 1, 'L', $fill);
-        $pdf->SetXY(100, $pdf->GetY() - 7);
-        $pdf->MultiCell(25, 7, $type, 1, 'C', $fill);
-        $pdf->SetXY(125, $pdf->GetY() - 7);
-        $pdf->MultiCell(60, 7, $dishes_text, 1, 'L', $fill);
-        $pdf->Ln();
+        // Erste Person in der ersten Zeile - Name fett
+        if (!empty($person_list)) {
+            $first_person = $person_list[0];
+            $pdf->SetX(120);
+            $pdf->SetFont('helvetica', 'B', 8);
+            $pdf->Cell(80, 6, $first_person['name'], 1, 1, 'L', $fill);
+            
+            $pdf->SetFont('helvetica', '', 8);
+            $pdf->SetX(120);
+            $first_dishes_text = implode("\n", $first_person['dishes']);
+            $pdf->MultiCell(80, 5, $first_dishes_text, 1, 'L', $fill);
+            
+            // Weitere Personen in separaten Zellen (nur Gerichte-Spalte, ohne leere Zellen)
+            for ($i = 1; $i < count($person_list); $i++) {
+                $person = $person_list[$i];
+                $pdf->SetFillColor($fill ? 245 : 255, $fill ? 245 : 255, $fill ? 245 : 255);
+                
+                // Person-Name fett
+                $pdf->SetX(120);
+                $pdf->SetFont('helvetica', 'B', 8);
+                $pdf->Cell(80, 6, $person['name'], 1, 1, 'L', $fill);
+                
+                // Gerichte dieser Person normal
+                $pdf->SetFont('helvetica', '', 8);
+                $pdf->SetX(120);
+                $person_dishes_text = implode("\n", $person['dishes']);
+                $pdf->MultiCell(80, 5, $person_dishes_text, 1, 'L', $fill);
+            }
+        } else {
+            $pdf->SetX(120);
+            $pdf->MultiCell(80, 6, '–', 1, 'L', $fill);
+        }
+        
+        $pdf->SetFont('helvetica', '', 8);
         $fill = !$fill;
     }
 
-    $filename = 'gaeste_' . $project_id . '_' . date('Ymd_Hi') . '.pdf';
+    $filename = 'bestellungen_' . $project_id . '_' . date('Ymd_Hi') . '.pdf';
     // 'D' = Download, 'I' = Inline (Anzeige im Browser)
     $pdf->Output($filename, $action === 'view' ? 'I' : 'D');
     exit;
@@ -517,7 +573,7 @@ $projects = $pdo->query("SELECT * FROM {$prefix}projects WHERE is_active = 1 ORD
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            <?php foreach ($order_data['persons'] as $person_name => $person): ?>
+                                            <?php foreach ($order_data['persons'] as $person_id => $person): ?>
                                                 <tr style="line-height: 0.95;">
                                                     <td style="padding: 0.25rem 0.3rem; vertical-align: top;">
                                                         <small><?php echo htmlspecialchars($person['name']); ?></small>

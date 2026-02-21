@@ -2,7 +2,7 @@
 
 Ein vollständiges PHP-basiertes System zur Verwaltung von Menüauswahl für Gäste mit Admin-Dashboard, PDF-Export und E-Mail-Integration.
 
-**Aktuelle Version:** 1.7.0
+**Aktuelle Version:** 1.7.1
 
 ## Features
 
@@ -31,6 +31,12 @@ Ein vollständiges PHP-basiertes System zur Verwaltung von Menüauswahl für Gä
 - Menüverwaltung (5 Kategorien: Vorspeise, Hauptspeise, Beilage, Salat, Nachspeise)
 - Gästeübersicht mit Statistiken
 - Bestellungshistorie
+- **NEU v1.7.1:** Optimierter PDF-Report mit Bestellübersicht
+  - Hierarchische Darstellung: Bestellung → Person → Gerichte
+  - Hochstuhl-Übersicht (HS-Angabe)
+  - Detaillierte Statistiken (Anzahl Bestellungen, Personen, Hochstühle)
+  - Korrekte Darstellung aller Personen mit fettgedruckten Namen
+  - Automatischer Seitenumbruch bei langen Bestellungen
 - PDF-Export der Gästeübersicht
 - SMTP Mail-Konfiguration mit Test-Funktion
 - Datenbankmigrationen für Versionsupdates
