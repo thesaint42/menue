@@ -88,7 +88,7 @@ http://localhost/admin/login.php
 
 Gast-Formular:
 ```
-http://localhost/index.php
+http://localhost/index.php?project=1
 ```
 
 ---
