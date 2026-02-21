@@ -591,6 +591,8 @@ $projects = $pdo->query("SELECT * FROM {$prefix}projects WHERE is_active = 1 ORD
                         if ($g['order_id']) {
                             if (!isset($orders_grouped[$g['order_id']])) {
                                 $orders_grouped[$g['order_id']] = [
+                                    'firstname' => $g['firstname'],
+                                    'lastname' => $g['lastname'],
                                     'email' => $g['email'],
                                     'phone' => $g['phone'],
                                     'persons' => []
@@ -610,7 +612,7 @@ $projects = $pdo->query("SELECT * FROM {$prefix}projects WHERE is_active = 1 ORD
                                 <div class="bg-secondary text-white p-2 border-bottom border-2 border-info mb-2">
                                     <strong>Bestellung: <?php echo htmlspecialchars($order_id); ?></strong>
                                     <span class="ms-2" style="font-size: 0.9em; opacity: 0.9;">
-                                        (<?php echo htmlspecialchars($order_data['email']); ?><?php if (!empty($order_data['phone'])): ?> | <?php echo htmlspecialchars($order_data['phone']); ?><?php endif; ?>)
+                                        (<?php echo htmlspecialchars($order_data['firstname'] . ' ' . $order_data['lastname']); ?> | <?php echo htmlspecialchars($order_data['email']); ?><?php if (!empty($order_data['phone'])): ?> | <?php echo htmlspecialchars($order_data['phone']); ?><?php endif; ?>)
                                     </span>
                                     <span class="badge bg-light text-dark ms-2"><?php echo count($order_data['persons']); ?> <?php echo count($order_data['persons']) === 1 ? 'Person' : 'Personen'; ?></span>
                                 </div>
