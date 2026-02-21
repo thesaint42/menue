@@ -695,26 +695,41 @@ $projects = $pdo->query("SELECT * FROM {$prefix}projects WHERE is_active = 1 ORD
                     <h5 class="mb-0">Statistiken: <?php echo htmlspecialchars($project['name']); ?></h5>
                 </div>
                 <div class="card-body">
+                    <?php
+                        // Berechne korrekte Statistiken basierend auf orders_by_id
+                        $total_individual_persons = 0;
+                        $total_family_persons = 0;
+                        
+                        foreach ($orders_by_id as $order_data) {
+                            if ($order_data['guest_type'] === 'individual') {
+                                $total_individual_persons += count($order_data['persons']);
+                            } elseif ($order_data['guest_type'] === 'family') {
+                                $total_family_persons += count($order_data['persons']);
+                            }
+                        }
+                        
+                        $total_all_persons = $total_individual_persons + $total_family_persons;
+                    ?>
                     <div class="row g-3">
                         <div class="col-12 col-sm-6 col-lg-4">
-                            <div class="bg-light p-3 rounded">
+                            <div class="bg-light p-3 rounded d-flex flex-column" style="min-height: 120px;">
                                 <div class="text-muted small">Gesamt Gäste</div>
-                                <div class="fs-3 fw-bold"><?php echo count($guests); ?> / <?php echo $project['max_guests']; ?></div>
+                                <div class="fs-3 fw-bold"><?php echo $total_all_persons; ?> / <?php echo $project['max_guests']; ?></div>
                                 <div class="progress mt-2" style="height: 8px;">
-                                    <div class="progress-bar" style="width: <?php echo ($project['max_guests'] > 0) ? (count($guests) / $project['max_guests']) * 100 : 0; ?>%"></div>
+                                    <div class="progress-bar" style="width: <?php echo ($project['max_guests'] > 0) ? ($total_all_persons / $project['max_guests']) * 100 : 0; ?>%"></div>
                                 </div>
                             </div>
                         </div>
                         <div class="col-12 col-sm-6 col-lg-4">
-                            <div class="bg-light p-3 rounded">
+                            <div class="bg-light p-3 rounded d-flex flex-column" style="min-height: 120px;">
                                 <div class="text-muted small">Einzelpersonen</div>
-                                <div class="fs-3 fw-bold"><?php echo count(array_filter($guests, fn($g) => $g['guest_type'] === 'individual')); ?></div>
+                                <div class="fs-3 fw-bold"><?php echo $total_individual_persons; ?></div>
                             </div>
                         </div>
                         <div class="col-12 col-sm-6 col-lg-4">
-                            <div class="bg-light p-3 rounded">
-                                <div class="text-muted small">Familien</div>
-                                <div class="fs-3 fw-bold"><?php echo count(array_filter($guests, fn($g) => $g['guest_type'] === 'family')); ?></div>
+                            <div class="bg-light p-3 rounded d-flex flex-column" style="min-height: 120px;">
+                                <div class="text-muted small">Familien (Personen)</div>
+                                <div class="fs-3 fw-bold"><?php echo $total_family_persons; ?></div>
                             </div>
                         </div>
                     </div>
