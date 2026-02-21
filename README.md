@@ -2,15 +2,17 @@
 
 Ein vollständiges PHP-basiertes System zur Verwaltung von Menüauswahl für Gäste mit Admin-Dashboard, PDF-Export und E-Mail-Integration.
 
-**Aktuelle Version:** 2.2.0
+**Aktuelle Version:** 1.7.0
 
 ## Features
 
 ✅ **Gast-Formular**
 - PIN-basierter Zugang (statt direkter URL)
+- **NEU v1.7:** Direkte Order-ID-Eingabe zur Bearbeitung bestehender Bestellungen
+- **NEU v1.7:** Toggle zwischen PIN-Eingabe und Order-ID-Eingabe
 - Persönliche Daten erfassen (Name, Email, Telefon)
-- **NEU:** Unterscheidung: Einzelperson oder Familie/Haushalt
-- **NEU:** Detaillierte Gast-Informationen pro Familienmitglied:
+- Unterscheidung: Einzelperson oder Familie/Haushalt
+- Detaillierte Gast-Informationen pro Familienmitglied:
   - Name jeder Person
   - Typ: Erwachsen oder Kind
   - Alter des Kindes
@@ -21,21 +23,23 @@ Ein vollständiges PHP-basiertes System zur Verwaltung von Menüauswahl für Gä
 
 ✅ **Admin-Bereich**
 - Projektmanagement (Veranstaltungen)
-  - **NEU:** PIN-basierter Zugang
-  - **NEU:** QR-Code Generator und Download
-  - **NEU:** E-Mail Einladung versenden
+  - PIN-basierter Zugang
+  - **NEU v1.7:** WYSIWYG-Editor (Quill.js) für Projektbeschreibungen
+  - **NEU v1.7:** Rich-Text-Formatierung: Überschriften, Farben, Größen, Ausrichtung, Listen
+  - QR-Code Generator und Download
+  - E-Mail Einladung versenden
 - Menüverwaltung (5 Kategorien: Vorspeise, Hauptspeise, Beilage, Salat, Nachspeise)
 - Gästeübersicht mit Statistiken
 - Bestellungshistorie
 - PDF-Export der Gästeübersicht
 - SMTP Mail-Konfiguration mit Test-Funktion
-- **NEU:** Datenbankmigrationen für Versionsupdates
+- Datenbankmigrationen für Versionsupdates
 
 ✅ **Datenbankschema**
 - Flexible Tabellenpräfixe (z.B. `menu_`)
 - Optimierte Datenstruktur für Projekte, Menüs, Gäste und Bestellungen
-- **NEU:** Familienmitglieder-Tabelle mit erweiterten Informationen
-- **NEU:** Zugangs-PIN System
+- Familienmitglieder-Tabelle mit erweiterten Informationen
+- Zugangs-PIN System
 - Audit Logging für Admin-Aktionen
 - Mail Logging für Versandhistorie
 - Migration Tracking für Versionsupdates
@@ -44,6 +48,8 @@ Ein vollständiges PHP-basiertes System zur Verwaltung von Menüauswahl für Gä
 - Passwort-Hashing mit PHP's Password Hashing API
 - Session-Management
 - SQL-Injection Protection (Prepared Statements)
+- **NEU v1.7:** HTML-Sanitization für Projektbeschreibungen
+- **NEU v1.7:** XSS-Schutz mit Whitelist-Tags und Style-Attributfilterung
 - CSRF Protection (Optional)
 
 ✅ **Mehrsprachigkeit**
@@ -205,17 +211,34 @@ system:
 
 ### Gast-Menüauswahl
 
-1. Gast öffnet: `index.php?project=1`
-2. Füllt Persönliche Daten aus
-3. Wählt Menüs mit +/- Buttons
-4. Submittet das Formular
-5. Erhält Bestätigungsemail
+**Variante 1: Mit PIN (Neugast)**
+1. Gast öffnet: `index.php`
+2. Gibt 6-stellige PIN ein, um auf das Projekt zuzugreifen
+3. Füllt Persönliche Daten aus
+4. Wählt Menüs mit +/- Buttons
+5. Submittet das Formular
+6. Erhält Bestätigungsemail mit Order-ID
+
+**Variante 2: Mit Order-ID (Bestellung bearbeiten)**
+1. Gast öffnet: `index.php`
+2. Klickt auf "📝 Bestellung mit Order-ID bearbeiten"
+3. Gibt Order-ID ein (z.B. `12345-67890`)
+4. Bestehende Bestellung wird geladen
+5. Kann Änderungen vornehmen und speichern
 
 ### Admin-Funktionen
 
 **Projekte erstellen:**
 - Admin-Bereich → Projekte → Neues Projekt
 - Definiert: Name, Ort, Max. Gäste, Kontaktdaten, Admin-Email
+- **NEU:** Rich-Text-Beschreibung mit WYSIWYG-Editor:
+  - Überschriften (H1, H2, H3)
+  - Textgrößen (klein, normal, groß, riesig)
+  - Farben und Hintergrundfarben
+  - Textausrichtung (links, zentriert, rechts, Blocksatz)
+  - Fett, Kursiv, Unterstrichen
+  - Aufzählungen und nummerierte Listen
+  - Links
 
 **Menüs verwalten:**
 - Admin-Bereich → Menüs
@@ -333,6 +356,34 @@ setLanguage('en');
 
 ---
 
+## Changelog
+
+### Version 1.7.0 (21. Februar 2026)
+
+**Neue Features:**
+- 🎨 WYSIWYG-Editor (Quill.js) für Projektbeschreibungen im Admin-Bereich
+- 📝 Rich-Text-Formatierung mit allen gängigen Optionen:
+  - Überschriften (H1, H2, H3)
+  - Textgrößen (klein, normal, groß, riesig)
+  - Farben und Hintergrundfarben
+  - Textausrichtung (links, zentriert, rechts, Blocksatz)
+  - Fett, Kursiv, Unterstrichen
+  - Aufzählungen und nummerierte Listen
+  - Links
+- 🔑 Direkte Order-ID-Eingabe für Bestellbearbeitung ohne PIN
+- 🔄 Toggle zwischen PIN-Eingabe und Order-ID-Eingabe auf Startseite
+
+**Verbesserungen:**
+- Verbesserte HTML-Sanitization mit Whitelist-Tags für sichere Inhaltsanzeige
+- Optimierte Zeilenabstände und Formatierung auf der Frontend-Ansicht
+- Bedingte Anzeige des Install-Links (nur wenn install.php existiert)
+
+**Sicherheit:**
+- XSS-Schutz für Rich-Content mit Style-Attributfilterung
+- Regex-basierte Event-Handler-Entfernung
+
+---
+
 ## Support & Dokumentation
 
 Die Anwendung wird unterstützt von:
@@ -343,6 +394,6 @@ Die Anwendung wird unterstützt von:
 
 ---
 
-**Version:** 1.0  
+**Version:** 1.7.0
 **Lizenz:** Proprietary  
-**Datum:** Februar 2026
+**Datum:** 21. Februar 2026
