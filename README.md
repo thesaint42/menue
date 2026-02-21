@@ -99,7 +99,12 @@ http://localhost/11_Menüwahl/index.php?project=1
 11_Menüwahl/
 ├── index.php                 # Gast-Formular
 ├── install.php              # Installations-Assistent
+├── migrate.php              # Datenbank-Migrationen
 ├── db.php                   # Zentrale DB-Verbindung
+├── datenschutz.php          # Datenschutzerklärung
+├── impressum.php            # Impressum
+├── vvt.php                  # Verfahrensverzeichnis
+├── deploy.sh                # FTPS-Deployment-Script
 ├── script/
 │   ├── config.yaml          # Konfigurationsdatei (wird bei Installation erstellt)
 │   ├── auth.php             # Authentifizierungsfunktionen
@@ -114,19 +119,26 @@ http://localhost/11_Menüwahl/index.php?project=1
 ├── admin/
 │   ├── login.php            # Admin Login
 │   ├── admin.php            # Dashboard
-│   ├── projects.php         # Projektenverwaltung
+│   ├── projects.php         # Projektenverwaltung (mit WYSIWYG-Editor)
 │   ├── dishes.php           # Menüverwaltung
 │   ├── guests.php           # Gästeübersicht
+│   ├── orders.php           # Bestellungsübersicht
 │   ├── export_pdf.php       # PDF Export
 │   ├── settings_mail.php    # Mail-Einstellungen
 │   ├── profile.php          # Admin Profil
 │   └── logout.php           # Logout
+├── views/
+│   ├── pin_entry.php        # PIN/Order-ID Eingabe (v1.7)
+│   ├── order_start.php      # Projekt-Willkommensseite mit Rich-Text-Beschreibung
+│   ├── order_form.php       # Bestellformular
+│   └── order_success.php    # Erfolgsbestätigung
 ├── nav/
 │   └── top_nav.php          # Hauptnavigation
 ├── assets/
 │   ├── css/
 │   │   └── style.css        # Hauptstyles
 │   └── js/
+├── tools/                   # Entwickler-Tools und Scripts
 ├── storage/
 │   ├── logs/                # Log-Dateien
 │   ├── pdfs/                # Exportierte PDFs
