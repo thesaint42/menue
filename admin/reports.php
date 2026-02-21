@@ -134,7 +134,8 @@ if ($project_id && !$project_not_found) {
                 'phone' => $order['phone'],
                 'guest_type' => $order['guest_type'],
                 'order_date' => $order['order_date'],
-                'persons' => []
+                'persons' => [],
+                'highchair_count' => 0  // Zähler für Hochstühle
             ];
         }
         
@@ -145,6 +146,11 @@ if ($project_id && !$project_not_found) {
             $member_type = $order['member_type'] ?? 'adult';
             $child_age = $order['child_age'] ?? null;
             $highchair = $order['highchair_needed'] ?? 0;
+            
+            // Zähle Hochstühle pro Bestellung
+            if ($highchair) {
+                $orders_by_id[$order_id]['highchair_count']++;
+            }
             
             // Formatiere Typ-Anzeige
             $type_display = ($member_type === 'child') ? 'Kind' : 'Erwachsener';
@@ -484,6 +490,9 @@ $projects = $pdo->query("SELECT * FROM {$prefix}projects WHERE is_active = 1 ORD
                                         (<?php echo htmlspecialchars($order_data['firstname'] . ' ' . $order_data['lastname']); ?> | <?php echo htmlspecialchars($order_data['email']); ?><?php if (!empty($order_data['phone'])): ?> | <?php echo htmlspecialchars($order_data['phone']); ?><?php endif; ?>)
                                     </span>
                                     <span class="badge bg-light text-dark ms-2"><?php echo count($order_data['persons']); ?> <?php echo count($order_data['persons']) === 1 ? 'Person' : 'Personen'; ?></span>
+                                    <?php if ($order_data['highchair_count'] > 0): ?>
+                                        <span class="badge bg-warning text-dark ms-2">🪑 <?php echo $order_data['highchair_count']; ?> <?php echo $order_data['highchair_count'] === 1 ? 'Hochstuhl' : 'Hochstühle'; ?></span>
+                                    <?php endif; ?>
                                 </div>
                                 
                                 <!-- Personen-Tabelle für diese Bestellung -->
