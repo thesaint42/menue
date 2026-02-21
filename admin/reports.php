@@ -5,6 +5,7 @@
 
 require_once '../db.php';
 require_once '../script/auth.php';
+require_once '../script/order_system.php';
 
 checkLogin();
 
@@ -212,6 +213,16 @@ if ($project_id && !$project_not_found) {
     }
 }
 
+// Küchen-Report Daten
+$kitchen_data = [];
+if ($project_id && !$project_not_found) {
+    try {
+        $kitchen_data = generate_kitchen_report($pdo, $prefix, $project_id);
+    } catch (Throwable $e) {
+        // ignore
+    }
+}
+
 
 
 
@@ -224,11 +235,12 @@ if (isset($_GET['download']) && $_GET['download'] === 'pdf') {
         exit;
     }
     $action = isset($_GET['action']) ? $_GET['action'] : 'download'; // 'download' oder 'view'
+    $requested_view = isset($_GET['view']) ? $_GET['view'] : 'orders';
     require_once '../script/tcpdf/tcpdf.php';
 
     $pdf = new TCPDF(PDF_PAGE_ORIENTATION, PDF_UNIT, PDF_PAGE_FORMAT, true, 'UTF-8', false);
     $pdf->SetCreator('Event Menue Order System (EMOS)');
-    $pdf->SetTitle('Bestellübersicht - ' . $project['name']);
+    $pdf->SetTitle(($requested_view === 'kitchen' ? 'Bestellte Gerichte - ' : 'Bestellübersicht - ') . $project['name']);
     $pdf->SetMargins(10, 10, 10);
     $pdf->SetAutoPageBreak(true, 15);
     $pdf->AddPage();
@@ -237,7 +249,7 @@ if (isset($_GET['download']) && $_GET['download'] === 'pdf') {
     $pdf->SetFillColor(13, 110, 253);
     $pdf->SetTextColor(255, 255, 255);
     $pdf->SetFont('helvetica', 'B', 16);
-    $pdf->Cell(0, 10, 'Bestellübersicht - ' . $project['name'], 0, 1, 'C', true);
+    $pdf->Cell(0, 10, ($requested_view === 'kitchen' ? 'Bestellte Gerichte - ' : 'Bestellübersicht - ') . $project['name'], 0, 1, 'C', true);
     
     $pdf->SetTextColor(0, 0, 0);
     $pdf->SetFont('helvetica', '', 10);
@@ -268,104 +280,126 @@ if (isset($_GET['download']) && $_GET['download'] === 'pdf') {
     $pdf->Cell(0, 5, 'Anzahl Hochstühle (HS): ' . $total_highchairs, 0, 1);
     $pdf->Ln(5);
 
-    // Tabelle
-    $pdf->SetFont('helvetica', 'B', 9);
-    $pdf->SetFillColor(200, 200, 200);
-    $pdf->Cell(40, 7, 'Bestellung', 1, 0, 'L', true);
-    $pdf->Cell(40, 7, 'Besteller', 1, 0, 'L', true);
-    $pdf->Cell(30, 7, 'Personen', 1, 0, 'C', true);
-    $pdf->Cell(80, 7, 'Gerichte', 1, 1, 'L', true);
+    if ($requested_view === 'kitchen') {
+        // Küchen-Tabelle: Kategorie | Gericht | Anzahl
+        $pdf->SetFont('helvetica', 'B', 9);
+        $pdf->SetFillColor(200, 200, 200);
+        $pdf->Cell(70, 7, 'Kategorie', 1, 0, 'L', true);
+        $pdf->Cell(80, 7, 'Gericht', 1, 0, 'L', true);
+        $pdf->Cell(30, 7, 'Anzahl', 1, 1, 'C', true);
 
-    $pdf->SetFont('helvetica', '', 8);
-    $fill = false;
+        $pdf->SetFont('helvetica', '', 9);
+        $fill = false;
+        foreach ($kitchen_data as $row) {
+            if ($pdf->GetY() > 260) {
+                $pdf->AddPage();
+            }
+            $pdf->SetFillColor($fill ? 245 : 255, $fill ? 245 : 255, $fill ? 245 : 255);
+            $pdf->Cell(70, 6, $row['category'], 1, 0, 'L', $fill);
+            $pdf->Cell(80, 6, $row['dish'], 1, 0, 'L', $fill);
+            $pdf->Cell(30, 6, $row['quantity'], 1, 1, 'C', $fill);
+            $fill = !$fill;
+        }
+    } else {
+        // Tabelle
+        $pdf->SetFont('helvetica', 'B', 9);
+        $pdf->SetFillColor(200, 200, 200);
+        $pdf->Cell(40, 7, 'Bestellung', 1, 0, 'L', true);
+        $pdf->Cell(40, 7, 'Besteller', 1, 0, 'L', true);
+        $pdf->Cell(30, 7, 'Personen', 1, 0, 'C', true);
+        $pdf->Cell(80, 7, 'Gerichte', 1, 1, 'L', true);
 
-    foreach ($orders_by_id as $order_id => $order_data) {
-        $guest_name = $order_data['firstname'] . ' ' . $order_data['lastname'];
-        $person_count = count($order_data['persons']);
-        $highchair_count = $order_data['highchair_count'];
-        
-        // Formatiere Personen-Anzeige mit Hochstühlen
-        $person_display = $person_count;
-        if ($highchair_count > 0) {
-            $person_display .= " (HS: " . $highchair_count . ")";
-        }
-        
-        // Erste Zeile: Bestellung, Besteller, Personen
-        // Prüfe ob genug Platz für mindestens diese Bestellung + nächste vorhanden ist
-        if ($pdf->GetY() > 250) { // Genug Raum für eine volle Bestellung?
-            $pdf->AddPage();
-        }
-        
-        $pdf->SetFillColor($fill ? 245 : 255, $fill ? 245 : 255, $fill ? 245 : 255);
-        $pdf->Cell(40, 6, $order_id, 1, 0, 'L', $fill);
-        $pdf->Cell(40, 6, $guest_name, 1, 0, 'L', $fill);
-        $pdf->Cell(30, 6, $person_display, 1, 0, 'C', $fill);
-        
-        // Sammle alle Personen mit ihren Gerichten
-        $person_list = [];
-        foreach ($order_data['persons'] as $person_id => $person) {
-            $person_info = $person['name'];
+        $pdf->SetFont('helvetica', '', 8);
+        $fill = false;
+
+        foreach ($orders_by_id as $order_id => $order_data) {
+            $guest_name = $order_data['firstname'] . ' ' . $order_data['lastname'];
+            $person_count = count($order_data['persons']);
+            $highchair_count = $order_data['highchair_count'];
             
-            // Gerichte pro Kategorie
-            $by_category = [];
-            foreach ($person['dishes'] as $dish) {
-                $category = $dish['category'];
-                if (!isset($by_category[$category])) {
-                    $by_category[$category] = [];
-                }
-                if (!in_array($dish['dish'], $by_category[$category])) {
-                    $by_category[$category][] = $dish['dish'];
-                }
+            // Formatiere Personen-Anzeige mit Hochstühlen
+            $person_display = $person_count;
+            if ($highchair_count > 0) {
+                $person_display .= " (HS: " . $highchair_count . ")";
             }
             
-            $dishes_for_person = [];
-            foreach ($by_category as $category => $dish_list) {
-                foreach ($dish_list as $dish) {
-                    $dishes_for_person[] = "• " . $category . ": " . $dish;
-                }
+            // Erste Zeile: Bestellung, Besteller, Personen
+            // Prüfe ob genug Platz für mindestens diese Bestellung + nächste vorhanden ist
+            if ($pdf->GetY() > 250) { // Genug Raum für eine volle Bestellung?
+                $pdf->AddPage();
             }
             
-            $person_list[] = array(
-                'name' => $person_info,
-                'dishes' => $dishes_for_person
-            );
-        }
-        
-        // Erste Person in der ersten Zeile - Name fett
-        if (!empty($person_list)) {
-            $first_person = $person_list[0];
-            $pdf->SetX(120);
-            $pdf->SetFont('helvetica', 'B', 8);
-            $pdf->Cell(80, 6, $first_person['name'], 1, 1, 'L', $fill);
+            $pdf->SetFillColor($fill ? 245 : 255, $fill ? 245 : 255, $fill ? 245 : 255);
+            $pdf->Cell(40, 6, $order_id, 1, 0, 'L', $fill);
+            $pdf->Cell(40, 6, $guest_name, 1, 0, 'L', $fill);
+            $pdf->Cell(30, 6, $person_display, 1, 0, 'C', $fill);
             
-            $pdf->SetFont('helvetica', '', 8);
-            $pdf->SetX(120);
-            $first_dishes_text = implode("\n", $first_person['dishes']);
-            $pdf->MultiCell(80, 5, $first_dishes_text, 1, 'L', $fill);
-            
-            // Weitere Personen in separaten Zellen (nur Gerichte-Spalte, ohne leere Zellen)
-            for ($i = 1; $i < count($person_list); $i++) {
-                $person = $person_list[$i];
-                $pdf->SetFillColor($fill ? 245 : 255, $fill ? 245 : 255, $fill ? 245 : 255);
+            // Sammle alle Personen mit ihren Gerichten
+            $person_list = [];
+            foreach ($order_data['persons'] as $person_id => $person) {
+                $person_info = $person['name'];
                 
-                // Person-Name fett
+                // Gerichte pro Kategorie
+                $by_category = [];
+                foreach ($person['dishes'] as $dish) {
+                    $category = $dish['category'];
+                    if (!isset($by_category[$category])) {
+                        $by_category[$category] = [];
+                    }
+                    if (!in_array($dish['dish'], $by_category[$category])) {
+                        $by_category[$category][] = $dish['dish'];
+                    }
+                }
+                
+                $dishes_for_person = [];
+                foreach ($by_category as $category => $dish_list) {
+                    foreach ($dish_list as $dish) {
+                        $dishes_for_person[] = "• " . $category . ": " . $dish;
+                    }
+                }
+                
+                $person_list[] = array(
+                    'name' => $person_info,
+                    'dishes' => $dishes_for_person
+                );
+            }
+            
+            // Erste Person in der ersten Zeile - Name fett
+            if (!empty($person_list)) {
+                $first_person = $person_list[0];
                 $pdf->SetX(120);
                 $pdf->SetFont('helvetica', 'B', 8);
-                $pdf->Cell(80, 6, $person['name'], 1, 1, 'L', $fill);
+                $pdf->Cell(80, 6, $first_person['name'], 1, 1, 'L', $fill);
                 
-                // Gerichte dieser Person normal
                 $pdf->SetFont('helvetica', '', 8);
                 $pdf->SetX(120);
-                $person_dishes_text = implode("\n", $person['dishes']);
-                $pdf->MultiCell(80, 5, $person_dishes_text, 1, 'L', $fill);
+                $first_dishes_text = implode("\n", $first_person['dishes']);
+                $pdf->MultiCell(80, 5, $first_dishes_text, 1, 'L', $fill);
+                
+                // Weitere Personen in separaten Zellen (nur Gerichte-Spalte, ohne leere Zellen)
+                for ($i = 1; $i < count($person_list); $i++) {
+                    $person = $person_list[$i];
+                    $pdf->SetFillColor($fill ? 245 : 255, $fill ? 245 : 255, $fill ? 245 : 255);
+                    
+                    // Person-Name fett
+                    $pdf->SetX(120);
+                    $pdf->SetFont('helvetica', 'B', 8);
+                    $pdf->Cell(80, 6, $person['name'], 1, 1, 'L', $fill);
+                    
+                    // Gerichte dieser Person normal
+                    $pdf->SetFont('helvetica', '', 8);
+                    $pdf->SetX(120);
+                    $person_dishes_text = implode("\n", $person['dishes']);
+                    $pdf->MultiCell(80, 5, $person_dishes_text, 1, 'L', $fill);
+                }
+            } else {
+                $pdf->SetX(120);
+                $pdf->MultiCell(80, 6, '–', 1, 'L', $fill);
             }
-        } else {
-            $pdf->SetX(120);
-            $pdf->MultiCell(80, 6, '–', 1, 'L', $fill);
+            
+            $pdf->SetFont('helvetica', '', 8);
+            $fill = !$fill;
         }
-        
-        $pdf->SetFont('helvetica', '', 8);
-        $fill = !$fill;
     }
 
     $filename = 'bestellungen_' . $project_id . '_' . date('Ymd_Hi') . '.pdf';
@@ -514,12 +548,12 @@ $projects = $pdo->query("SELECT * FROM {$prefix}projects WHERE is_active = 1 ORD
             </a>
         </div>
 
-        <!-- Gäste -->
+        <!-- Bestellte Gerichte (Küche) -->
         <div class="col-12 col-sm-6 col-lg-4">
-            <a href="?project=<?php echo $project_id; ?>&view=guests" class="report-icon-btn">
-                <div class="icon">👥</div>
-                <div class="title">Gäste</div>
-                <div class="subtitle">Alle Gäste anzeigen</div>
+            <a href="?project=<?php echo $project_id; ?>&view=kitchen" class="report-icon-btn">
+                <div class="icon">🍽️</div>
+                <div class="title">Bestellte Gerichte</div>
+                <div class="subtitle">Anzahl pro Gericht (Küche)</div>
             </a>
         </div>
 
@@ -595,6 +629,56 @@ $projects = $pdo->query("SELECT * FROM {$prefix}projects WHERE is_active = 1 ORD
                 </div>
 
             <?php elseif ($_GET['view'] === 'stats'): ?>
+                <?php elseif ($_GET['view'] === 'kitchen'): ?>
+                    <div class="card-header bg-info text-white py-3">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">Bestellte Gerichte: <?php echo htmlspecialchars($project['name']); ?></h5>
+                            <small class="mb-0">🍽️ Küchen-Report</small>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <?php
+                            $order_count = count($orders_by_id);
+                            $total_persons = 0;
+                            $total_highchairs = 0;
+                            foreach ($orders_by_id as $odata) {
+                                $total_persons += count($odata['persons']);
+                                $total_highchairs += $odata['highchair_count'];
+                            }
+                        ?>
+                        <div class="mb-3">
+                            <div><strong>Name:</strong> <?php echo htmlspecialchars($project['name']); ?></div>
+                            <?php if ($project['location']): ?><div><strong>Ort:</strong> <?php echo htmlspecialchars($project['location']); ?></div><?php endif; ?>
+                            <div><strong>Anzahl Bestellungen:</strong> <?php echo $order_count; ?></div>
+                            <div><strong>Anzahl Personen:</strong> <?php echo $total_persons; ?></div>
+                            <div><strong>Anzahl Hochstühle (HS):</strong> <?php echo $total_highchairs; ?></div>
+                        </div>
+
+                        <?php if (empty($kitchen_data)): ?>
+                            <p class="text-center text-muted">Keine bestellten Gerichte vorhanden</p>
+                        <?php else: ?>
+                            <div class="table-responsive">
+                                <table class="table table-sm">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th style="width: 35%;">Kategorie</th>
+                                            <th style="width: 50%;">Gericht</th>
+                                            <th style="width: 15%;">Anzahl</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <?php foreach ($kitchen_data as $row): ?>
+                                            <tr>
+                                                <td><?php echo htmlspecialchars($row['category']); ?></td>
+                                                <td><?php echo htmlspecialchars($row['dish']); ?></td>
+                                                <td class="text-center"><?php echo (int)$row['quantity']; ?></td>
+                                            </tr>
+                                        <?php endforeach; ?>
+                                    </tbody>
+                                </table>
+                            </div>
+                        <?php endif; ?>
+                    </div>
                 <div class="card-header bg-success text-white py-3">
                     <h5 class="mb-0">Statistiken: <?php echo htmlspecialchars($project['name']); ?></h5>
                 </div>
@@ -624,38 +708,7 @@ $projects = $pdo->query("SELECT * FROM {$prefix}projects WHERE is_active = 1 ORD
                     </div>
                 </div>
 
-            <?php elseif ($_GET['view'] === 'guests'): ?>
-                <div class="card-header bg-warning text-dark py-3">
-                    <h5 class="mb-0">Gäste: <?php echo htmlspecialchars($project['name']); ?></h5>
-                </div>
-                <div class="card-body">
-                    <div class="row g-3">
-                        <?php if (empty($guests)): ?>
-                            <div class="col-12"><p class="text-muted text-center py-5">Keine Gäste vorhanden</p></div>
-                        <?php else: ?>
-                            <?php foreach ($guests as $g): ?>
-                            <div class="col-12 col-md-6 col-lg-4">
-                                <div class="card border-0 bg-light">
-                                    <div class="card-body">
-                                        <h6 class="card-title"><?php echo htmlspecialchars($g['firstname'] . ' ' . $g['lastname']); ?></h6>
-                                        <p class="card-text small text-muted mb-2">
-                                            📧 <a href="mailto:<?php echo htmlspecialchars($g['email']); ?>"><?php echo htmlspecialchars($g['email']); ?></a>
-                                        </p>
-                                        <?php if ($g['phone']): ?>
-                                            <p class="card-text small text-muted mb-2">
-                                                📞 <?php echo htmlspecialchars($g['phone']); ?>
-                                            </p>
-                                        <?php endif; ?>
-                                        <p class="card-text small mb-0">
-                                            <span class="badge bg-secondary"><?php echo $g['guest_type'] === 'family' ? 'Familie' : 'Einzeln'; ?></span>
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-                            <?php endforeach; ?>
-                        <?php endif; ?>
-                    </div>
-                </div>
+            
             <?php endif; ?>
         </div>
     <?php endif; ?>
@@ -695,8 +748,8 @@ function closePdfModal(action) {
         modal.hide();
     }
     
-    // Navigiere zur PDF
-    const url = '?project=<?php echo $project_id; ?>&download=pdf&action=' + action;
+    // Navigiere zur PDF (aktuelle Ansicht mitgeben)
+    const url = '?project=<?php echo $project_id; ?>&view=<?php echo isset($_GET['view']) ? $_GET['view'] : 'orders'; ?>&download=pdf&action=' + action;
     if (action === 'view') {
         window.open(url, '_blank');
     } else {
