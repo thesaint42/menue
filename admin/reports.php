@@ -574,6 +574,23 @@ $projects = $pdo->query("SELECT * FROM {$prefix}projects WHERE is_active = 1 ORD
                     </div>
                 </div>
                 <div class="card-body">
+                    <?php
+                        $order_count = count($orders_by_id);
+                        $total_persons = 0;
+                        $total_highchairs = 0;
+                        foreach ($orders_by_id as $odata) {
+                            $total_persons += count($odata['persons']);
+                            $total_highchairs += $odata['highchair_count'];
+                        }
+                    ?>
+                    <div class="mb-3">
+                        <div><strong>Name:</strong> <?php echo htmlspecialchars($project['name']); ?></div>
+                        <?php if ($project['location']): ?><div><strong>Ort:</strong> <?php echo htmlspecialchars($project['location']); ?></div><?php endif; ?>
+                        <div><strong>Anzahl Bestellungen:</strong> <?php echo $order_count; ?></div>
+                        <div><strong>Anzahl Personen:</strong> <?php echo $total_persons; ?></div>
+                        <div><strong>Anzahl Hochstühle (HS):</strong> <?php echo $total_highchairs; ?></div>
+                    </div>
+                    
                     <?php if (empty($orders_by_id)): ?>
                         <p class="text-center text-muted">Keine Bestellungen vorhanden</p>
                     <?php else: ?>
