@@ -526,16 +526,7 @@ $projects = $pdo->query("SELECT * FROM {$prefix}projects WHERE is_active = 1 ORD
             <a href="?project=<?php echo $project_id; ?>&view=orders" class="report-icon-btn">
                 <div class="icon">📋</div>
                 <div class="title">Bestellungen</div>
-                <div class="subtitle">Alle Bestellungen anzeigen</div>
-            </a>
-        </div>
-
-        <!-- CSV Export -->
-        <div class="col-12 col-sm-6 col-lg-4">
-            <a onclick="exportCSV()" class="report-icon-btn" style="cursor: pointer;">
-                <div class="icon">📊</div>
-                <div class="title">CSV Export</div>
-                <div class="subtitle">Als CSV herunterladen</div>
+                <div class="subtitle">Gerichte pro Person (Service)</div>
             </a>
         </div>
 
@@ -548,21 +539,21 @@ $projects = $pdo->query("SELECT * FROM {$prefix}projects WHERE is_active = 1 ORD
             </a>
         </div>
 
+        <!-- CSV Export -->
+        <div class="col-12 col-sm-6 col-lg-4">
+            <a onclick="exportCSV()" class="report-icon-btn" style="cursor: pointer;">
+                <div class="icon">📊</div>
+                <div class="title">CSV Export</div>
+                <div class="subtitle">Als CSV herunterladen</div>
+            </a>
+        </div>
+
         <!-- Bestellte Gerichte (Küche) -->
         <div class="col-12 col-sm-6 col-lg-4">
             <a href="?project=<?php echo $project_id; ?>&view=kitchen" class="report-icon-btn">
                 <div class="icon">🍽️</div>
                 <div class="title">Bestellte Gerichte</div>
                 <div class="subtitle">Anzahl pro Gericht (Küche)</div>
-            </a>
-        </div>
-
-        <!-- Statistiken -->
-        <div class="col-12 col-sm-6 col-lg-4">
-            <a href="?project=<?php echo $project_id; ?>&view=stats" class="report-icon-btn">
-                <div class="icon">📈</div>
-                <div class="title">Statistiken</div>
-                <div class="subtitle">Auswertungen & Analysen</div>
             </a>
         </div>
     </div>
