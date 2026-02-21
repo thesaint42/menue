@@ -539,14 +539,7 @@ $projects = $pdo->query("SELECT * FROM {$prefix}projects WHERE is_active = 1 ORD
             </a>
         </div>
 
-        <!-- CSV Export -->
-        <div class="col-12 col-sm-6 col-lg-4">
-            <a onclick="exportCSV()" class="report-icon-btn" style="cursor: pointer;">
-                <div class="icon">📊</div>
-                <div class="title">CSV Export</div>
-                <div class="subtitle">Als CSV herunterladen</div>
-            </a>
-        </div>
+        <div></div>
 
         <!-- Bestellte Gerichte (Küche) -->
         <div class="col-12 col-sm-6 col-lg-4">
@@ -554,6 +547,17 @@ $projects = $pdo->query("SELECT * FROM {$prefix}projects WHERE is_active = 1 ORD
                 <div class="icon">🍽️</div>
                 <div class="title">Bestellte Gerichte</div>
                 <div class="subtitle">Anzahl pro Gericht (Küche)</div>
+            </a>
+        </div>
+
+        <div></div>
+
+        <!-- CSV Export -->
+        <div class="col-12 col-sm-6 col-lg-4">
+            <a onclick="exportCSV()" class="report-icon-btn" style="cursor: pointer;">
+                <div class="icon">📊</div>
+                <div class="title">CSV Export</div>
+                <div class="subtitle">Als CSV herunterladen</div>
             </a>
         </div>
     </div>
