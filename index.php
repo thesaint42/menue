@@ -38,6 +38,31 @@ $action = $_GET['action'] ?? null;
 $edit_order_id = $_GET['order_id'] ?? null;
 $existing_order = null;
 
+// Wenn Order-ID ohne PIN eingegeben wurde, versuche Bestellung zu laden
+if ($edit_order_id && !$pin_input && $action === 'edit') {
+    $existing_order = load_order_by_id($pdo, $prefix, $edit_order_id);
+    if ($existing_order) {
+        // Projekt aus Bestellung laden
+        $stmt = $pdo->prepare("SELECT * FROM {$prefix}projects WHERE id = ?");
+        $stmt->execute([$existing_order['project_id']]);
+        $project = $stmt->fetch();
+        if ($project) {
+            $project_id = $project['id'];
+            $_SESSION['current_project'] = $project_id;
+        } else {
+            $message = "❌ Projekt nicht gefunden. Bestellung kann nicht geladen werden.";
+            $messageType = "danger";
+            include 'views/pin_entry.php';
+            exit;
+        }
+    } else {
+        $message = "❌ Bestellung nicht gefunden. Bitte prüfen Sie die Order-ID.";
+        $messageType = "danger";
+        include 'views/pin_entry.php';
+        exit;
+    }
+}
+
 if (!$project && !$pin_input) {
     // Keine PIN -> zeige PIN-Eingabeseite
     include 'views/pin_entry.php';
@@ -51,7 +76,7 @@ if ($project && !$action && !$edit_order_id) {
 }
 
 // Schritt 3: Bestellung laden (falls edit_order_id)
-if ($edit_order_id) {
+if ($edit_order_id && !$existing_order) {
     $existing_order = load_order_by_id($pdo, $prefix, $edit_order_id);
     if (!$existing_order) {
         $message = "❌ Bestellung nicht gefunden. Bitte prüfen Sie die Order-ID.";

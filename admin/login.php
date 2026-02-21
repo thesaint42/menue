@@ -79,10 +79,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <button type="submit" class="btn btn-primary w-100 py-2 fw-bold">Anmelden</button>
                     </form>
 
-                    <hr class="border-secondary my-4">
-                    <p class="text-center text-secondary small">
-                        Noch nicht installiert? <a href="../install.php" class="text-info">Zur Installation</a>
-                    </p>
+                    <?php if (file_exists(__DIR__ . '/../install.php')): ?>
+                        <hr class="border-secondary my-4">
+                        <p class="text-center text-secondary small">
+                            Noch nicht installiert? <a href="../install.php" class="text-info">Zur Installation</a>
+                        </p>
+                    <?php endif; ?>
                 </div>
             </div>
         </div>

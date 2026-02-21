@@ -52,10 +52,20 @@ if (empty($prefix)) {
 $message = "";
 $messageType = "info";
 
+function sanitize_project_description($html) {
+    $allowed = '<p><br><strong><b><em><i><u><ul><ol><li><a><span>';
+    $clean = strip_tags((string)$html, $allowed);
+    // Remove inline event handlers and javascript: URLs
+    $clean = preg_replace('/\son\w+\s*=\s*"[^"]*"/i', '', $clean);
+    $clean = preg_replace("/\son\w+\s*=\s*'[^']*'/i", '', $clean);
+    $clean = preg_replace('/javascript:/i', '', $clean);
+    return trim($clean);
+}
+
 // Projekt erstellen
 if (isset($_POST['create_project'])) {
     $name = trim($_POST['name']);
-    $description = trim($_POST['description']);
+    $description = sanitize_project_description($_POST['description'] ?? '');
     $location = trim($_POST['location']);
     $contact_person = trim($_POST['contact_person']);
     $contact_phone_raw = trim($_POST['contact_phone']);
@@ -105,7 +115,7 @@ if (isset($_POST['create_project'])) {
 if (isset($_POST['update_project'])) {
     $id = (int)$_POST['project_id'];
     $name = trim($_POST['name']);
-    $description = trim($_POST['description']);
+    $description = sanitize_project_description($_POST['description'] ?? '');
     $location = trim($_POST['location']);
     $contact_person = trim($_POST['contact_person']);
     $contact_phone_raw = trim($_POST['contact_phone']);
@@ -330,8 +340,19 @@ $projects = $pdo->query("SELECT * FROM {$prefix}projects ORDER BY created_at DES
     <meta charset="UTF-8">
     <title>Projektenverwaltung - Event Menue Order System (EMOS)</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/quill@1.3.7/dist/quill.snow.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/intl-tel-input@24.5.0/build/css/intlTelInput.min.css">
     <link href="../assets/css/style.css" rel="stylesheet">
+    <style>
+        .quill-editor { min-height: 140px; margin-bottom: 1rem; }
+        .ql-toolbar.ql-snow, .ql-container.ql-snow { border-color: #495057; }
+        .ql-container.ql-snow { background: #1f1f1f; color: #f8f9fa; height: auto; }
+        .ql-editor { color: #f8f9fa; min-height: 120px; }
+        .ql-snow .ql-picker { color: #f8f9fa; }
+        .ql-snow .ql-stroke { stroke: #f8f9fa; }
+        .ql-snow .ql-fill { fill: #f8f9fa; }
+        .ql-snow .ql-picker-options { background: #2b2b2b; }
+    </style>
 </head>
 <body>
 
@@ -436,7 +457,8 @@ $projects = $pdo->query("SELECT * FROM {$prefix}projects ORDER BY created_at DES
                         </div>
                         <div class="col-12">
                             <label class="form-label">Beschreibung</label>
-                            <textarea name="description" id="edit_description" class="form-control" rows="3"></textarea>
+                            <div id="edit_description_editor" class="quill-editor"></div>
+                            <input type="hidden" name="description" id="edit_description">
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Ansprechpartner</label>
@@ -501,7 +523,8 @@ $projects = $pdo->query("SELECT * FROM {$prefix}projects ORDER BY created_at DES
                         </div>
                         <div class="col-12">
                             <label class="form-label">Beschreibung</label>
-                            <textarea name="description" class="form-control" rows="3"></textarea>
+                            <div id="add_description_editor" class="quill-editor"></div>
+                            <input type="hidden" name="description" id="add_description">
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Ansprechpartner</label>
@@ -620,8 +643,56 @@ $projects = $pdo->query("SELECT * FROM {$prefix}projects ORDER BY created_at DES
     </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/quill@1.3.7/dist/quill.min.js"></script>
 <script>
 let currentProject = null;
+let editQuill = null;
+let addQuill = null;
+
+function initQuillEditors() {
+    const toolbarOptions = [
+        [{ 'header': [1, 2, 3, false] }],
+        [{ 'size': ['small', false, 'large', 'huge'] }],
+        ['bold', 'italic', 'underline'],
+        [{ 'color': [] }, { 'background': [] }],
+        [{ 'align': [] }],
+        [{'list': 'ordered'}, {'list': 'bullet'}],
+        ['link'],
+        ['clean']
+    ];
+
+    const editEditor = document.getElementById('edit_description_editor');
+    if (editEditor) {
+        editQuill = new Quill(editEditor, {
+            theme: 'snow',
+            modules: { toolbar: toolbarOptions }
+        });
+    }
+
+    const addEditor = document.getElementById('add_description_editor');
+    if (addEditor) {
+        addQuill = new Quill(addEditor, {
+            theme: 'snow',
+            modules: { toolbar: toolbarOptions }
+        });
+    }
+
+    const editForm = document.getElementById('editProjectForm');
+    if (editForm) {
+        editForm.addEventListener('submit', function(){
+            const hidden = document.getElementById('edit_description');
+            if (editQuill && hidden) hidden.value = editQuill.root.innerHTML;
+        });
+    }
+
+    const addForm = document.getElementById('addProjectForm');
+    if (addForm) {
+        addForm.addEventListener('submit', function(){
+            const hidden = document.getElementById('add_description');
+            if (addQuill && hidden) hidden.value = addQuill.root.innerHTML;
+        });
+    }
+}
 
 function showPinQR(project) {
     currentProject = project;
@@ -653,6 +724,9 @@ function loadProjectData(project) {
     document.getElementById('edit_name').value = project.name;
     document.getElementById('edit_location').value = project.location || '';
     document.getElementById('edit_description').value = project.description || '';
+    if (editQuill) {
+        editQuill.root.innerHTML = project.description || '';
+    }
     document.getElementById('edit_contact_person').value = project.contact_person || '';
     var phoneEl = document.getElementById('edit_contact_phone_visible');
     var phoneFull = document.getElementById('edit_contact_phone_full');
@@ -678,6 +752,11 @@ function loadProjectData(project) {
         showPricesEl.checked = !!parseInt(project.show_prices || 0, 10);
     }
 }
+</script>
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+    initQuillEditors();
+});
 </script>
 <script src="https://cdn.jsdelivr.net/npm/intl-tel-input@24.5.0/build/js/intlTelInput.min.js"></script>
 <script>
