@@ -152,31 +152,59 @@ http://localhost/11_Menüwahl/index.php?project=1
 
 ### Haupttabellen
 
+**`menu_roles`** - Benutzerrollen
+```sql
+id, name, description
+```
+
 **`menu_users`** - Administrator-Benutzer
 ```sql
 id, firstname, lastname, email, password_hash, role_id, is_active, created_at
 ```
 
+**`menu_password_resets`** - Passwort-Reset-Tokens
+```sql
+id, email, token, expires_at
+```
+
 **`menu_projects`** - Veranstaltungen/Projekte
 ```sql
 id, name, description, location, contact_person, contact_phone, contact_email, 
-max_guests, admin_email, is_active, created_by, created_at
+max_guests, admin_email, access_pin, is_active, show_prices, created_by, created_at
+```
+*NEU v1.7: description unterstützt Rich-Text-HTML*
+
+**`menu_menu_categories`** - Menü-Kategorien
+```sql
+id, name, sort_order
 ```
 
 **`menu_dishes`** - Menü-Gerichte
 ```sql
-id, project_id, category_id, name, description, sort_order, is_active, created_at
+id, project_id, category_id, name, description, price, sort_order, is_active, created_at
 ```
+
+**`menu_order_sessions`** - Bestellvorgänge mit eindeutiger Order-ID
+```sql
+id, order_id (36 Zeichen UUID), project_id, email, created_at
+```
+*NEU v1.7: Ermöglicht Order-ID-basierte Bestellbearbeitung*
 
 **`menu_guests`** - Gäste mit Bestellinformationen
 ```sql
 id, project_id, firstname, lastname, email, phone, guest_type (individual|family), 
-age_group (adult|child), child_age, family_size, order_status, created_at
+family_size, person_type (adult|child), child_age, highchair_needed, 
+order_status (pending|confirmed|cancelled), created_at
 ```
 
-**`menu_orders`** - Einzelne Menübestellungen pro Gast
+**`menu_family_members`** - Familienmitglieder bei Familienbestellungen
 ```sql
-id, guest_id, dish_id, quantity, created_at
+id, guest_id, name, member_type (adult|child), child_age, highchair_needed, created_at
+```
+
+**`menu_orders`** - Einzelne Menüauswahl pro Person und Gang
+```sql
+id, order_id (UUID), person_id, dish_id, category_id, created_at
 ```
 
 **`menu_smtp_config`** - SMTP Server-Konfiguration
@@ -186,7 +214,7 @@ id, smtp_host, smtp_port, smtp_user, smtp_pass, smtp_secure, sender_email, sende
 
 **`menu_mail_logs`** - Versandhistorie
 ```sql
-id, sender, recipient, subject, sent_at, status, error_message
+id, sender, recipient, subject, sent_at, status (success|failed), error_message
 ```
 
 **`menu_logs`** - Audit Log (Admin-Aktionen)
