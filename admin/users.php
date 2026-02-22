@@ -158,6 +158,16 @@ $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
 $stmt = $pdo->query("SELECT id, name FROM {$prefix}projects ORDER BY name");
 $all_projects = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+// Lade Rollen mit projects_write Berechtigung
+$roles_with_projects_write = [];
+try {
+    $stmt = $pdo->prepare("SELECT DISTINCT role_id FROM {$prefix}role_menu_access WHERE menu_key = 'projects_write' AND visible = 1");
+    $stmt->execute();
+    $roles_with_projects_write = $stmt->fetchAll(PDO::FETCH_COLUMN, 0);
+} catch (Exception $e) {
+    error_log("Could not load roles with projects_write: " . $e->getMessage());
+}
+
 // Lade für jeden User die zugewiesenen Projekte (nur wenn Rolle 'projects_write' Berechtigung hat)
 $user_projects = [];
 try {
@@ -273,8 +283,10 @@ try {
                             <label for="role_id" class="form-label">Rolle</label>
                             <select name="role_id" id="role_id" class="form-select form-select-sm" required onchange="toggleProjectsCreation()">
                                 <option value="">Wählen...</option>
-                                <?php foreach ($roles as $role): ?>
-                                    <option value="<?php echo $role['id']; ?>"><?php echo htmlspecialchars($role['name']); ?></option>
+                                <?php foreach ($roles as $role): 
+                                    $has_projects_write = in_array($role['id'], $roles_with_projects_write);
+                                ?>
+                                    <option value="<?php echo $role['id']; ?>" data-has-projects-write="<?php echo $has_projects_write ? '1' : '0'; ?>"><?php echo htmlspecialchars($role['name']); ?></option>
                                 <?php endforeach; ?>
                             </select>
                         </div>
@@ -327,15 +339,15 @@ try {
                                             <div class="mt-2">
                                                 <select name="role_id" class="form-select form-select-sm w-100 role-select" onchange="toggleProjectsSection(this, <?php echo $user['id']; ?>)" disabled>
                                                     <?php foreach ($roles as $role): 
-                                                        $has_project_admin = isset($role_features[$role['id']]) && isset($role_features[$role['id']]['project_admin']) && $role_features[$role['id']]['project_admin'];
+                                                        $has_projects_write = in_array($role['id'], $roles_with_projects_write);
                                                     ?>
-                                                        <option value="<?php echo $role['id']; ?>" data-has-project-admin="<?php echo $has_project_admin ? '1' : '0'; ?>" <?php echo $user['role_id'] == $role['id'] ? 'selected' : ''; ?>><?php echo htmlspecialchars($role['name']); ?></option>
+                                                        <option value="<?php echo $role['id']; ?>" data-has-project-admin="<?php echo $has_projects_write ? '1' : '0'; ?>" <?php echo $user['role_id'] == $role['id'] ? 'selected' : ''; ?>><?php echo htmlspecialchars($role['name']); ?></option>
                                                     <?php endforeach; ?>
                                                 </select>
                                             </div>
-                                            <!-- Projekt-Auswahl (versteckt wenn Rolle nicht 'project_admin' Feature hat) -->
-                                            <?php $has_project_admin = isset($role_features[$user['role_id']]) && isset($role_features[$user['role_id']]['project_admin']) && $role_features[$user['role_id']]['project_admin']; ?>
-                                            <div class="mt-2 projects-section-<?php echo $user['id']; ?>" style="<?php echo $has_project_admin ? '' : 'display: none;'; ?>">
+                                            <!-- Projekt-Auswahl (versteckt wenn Rolle nicht 'projects_write' Berechtigung hat) -->
+                                            <?php $has_projects_write = in_array($user['role_id'], $roles_with_projects_write); ?>
+                                            <div class="mt-2 projects-section-<?php echo $user['id']; ?>" style="<?php echo $has_projects_write ? '' : 'display: none;'; ?>">
                                                 <label class="form-label small">Verwaltbare Projekte:</label>
                                                 <div class="ps-2">
                                                     <?php foreach ($all_projects as $project): ?>
@@ -420,9 +432,9 @@ function toggleProjectsCreation() {
     if (!roleSelect || !projectsSection) return;
     
     const selectedOption = roleSelect.options[roleSelect.selectedIndex];
-    const hasProjectAdmin = selectedOption && selectedOption.dataset.hasProjectAdmin === '1';
+    const hasProjectsWrite = selectedOption && selectedOption.dataset.hasProjectsWrite === '1';
     
-    projectsSection.style.display = hasProjectAdmin ? 'block' : 'none';
+    projectsSection.style.display = hasProjectsWrite ? 'block' : 'none';
 }
 
 function toggleProjectsSection(roleSelect, userId) {
