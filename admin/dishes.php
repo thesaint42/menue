@@ -366,7 +366,7 @@ if ($project_id) {
                                 <div class="col-6 col-md-3 d-flex align-items-end">
                                     <div class="action-buttons w-100">
                                         <?php if ($can_write_menus): ?>
-                                        <button type="button" class="btn btn-sm btn-danger delete-btn" data-bs-toggle="modal" data-bs-target="#deleteModal" onclick="document.getElementById('deleteForm').innerHTML = '<input type=hidden name=id value=<?php echo $dish['id']; ?>><input type=hidden name=delete_dish value=1>'">
+                                        <button type="button" class="btn btn-sm btn-danger delete-btn" onclick="confirmDelete(<?php echo $dish['id']; ?>, '<?php echo htmlspecialchars(addslashes($dish['name'])); ?>')">
                                             🗑️ <span class="btn-text">Löschen</span>
                                         </button>
                                         <button type="button" class="btn btn-sm btn-success edit-btn" onclick="toggleEdit(this, <?php echo $dish['id']; ?>)" data-id="<?php echo $dish['id']; ?>">
@@ -400,28 +400,6 @@ if ($project_id) {
     <?php endif; ?>
 </div>
 
-<!-- Delete Modal -->
-<div class="modal fade" id="deleteModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content bg-dark border-secondary">
-            <div class="modal-header border-secondary">
-                <h5 class="modal-title">Gericht löschen?</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <p>Dieses Gericht wird permanent gelöscht.</p>
-            </div>
-            <div class="modal-footer border-secondary">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Abbrechen</button>
-                <form method="post" class="d-inline">
-                    <div id="deleteForm"></div>
-                    <button type="submit" class="btn btn-danger">Löschen</button>
-                </form>
-            </div>
-        </div>
-    </div>
-</div>
-
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
 // Auto-dismiss alerts after 3 seconds
@@ -451,6 +429,17 @@ function toggleEdit(btn, id) {
     editBtn.classList.toggle('d-none');
     saveBtn.classList.toggle('d-none');
     deleteBtn.classList.toggle('d-none');
+}
+
+function confirmDelete(id, name) {
+    if (confirm('Möchten Sie das Gericht "' + name + '" wirklich löschen?\n\nDiese Aktion kann nicht rückgängig gemacht werden.')) {
+        // Erstelle ein verstecktes Formular und sende es ab
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.innerHTML = '<input type="hidden" name="id" value="' + id + '"><input type="hidden" name="delete_dish" value="1">';
+        document.body.appendChild(form);
+        form.submit();
+    }
 }
 </script>
 
