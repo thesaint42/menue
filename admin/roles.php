@@ -240,6 +240,28 @@ $available_menu_items = [
             }
         }
         .alert { display: flex; align-items: center; justify-content: space-between; padding-right: 20px; }
+        .system-role-close-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 28px;
+            height: 28px;
+            background-color: #dc3545;
+            border-radius: 4px;
+            cursor: pointer;
+            flex-shrink: 0;
+            padding: 0;
+            border: none;
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: white;
+            margin-left: 1rem;
+            line-height: 1;
+        }
+        .system-role-close-btn:hover { 
+            background-color: #bb2d3b;
+            transform: scale(1.05);
+        }
         .close-button-wrapper {
             display: flex;
             align-items: center;
@@ -386,7 +408,7 @@ $available_menu_items = [
                                                     <div>
                                                         🔒 <strong><?php echo ($role['id'] === 1 ? 'Systemadmin' : 'Projektadmin'); ?>-Rolle (Systemrolle)</strong> - Diese Rolle hat standardmäßig ihre Features und kann nicht verändert werden. Für weitere Anpassungen weitere Rollen anlegen.
                                                     </div>
-                                                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="alert" aria-label="Schließen" style="background-color: #dc3545; padding: 0.5rem; border-radius: 4px; opacity: 1;"></button>
+                                                    <button type="button" class="system-role-close-btn" data-bs-dismiss="alert" aria-label="Schließen">✕</button>
                                                 </div>
                                                 <?php endif; ?>
                                                 
