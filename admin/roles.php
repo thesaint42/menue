@@ -37,21 +37,28 @@ if (isset($_POST['create_role'])) {
 // Rolle bearbeiten
 if (isset($_POST['update_role'])) {
     $id = (int)$_POST['id'];
-    $name = trim($_POST['name']);
-    $description = trim($_POST['description']);
     
-    if (empty($name)) {
-        $message = "Rollenname ist erforderlich.";
+    // Systemadmin-Rolle (ID 1) kann nicht bearbeitet werden
+    if ($id === 1) {
+        $message = "Die Systemadmin-Rolle kann nicht bearbeitet werden.";
         $messageType = "danger";
     } else {
-        try {
-            $stmt = $pdo->prepare("UPDATE {$prefix}roles SET name = ?, description = ? WHERE id = ?");
-            $stmt->execute([$name, $description, $id]);
-            $message = "Rolle aktualisiert.";
-            $messageType = "success";
-        } catch (Exception $e) {
-            $message = "Fehler beim Aktualisieren: " . $e->getMessage();
+        $name = trim($_POST['name']);
+        $description = trim($_POST['description']);
+        
+        if (empty($name)) {
+            $message = "Rollenname ist erforderlich.";
             $messageType = "danger";
+        } else {
+            try {
+                $stmt = $pdo->prepare("UPDATE {$prefix}roles SET name = ?, description = ? WHERE id = ?");
+                $stmt->execute([$name, $description, $id]);
+                $message = "Rolle aktualisiert.";
+                $messageType = "success";
+            } catch (Exception $e) {
+                $message = "Fehler beim Aktualisieren: " . $e->getMessage();
+                $messageType = "danger";
+            }
         }
     }
 }
@@ -59,24 +66,31 @@ if (isset($_POST['update_role'])) {
 // Rolle löschen
 if (isset($_POST['delete_role'])) {
     $id = (int)$_POST['id'];
-    try {
-        // Prüfe ob Benutzer diese Rolle haben
-        $stmt = $pdo->prepare("SELECT COUNT(*) FROM {$prefix}users WHERE role_id = ?");
-        $stmt->execute([$id]);
-        $count = $stmt->fetchColumn();
-        
-        if ($count > 0) {
-            $message = "Rolle kann nicht gelöscht werden, da noch Benutzer diese Rolle haben.";
-            $messageType = "danger";
-        } else {
-            $stmt = $pdo->prepare("DELETE FROM {$prefix}roles WHERE id = ?");
-            $stmt->execute([$id]);
-            $message = "Rolle gelöscht.";
-            $messageType = "success";
-        }
-    } catch (Exception $e) {
-        $message = "Fehler beim Löschen: " . $e->getMessage();
+    
+    // Systemadmin-Rolle (ID 1) kann nicht gelöscht werden
+    if ($id === 1) {
+        $message = "Die Systemadmin-Rolle kann nicht gelöscht werden.";
         $messageType = "danger";
+    } else {
+        try {
+            // Prüfe ob Benutzer diese Rolle haben
+            $stmt = $pdo->prepare("SELECT COUNT(*) FROM {$prefix}users WHERE role_id = ?");
+            $stmt->execute([$id]);
+            $count = $stmt->fetchColumn();
+            
+            if ($count > 0) {
+                $message = "Rolle kann nicht gelöscht werden, da noch Benutzer diese Rolle haben.";
+                $messageType = "danger";
+            } else {
+                $stmt = $pdo->prepare("DELETE FROM {$prefix}roles WHERE id = ?");
+                $stmt->execute([$id]);
+                $message = "Rolle gelöscht.";
+                $messageType = "success";
+            }
+        } catch (Exception $e) {
+            $message = "Fehler beim Löschen: " . $e->getMessage();
+            $messageType = "danger";
+        }
     }
 }
 
@@ -128,7 +142,12 @@ $roles = $stmt->fetchAll(PDO::FETCH_ASSOC);
 $role_features = [];
 try {
     foreach ($roles as $role) {
-        $role_features[$role['id']] = getRoleFeatures($pdo, $role['id'], $prefix);
+        // Systemadmin (ID 1) hat immer alle Features
+        if ($role['id'] === 1) {
+            $role_features[$role['id']] = ['project_admin' => 1];
+        } else {
+            $role_features[$role['id']] = getRoleFeatures($pdo, $role['id'], $prefix);
+        }
     }
 } catch (Exception $e) {
     error_log("Could not load role_features: " . $e->getMessage());
@@ -172,6 +191,48 @@ $available_menu_items = [
             background-color: #333;
         }
         .roles-table tbody tr { border-bottom: 12px solid #1a1a1a; }
+        .roles-table th:nth-child(1) { width: 30%; min-width: 200px; }
+        .roles-table th:nth-child(2) { width: 35%; }
+        .roles-table th:nth-child(3) { width: 10%; text-align: center; }
+        .roles-table th:nth-child(4) { width: 25%; }
+        .action-buttons { 
+            display: flex; 
+            gap: 0.25rem; 
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .action-btn-group { 
+            display: flex; 
+            gap: 0.25rem; 
+            align-items: center;
+        }
+        .btn-action { 
+            font-size: 0.875rem;
+            padding: 0.25rem 0.5rem;
+            white-space: nowrap;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+        }
+        .btn-action-icon { 
+            font-size: 1rem;
+            display: inline-block;
+        }
+        .btn-action-text { 
+            display: inline;
+        }
+        @media (max-width: 768px) {
+            .roles-table th:nth-child(1) { width: 25%; }
+            .roles-table th:nth-child(2) { width: 30%; }
+            .roles-table th:nth-child(3) { width: 15%; }
+            .roles-table th:nth-child(4) { width: 30%; }
+            .btn-action-text { 
+                display: none;
+            }
+            .btn-action { 
+                padding: 0.35rem;
+            }
+        }
         .alert { display: flex; align-items: center; justify-content: space-between; padding-right: 20px; }
         .close-button-wrapper {
             display: flex;
@@ -254,52 +315,76 @@ $available_menu_items = [
                             <tr>
                                 <th>Name</th>
                                 <th>Beschreibung</th>
-                                <th>Benutzer</th>
-                                <th class="actions-col">Aktionen</th>
+                                <th class="text-center">Benutzer</th>
+                                <th></th>
                             </tr>
                         </thead>
                         <tbody>
-                            <?php foreach ($roles as $role): ?>
-                                <tr>
+                            <?php foreach ($roles as $role): 
+                                $is_system_admin = $role['id'] === 1;
+                                $is_protected = $is_system_admin;
+                            ?>
+                                <tr<?php echo $is_system_admin ? ' style="opacity: 0.9; background-color: #2a3f3a;"' : ''; ?>>
                                     <td>
                                         <form method="post" id="form_<?php echo $role['id']; ?>" class="d-inline">
                                             <input type="hidden" name="id" value="<?php echo $role['id']; ?>">
-                                            <input type="text" name="name" value="<?php echo htmlspecialchars($role['name']); ?>" class="form-control form-control-sm w-100" disabled>
+                                            <input type="text" name="name" value="<?php echo htmlspecialchars($role['name']); ?><?php echo $is_system_admin ? ' 🔒' : ''; ?>" class="form-control form-control-sm w-100" disabled>
                                     </td>
                                     <td>
                                             <textarea name="description" class="form-control form-control-sm w-100" rows="2" disabled><?php echo htmlspecialchars($role['description']); ?></textarea>
                                     </td>
-                                    <td>
+                                    <td class="text-center">
                                         <span class="badge bg-info"><?php echo $role['user_count']; ?></span>
                                     </td>
-                                    <td class="actions-col">
-                                            <div class="action-row">
-                                                <div class="action-buttons">
-                                                    <button type="button" class="btn btn-sm btn-success btn-action edit-btn" onclick="toggleEdit(this, <?php echo $role['id']; ?>)">Bearbeiten</button>
-                                                    <button type="submit" name="update_role" form="form_<?php echo $role['id']; ?>" class="btn btn-sm btn-warning btn-action d-none" data-id="<?php echo $role['id']; ?>">Speichern</button>
-                                                    <button type="button" class="btn btn-sm btn-info btn-action" data-bs-toggle="collapse" data-bs-target="#features_<?php echo $role['id']; ?>">Features</button>
-                                                </div>
-                                        </form>
-                                        <form method="post" class="d-inline" onsubmit="return confirm('Rolle löschen?');">
-                                            <input type="hidden" name="id" value="<?php echo $role['id']; ?>">
-                                            <button type="submit" name="delete_role" class="btn btn-sm btn-danger btn-action" <?php echo $role['user_count'] > 0 ? 'disabled' : ''; ?>>Löschen</button>
-                                        </form>
+                                    <td>
+                                            <div class="action-buttons">
+                                                <?php if (!$is_protected): ?>
+                                                <button type="button" class="btn btn-sm btn-success btn-action edit-btn" onclick="toggleEdit(this, <?php echo $role['id']; ?>)" title="Bearbeiten">
+                                                    <span class="btn-action-icon">✏️</span>
+                                                    <span class="btn-action-text">Bearbeiten</span>
+                                                </button>
+                                                <button type="submit" name="update_role" form="form_<?php echo $role['id']; ?>" class="btn btn-sm btn-warning btn-action d-none" data-id="<?php echo $role['id']; ?>" title="Speichern">
+                                                    <span class="btn-action-icon">💾</span>
+                                                    <span class="btn-action-text">Speichern</span>
+                                                </button>
+                                                <?php endif; ?>
+                                                <button type="button" class="btn btn-sm btn-info btn-action" data-bs-toggle="collapse" data-bs-target="#features_<?php echo $role['id']; ?>" title="Features">
+                                                    <span class="btn-action-icon">⚙️</span>
+                                                    <span class="btn-action-text">Features</span>
+                                                </button>
+                                                <?php if (!$is_protected): ?>
+                                                <form method="post" class="d-inline" onsubmit="return confirm('Rolle löschen?');">
+                                                    <input type="hidden" name="id" value="<?php echo $role['id']; ?>">
+                                                    <button type="submit" name="delete_role" class="btn btn-sm btn-danger btn-action" <?php echo $role['user_count'] > 0 ? 'disabled' : ''; ?> title="Löschen">
+                                                        <span class="btn-action-icon">🗑️</span>
+                                                        <span class="btn-action-text">Löschen</span>
+                                                    </button>
+                                                </form>
+                                                <?php endif; ?>
                                             </div>
+                                        </form>
                                     </td>
                                 </tr>
                                 <!-- Features Row -->
-                                <tr class="table-secondary">
+                                <tr class="table-secondary"<?php echo $is_system_admin ? ' style="opacity: 0.9; background-color: #1f2f2a;"' : ''; ?>>
                                     <td colspan="4">
                                         <div class="collapse" id="features_<?php echo $role['id']; ?>">
                                             <div class="card card-body bg-dark border-secondary p-3 features-section">
+                                                <?php if ($is_system_admin): ?>
+                                                <div class="alert alert-info mb-3">
+                                                    🔒 <strong>Systemadmin-Rolle</strong> - Diese Rolle hat standardmäßig alle verfügbaren Rechte und kann nicht verändert werden.
+                                                </div>
+                                                <?php else: ?>
                                                 <h6 class="mb-3 text-white">📋 Verfügbare Features:</h6>
+                                                <?php endif; ?>
                                                 <?php foreach ($available_features as $feature_key => $feature_label): 
                                                     $is_enabled = isset($role_features[$role['id']][$feature_key]) && $role_features[$role['id']][$feature_key];
                                                 ?>
                                                 <div class="form-check mb-3">
                                                     <input type="checkbox" id="feature_<?php echo $role['id']; ?>_<?php echo $feature_key; ?>" class="form-check-input feature-checkbox" 
                                                            data-role-id="<?php echo $role['id']; ?>" data-feature-key="<?php echo $feature_key; ?>" 
-                                                           <?php echo $is_enabled ? 'checked' : ''; ?>>
+                                                           <?php echo $is_enabled ? 'checked' : ''; ?>
+                                                           <?php echo $is_system_admin ? 'disabled' : ''; ?>>
                                                     <label class="form-check-label" for="feature_<?php echo $role['id']; ?>_<?php echo $feature_key; ?>">
                                                         <strong><?php echo htmlspecialchars(explode(' - ', $feature_label)[0]); ?></strong><br>
                                                         <small><?php echo htmlspecialchars(isset($feature_label) ? explode(' - ', $feature_label)[1] : ''); ?></small>
@@ -307,8 +392,10 @@ $available_menu_items = [
                                                 </div>
                                                 <?php endforeach; ?>
                                                 
+                                                <?php if (!$is_system_admin): ?>
                                                 <hr class="bg-secondary">
                                                 <h6 class="mb-3 text-white">🍔 Burger-Menü Punkte:</h6>
+                                                <?php endif; ?>
                                                 <?php foreach ($available_menu_items as $menu_key => $menu_label): 
                                                     try {
                                                         $stmt = $pdo->prepare("SELECT visible FROM {$prefix}role_menu_access WHERE role_id = ? AND menu_key = ?");
@@ -319,7 +406,7 @@ $available_menu_items = [
                                                         $is_visible = true;
                                                     }
                                                 ?>
-                                                <div class="form-check mb-2">
+                                                <div class="form-check mb-2"<?php echo $is_system_admin ? ' style="display: none;"' : ''; ?>>
                                                     <input type="checkbox" id="menu_<?php echo $role['id']; ?>_<?php echo $menu_key; ?>" class="form-check-input menu-checkbox" 
                                                            data-role-id="<?php echo $role['id']; ?>" data-menu-key="<?php echo $menu_key; ?>" 
                                                            <?php echo $is_visible ? 'checked' : ''; ?>>
