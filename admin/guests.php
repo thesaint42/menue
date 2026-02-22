@@ -288,7 +288,8 @@ if ($project_id) {
             'email' => $order_row['email'],
             'dish_count' => $dish_count,
             'people' => $people,
-            'highchair_count' => count(array_filter($people, fn($p) => isset($p['highchair_needed']) && $p['highchair_needed']))
+            'highchair_count' => count(array_filter($people, fn($p) => isset($p['highchair_needed']) && $p['highchair_needed'])),
+            'primary_person_name' => !empty($people) ? ($people[0]['name'] ?? 'N/A') : 'N/A'
         ];
     }
 
@@ -383,7 +384,7 @@ if ($project_id) {
                     <div class="col-12 d-md-none">
                         <div class="d-flex justify-content-between align-items-flex-start gap-2">
                             <div>
-                                <div><strong>📦 #<?php echo htmlspecialchars($order_data['order_id']); ?></strong></div>
+                                <div><strong>📦 #<?php echo htmlspecialchars($order_data['order_id']); ?> • <?php echo htmlspecialchars($order_data['primary_person_name']); ?></strong></div>
                             </div>
                             <form method="post" onsubmit="return confirm('Bestellung und alle Personen/Gerichte wirklich löschen?');">
                                 <input type="hidden" name="delete_order_id" value="<?php echo htmlspecialchars($order_data['order_id']); ?>">
@@ -407,7 +408,7 @@ if ($project_id) {
                     <div class="col-12 d-none d-md-block">
                         <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
                             <div class="d-flex flex-wrap align-items-center gap-2">
-                                <strong>📦 #<?php echo htmlspecialchars($order_data['order_id']); ?></strong>
+                                <strong>📦 #<?php echo htmlspecialchars($order_data['order_id']); ?> • <?php echo htmlspecialchars($order_data['primary_person_name']); ?></strong>
                                 <span>|</span>
                                 <small><?php echo htmlspecialchars($order_data['email']); ?></small>
                                 <span>|</span>
@@ -446,7 +447,7 @@ if ($project_id) {
                                 <?php if (isset($person['highchair_needed']) && $person['highchair_needed']): ?>
                                     <span class="badge bg-warning text-dark guest-highchair-badge"><span class="hs-icon">🪑</span><span class="hs-text d-none d-md-inline"> Hochstuhl</span></span>
                                 <?php endif; ?>
-                                <span class="badge bg-info guest-type-badge">Kind <span class="d-none d-md-inline">(<?php echo htmlspecialchars($person['child_age'] ?? '?'); ?> Jahre)</span><span class="d-md-none">(<?php echo htmlspecialchars($person['child_age'] ?? '?'); ?>)</span></span>
+                                <span class="badge bg-info guest-type-badge">Kind <span class="d-none d-md-inline"> (<?php echo htmlspecialchars($person['child_age'] ?? '?'); ?> Jahre)</span><span class="d-md-none"> (<?php echo htmlspecialchars($person['child_age'] ?? '?'); ?>)</span></span>
                             <?php else: ?>
                                 <span class="badge bg-secondary guest-type-badge">Erwachsener</span>
                             <?php endif; ?>
