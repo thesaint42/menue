@@ -168,8 +168,8 @@ if ($project_count > 0) {
                     <h5 class="card-title mb-3">Neue Aktion</h5>
                     <div class="d-grid gap-2">
                         <a href="projects.php" class="btn btn-outline-primary">+ Neues Projekt</a>
+                        <a href="menu_categories.php" class="btn btn-outline-primary">+ Neue Menükategorie</a>
                         <a href="dishes.php" class="btn btn-outline-primary">+ Menü hinzufügen</a>
-                        <a href="settings_mail.php" class="btn btn-outline-primary">⚙️ Mail-Einstellungen</a>
                     </div>
                 </div>
             </div>
