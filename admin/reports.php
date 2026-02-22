@@ -989,8 +989,8 @@ if (isset($_GET['download']) && $_GET['download'] === 'pdf') {
                     <div class="row g-3">
                         <div class="col-12 col-sm-6 col-lg-4">
                             <div class="bg-light p-3 rounded d-flex flex-column" style="min-height: 120px;">
-                                <div class="text-muted small">Gesamt Gäste</div>
-                                <div class="fs-3 fw-bold"><?php echo $total_all_persons; ?> / <?php echo $project['max_guests']; ?></div>
+                                <div class="small" style="color: #888;">Gesamt Gäste</div>
+                                <div class="fs-3 fw-bold" style="color: #333;"><?php echo $total_all_persons; ?> / <?php echo $project['max_guests']; ?></div>
                                 <div class="progress mt-2" style="height: 8px;">
                                     <div class="progress-bar" style="width: <?php echo ($project['max_guests'] > 0) ? ($total_all_persons / $project['max_guests']) * 100 : 0; ?>%"></div>
                                 </div>
@@ -998,14 +998,14 @@ if (isset($_GET['download']) && $_GET['download'] === 'pdf') {
                         </div>
                         <div class="col-12 col-sm-6 col-lg-4">
                             <div class="bg-light p-3 rounded d-flex flex-column" style="min-height: 120px;">
-                                <div class="text-muted small">Einzelpersonen</div>
-                                <div class="fs-3 fw-bold"><?php echo $total_individual_persons; ?></div>
+                                <div class="small" style="color: #888;">Einzelpersonen</div>
+                                <div class="fs-3 fw-bold" style="color: #333;"><?php echo $total_individual_persons; ?></div>
                             </div>
                         </div>
                         <div class="col-12 col-sm-6 col-lg-4">
                             <div class="bg-light p-3 rounded d-flex flex-column" style="min-height: 120px;">
-                                <div class="text-muted small">Familien / Personen</div>
-                                <div class="fs-3 fw-bold"><?php echo $total_families; ?> / <?php echo $total_family_persons; ?></div>
+                                <div class="small" style="color: #888;">Familien / Personen</div>
+                                <div class="fs-3 fw-bold" style="color: #333;"><?php echo $total_families; ?> / <?php echo $total_family_persons; ?></div>
                             </div>
                         </div>
                     </div>
