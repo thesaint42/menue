@@ -393,7 +393,7 @@ if ($project_id > 0) {
                             <div class="d-flex gap-2 align-items-center">
                                 <div class="d-flex gap-2">
                                     <?php if ($person['highchair']): ?>
-                                        <span class="badge bg-warning text-dark badge-highchair"><span class="badge-text">🪑 Hochstuhl</span></span>
+                                        <span class="badge bg-warning text-dark badge-highchair">🪑<span class="badge-text"> Hochstuhl</span></span>
                                     <?php endif; ?>
                                     <?php if ($person['type'] === 'child'): ?>
                                         <span class="badge bg-info">Kind (<?php echo $person['age']; ?> Jahre)</span>
