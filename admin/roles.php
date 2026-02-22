@@ -38,8 +38,8 @@ if (isset($_POST['create_role'])) {
 if (isset($_POST['update_role'])) {
     $id = (int)$_POST['id'];
     
-    // System-Rollen (ID 1: Systemadmin, ID 2: Projektadmin) können nicht bearbeitet werden
-    if ($id === 1 || $id === 2) {
+    // System-Rollen (ID 1: Systemadmin, ID 2: Projektadmin, ID 3: Reporter) können nicht bearbeitet werden
+    if ($id === 1 || $id === 2 || $id === 3) {
         $message = "Diese Systemrolle kann nicht bearbeitet werden.";
         $messageType = "danger";
     } else {
@@ -67,8 +67,8 @@ if (isset($_POST['update_role'])) {
 if (isset($_POST['delete_role'])) {
     $id = (int)$_POST['id'];
     
-    // System-Rollen (ID 1: Systemadmin, ID 2: Projektadmin) können nicht gelöscht werden
-    if ($id === 1 || $id === 2) {
+    // System-Rollen (ID 1: Systemadmin, ID 2: Projektadmin, ID 3: Reporter) können nicht gelöscht werden
+    if ($id === 1 || $id === 2 || $id === 3) {
         $message = "Diese Systemrolle kann nicht gelöscht werden.";
         $messageType = "danger";
     } else {
@@ -142,8 +142,8 @@ $roles = $stmt->fetchAll(PDO::FETCH_ASSOC);
 $role_features = [];
 try {
     foreach ($roles as $role) {
-        // System-Rollen (ID 1: Systemadmin, ID 2: Projektadmin) haben immer ihre Features
-        if ($role['id'] === 1 || $role['id'] === 2) {
+        // System-Rollen (ID 1: Systemadmin, ID 2: Projektadmin, ID 3: Reporter) haben immer ihre Features
+        if ($role['id'] === 1 || $role['id'] === 2 || $role['id'] === 3) {
             $role_features[$role['id']] = ['project_admin' => 1];
         } else {
             $role_features[$role['id']] = getRoleFeatures($pdo, $role['id'], $prefix);
@@ -361,8 +361,8 @@ $available_menu_items = [
                         </thead>
                         <tbody>
                             <?php foreach ($roles as $role): 
-                                $is_protected = ($role['id'] === 1 || $role['id'] === 2);
-                                $role_label = $role['id'] === 1 ? 'Systemadmin' : ($role['id'] === 2 ? 'Projektadmin' : $role['name']);
+                                $is_protected = ($role['id'] === 1 || $role['id'] === 2 || $role['id'] === 3);
+                                $role_label = $role['id'] === 1 ? 'Systemadmin' : ($role['id'] === 2 ? 'Projektadmin' : ($role['id'] === 3 ? 'Reporter' : $role['name']));
                             ?>
                                 <tr<?php echo $is_protected ? ' style="opacity: 0.9; background-color: #2a3f3a;"' : ''; ?>>
                                     <td class="text-center">
@@ -417,7 +417,7 @@ $available_menu_items = [
                                                 <?php if ($is_protected): ?>
                                                 <div class="alert alert-info mb-3 alert-dismissible fade show system-role-alert" id="system_role_alert_<?php echo $role['id']; ?>" role="alert" data-auto-dismiss="7000">
                                                     <div>
-                                                        🔒 <strong><?php echo ($role['id'] === 1 ? 'Systemadmin' : 'Projektadmin'); ?>-Rolle (Systemrolle)</strong> - Diese Rolle hat standardmäßig ihre Features und kann nicht verändert werden. Für weitere Anpassungen weitere Rollen anlegen.
+                                                        🔒 <strong><?php echo ($role['id'] === 1 ? 'Systemadmin' : ($role['id'] === 2 ? 'Projektadmin' : 'Reporter')); ?>-Rolle (Systemrolle)</strong> - Diese Rolle hat standardmäßig ihre Features und kann nicht verändert werden. Für weitere Anpassungen weitere Rollen anlegen.
                                                     </div>
                                                     <button type="button" class="system-role-close-btn" aria-label="Schließen">✕</button>
                                                 </div>
@@ -445,6 +445,9 @@ $available_menu_items = [
                                                                 $is_visible = false;
                                                             }
                                                         }
+                                                    } else if ($role['id'] === 3) {
+                                                        // Reporter (ID 3) hat nur Reporting
+                                                        $is_visible = ($menu_key === 'reporting');
                                                     } else {
                                                         try {
                                                             $stmt = $pdo->prepare("SELECT visible FROM {$prefix}role_menu_access WHERE role_id = ? AND menu_key = ?");

@@ -205,17 +205,19 @@ function getMenuSelectionSchema($prefix) {
 // INSERT Statements für die Initialisierung
 function getMenuSelectionInitData($prefix) {
     return [
-        // System-Rollen (ID 1-2 sind reserviert)
+        // System-Rollen (ID 1-3 sind reserviert)
         "INSERT IGNORE INTO `{$prefix}roles` (`id`, `name`, `description`) VALUES 
          (1, 'Systemadmin', 'Systemrolle mit vollzugriff auf alle Funktionen'),
-         (2, 'Projektadmin', 'Systemrolle - kann Projekte und Menüs verwalten')",
+         (2, 'Projektadmin', 'Systemrolle - kann Projekte und Menüs verwalten'),
+         (3, 'Reporter', 'Systemrolle - kann nur Berichte einsehen')",
 
         // Rollen-Features: Projektadmin hat project_admin Feature
         "INSERT IGNORE INTO `{$prefix}role_features` (`role_id`, `feature_name`, `enabled`) VALUES 
          (1, 'project_admin', 1),
-         (2, 'project_admin', 1)",
+         (2, 'project_admin', 1),
+         (3, 'project_admin', 0)",
 
-        // Menu Access: Projektadmin (ID 2) hat Standard-Features
+        // Menu Access: Projektadmin (ID 2) hat Standard-Features, Reporter (ID 3) nur Reporting
         "INSERT IGNORE INTO `{$prefix}role_menu_access` (`role_id`, `menu_key`, `visible`) VALUES 
          (2, 'dashboard', 1),
          (2, 'menu_categories_read', 1),
@@ -228,7 +230,8 @@ function getMenuSelectionInitData($prefix) {
          (2, 'guests_write', 1),
          (2, 'orders_read', 1),
          (2, 'orders_write', 1),
-         (2, 'reporting', 1)",
+         (2, 'reporting', 1),
+         (3, 'reporting', 1)",
 
         // Menu Kategorien
         "INSERT IGNORE INTO `{$prefix}menu_categories` (`name`, `sort_order`) VALUES
