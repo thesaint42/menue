@@ -727,7 +727,7 @@ if (isset($_GET['download']) && $_GET['download'] === 'pdf') {
 
         <!-- Statistiken -->
         <div class="col-12 col-sm-6 col-lg-4">
-            <a href="?project=<?php echo $project_id; ?>&view=kitchen" class="report-icon-btn">
+            <a href="?project=<?php echo $project_id; ?>&view=statistics" class="report-icon-btn">
                 <div class="icon">📊</div>
                 <div class="title">Statistiken</div>
                 <div class="subtitle">Übersicht Bestellungen</div>
@@ -736,7 +736,7 @@ if (isset($_GET['download']) && $_GET['download'] === 'pdf') {
 
         <!-- Drucken / PDF -->
         <div class="col-12 col-sm-6 col-lg-4">
-            <?php if ($current_view && ($current_view === 'orders' || $current_view === 'kitchen')): ?>
+            <?php if ($current_view && ($current_view === 'orders' || $current_view === 'kitchen' || $current_view === 'statistics')): ?>
                 <a href="#" data-bs-toggle="modal" data-bs-target="#pdfModal" class="report-icon-btn">
                     <div class="icon">🖨️</div>
                     <div class="title">PDF Export</div>
@@ -916,6 +916,8 @@ if (isset($_GET['download']) && $_GET['download'] === 'pdf') {
                             </div>
                         <?php endif; ?>
                     </div>
+
+            <?php elseif ($_GET['view'] === 'statistics'): ?>
                 <div class="card-header bg-success text-white py-3">
                     <h5 class="mb-0">Statistiken: <?php echo htmlspecialchars($project['name']); ?></h5>
                 </div>
@@ -961,9 +963,7 @@ if (isset($_GET['download']) && $_GET['download'] === 'pdf') {
                         </div>
                     </div>
                 </div>
-
             
-            <?php endif; ?>
         </div>
     <?php endif; ?>
 
