@@ -283,9 +283,8 @@ a:hover {
     .projects-table tbody td:nth-child(5)::before { content: 'Max: '; font-weight: bold; }
     .projects-table tbody td:nth-child(6)::before { content: 'PIN: '; font-weight: bold; }
     .projects-table tbody td:nth-child(7)::before { content: 'Email: '; font-weight: bold; }
-    .projects-table tbody td:nth-child(8)::before { content: 'Aktionen: '; font-weight: bold; display: block; margin-bottom: 0.5rem; }
     
-    /* Actions column full width on mobile */
+    /* Actions column - no label on mobile */
     .projects-table tbody td:nth-child(8) {
         padding-top: 0.75rem;
     }
