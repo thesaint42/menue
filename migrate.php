@@ -501,7 +501,7 @@ $migrations = [
     ],
     'reporting_user_guests_orders_access' => [
         'name' => 'Reporting User: Gäste- und Bestellübersicht freischalten',
-        'description' => 'Ermöglicht Reporting Usern Zugriff auf Gästeübersicht und Bestellübersicht',
+        'description' => 'Ermöglicht Reporting Usern Zugriff auf Gästeübersicht, Bestellübersicht und Menüs',
         'version' => '2.4.1',
         'up' => function($pdo, $prefix) {
             try {
@@ -510,6 +510,14 @@ $migrations = [
                 $stmt->execute();
                 if ($stmt->rowCount() === 0) {
                     return true; // Role 3 existiert nicht, skip
+                }
+                
+                // Prüfe ob menus_read für Role 3 bereits existiert
+                $stmt = $pdo->prepare("SELECT COUNT(*) FROM `{$prefix}role_menu_access` WHERE role_id = 3 AND menu_key = 'menus_read'");
+                $stmt->execute();
+                if ($stmt->fetchColumn() === 0) {
+                    $ins = $pdo->prepare("INSERT INTO `{$prefix}role_menu_access` (role_id, menu_key, visible) VALUES (3, 'menus_read', 1)");
+                    $ins->execute();
                 }
                 
                 // Prüfe ob guests_read für Role 3 bereits existiert
