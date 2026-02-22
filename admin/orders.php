@@ -254,6 +254,18 @@ if ($project_id > 0) {
                 padding-left: 0.5rem;
                 padding-right: 0.5rem;
             }
+            
+            /* Header auf Mobile: Buttons neben dem Namen */
+            .card-header .d-flex {
+                align-items: flex-start !important;
+            }
+            .card-header .d-flex > div:nth-child(2) {
+                display: none;
+            }
+            .card-header .d-flex > div:nth-child(3) {
+                margin-left: auto;
+                order: -1;
+            }
         }
     </style>
 </head>
