@@ -74,8 +74,11 @@ EXCLUDED_FILES=(
     "storage/*"
     ".deploy.env"
     "deploy.sh"
+    ".github"
     ".git*"
     "*.md"
+    "composer.json"
+    "composer.lock"
 )
 
 echo ""

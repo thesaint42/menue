@@ -6,6 +6,9 @@
 .deploy.sh
 .last-deploy-hash
 
+# GitHub (Workflows & CI/CD - nicht für Production)
+.github/
+
 # Configuration (wird bei Installation generiert)
 script/config.yaml
 
