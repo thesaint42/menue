@@ -393,7 +393,7 @@ if ($project_id > 0) {
                 <div class="card-body">
                     <?php foreach ($order_data['persons'] as $person): ?>
                     <div class="mb-3 pb-3 border-bottom">
-                        <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-2">
+                        <div class="d-flex justify-content-between align-items-center gap-2">
                             <h6 class="fw-bold mb-0">
                             👤 <?php echo htmlspecialchars($person['name']); ?>
                             </h6>
