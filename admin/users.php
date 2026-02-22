@@ -372,7 +372,7 @@ try {
                                                 <input type="email" name="email" value="<?php echo htmlspecialchars($user['email']); ?>" class="form-control form-control-sm w-100" disabled>
                                             </div>
                                             <div class="mt-2">
-                                                <input type="password" name="password" placeholder="Neues Passwort (optional)" class="form-control form-control-sm w-100" disabled style="color: #888;">
+                                                <input type="password" name="password" placeholder="Neues Passwort (optional)" class="form-control form-control-sm w-100" disabled style="color: #aaa;">
                                                 <small class="d-block mt-1" style="color: #888;">Leer lassen, um Passwort nicht zu ändern</small>
                                             </div>
                                             <div class="mt-2">
@@ -439,8 +439,8 @@ function toggleEdit(btn, id) {
     if (!form) return;
     const row = form.closest('tr');
     
-    // Toggle Text- und Select-Felder
-    const inputs = row.querySelectorAll('input[type=text], input[type=email], select');
+    // Toggle Text-, Password- und Select-Felder
+    const inputs = row.querySelectorAll('input[type=text], input[type=email], input[type=password], select');
     inputs.forEach(input => {
         input.toggleAttribute('disabled');
     });
