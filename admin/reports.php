@@ -716,6 +716,15 @@ if (isset($_GET['download']) && $_GET['download'] === 'pdf') {
             </a>
         </div>
 
+        <!-- Bestellte Gerichte (Küche) -->
+        <div class="col-12 col-sm-6 col-lg-4">
+            <a href="?project=<?php echo $project_id; ?>&view=kitchen" class="report-icon-btn">
+                <div class="icon">🍽️</div>
+                <div class="title">Bestellte Gerichte</div>
+                <div class="subtitle">Anzahl pro Gericht (Küche)</div>
+            </a>
+        </div>
+
         <div class="col-12 col-sm-6 col-lg-4"></div>
 
         <!-- Drucken / PDF -->
@@ -735,17 +744,6 @@ if (isset($_GET['download']) && $_GET['download'] === 'pdf') {
             <?php endif; ?>
         </div>
 
-        <!-- Bestellte Gerichte (Küche) -->
-        <div class="col-12 col-sm-6 col-lg-4">
-            <a href="?project=<?php echo $project_id; ?>&view=kitchen" class="report-icon-btn">
-                <div class="icon">🍽️</div>
-                <div class="title">Bestellte Gerichte</div>
-                <div class="subtitle">Anzahl pro Gericht (Küche)</div>
-            </a>
-        </div>
-
-        <div class="col-12 col-sm-6 col-lg-4"></div>
-
         <!-- CSV Export -->
         <div class="col-12 col-sm-6 col-lg-4">
             <a onclick="exportCSV()" class="report-icon-btn" style="cursor: pointer;">
@@ -754,6 +752,8 @@ if (isset($_GET['download']) && $_GET['download'] === 'pdf') {
                 <div class="subtitle">Als CSV herunterladen</div>
             </a>
         </div>
+
+        <div class="col-12 col-sm-6 col-lg-4"></div>
     </div>
     <?php endif; ?>
 
