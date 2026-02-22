@@ -1,0 +1,14 @@
+{
+  "name": "thesaint42/menue",
+  "description": "Event Menue Order System (EMOS)",
+  "type": "project",
+  "license": "proprietary",
+  "require": {
+    "php": ">=8.0",
+    "ext-pdo": "*",
+    "ext-mbstring": "*"
+  },
+  "suggest": {
+    "ext-zip": "Erforderlich für Datei-Backups (ZIP)"
+  }
+}
