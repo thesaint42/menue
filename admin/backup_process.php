@@ -9,7 +9,15 @@ require_once '../db.php';
 require_once '../script/auth.php';
 
 checkLogin();
-checkAdmin();
+
+// Feature-basierte Zugriffskontrolle
+$prefix = $config['database']['prefix'] ?? 'menu_';
+if (!hasMenuAccess($pdo, 'backup_create', $prefix)) {
+    http_response_code(403);
+    header('Content-Type: application/json; charset=utf-8');
+    echo json_encode(['error' => 'Keine Berechtigung zum Erstellen von Backups']);
+    exit;
+}
 
 $action = $_GET['action'] ?? 'start';
 $session_id = session_id();
