@@ -239,8 +239,8 @@ $user_role_id = $_SESSION['role_id'] ?? null;
 if ($user_role_id === 1) {
     // Admin: alle Projekte
     $projects = $pdo->query("SELECT * FROM {$prefix}projects WHERE is_active = 1 ORDER BY name")->fetchAll();
-} else if (hasMenuAccess($pdo, 'projects_write', $prefix)) {
-    // Project Admin: nur zugewiesene Projekte
+} else if (hasMenuAccess($pdo, 'projects_write', $prefix) || hasMenuAccess($pdo, 'projects_read', $prefix)) {
+    // Project Admin oder Reporting User: nur zugewiesene Projekte
     $assigned = getUserProjects($pdo, $prefix);
     if (!empty($assigned)) {
         $project_ids = array_column($assigned, 'id');
