@@ -92,9 +92,43 @@ function getRoleFeatures($pdo, $role_id, $prefix = null) {
 }
 
 /**
+ * Check if the current user's role has access to a specific menu item
+ * @param PDO $pdo Database connection
+ * @param string $menu_key The menu key to check (e.g., 'projects_write')
+ * @param string|null $prefix Database table prefix
+ * @return bool True if access is granted, false otherwise
+ */
+function hasMenuAccess($pdo, $menu_key, $prefix = null) {
+    global $config;
+    if (!$prefix) {
+        $prefix = $config['database']['prefix'] ?? 'menu_';
+    }
+    
+    $role_id = $_SESSION['role_id'] ?? null;
+    if (!$role_id) {
+        return false;
+    }
+    
+    // Systemadmin (role_id = 1) has access to everything
+    if ($role_id === 1) {
+        return true;
+    }
+    
+    try {
+        $stmt = $pdo->prepare("SELECT visible FROM {$prefix}role_menu_access 
+                             WHERE role_id = ? AND menu_key = ?");
+        $stmt->execute([$role_id, $menu_key]);
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $result && $result['visible'];
+    } catch (Exception $e) {
+        return false;
+    }
+}
+
+/**
  * Get all projects accessible to the current user
- * - Admin users: all projects
- * - Users with 'project_admin' feature: only assigned projects
+ * - Admin users (role_id = 1): all projects
+ * - Users with 'projects_write' menu access: only assigned projects
  * - Other users: no projects
  */
 function getUserProjects($pdo, $prefix = null) {

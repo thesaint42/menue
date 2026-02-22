@@ -15,13 +15,13 @@ $message = "";
 $messageType = "info";
 
 if (!$project_id) {
-    // Wenn kein Projekt gewählt, zur Projektliste (nur zugängliche für project_admin Users)
+    // Wenn kein Projekt gewählt, zur Projektliste (nur zugängliche für Benutzer mit projects_write Berechtigung)
     $user_role_id = $_SESSION['role_id'] ?? null;
 
     if ($user_role_id === 1) {
         // Admin: alle Projekte
         $projects = $pdo->query("SELECT * FROM {$prefix}projects WHERE is_active = 1 ORDER BY name")->fetchAll();
-    } else if (hasRoleFeature($pdo, 'project_admin', $prefix)) {
+    } else if (hasMenuAccess($pdo, 'projects_write', $prefix)) {
         // Project Admin: nur zugewiesene Projekte
         $assigned = getUserProjects($pdo, $prefix);
         if (!empty($assigned)) {

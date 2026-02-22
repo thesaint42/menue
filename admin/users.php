@@ -49,8 +49,11 @@ if (isset($_POST['create_user'])) {
             $stmt->execute([$firstname, $lastname, $email, $password_hash, $role_id]);
             $new_user_id = $pdo->lastInsertId();
             
-            // Wenn die Rolle das 'project_admin' Feature hat, speichere die zugewiesenen Projekte
-            if (isset($role_features[$role_id]) && isset($role_features[$role_id]['project_admin']) && $role_features[$role_id]['project_admin']) {
+            // Wenn die Rolle "Projekte schreiben" Berechtigung hat, speichere die zugewiesenen Projekte
+            $stmt_check = $pdo->prepare("SELECT visible FROM {$prefix}role_menu_access WHERE role_id = ? AND menu_key = 'projects_write'");
+            $stmt_check->execute([$role_id]);
+            $has_projects_write = $stmt_check->fetch(PDO::FETCH_ASSOC);
+            if ($has_projects_write && $has_projects_write['visible']) {
                 try {
                     if (isset($_POST['assigned_projects']) && is_array($_POST['assigned_projects'])) {
                         $stmt = $pdo->prepare("INSERT INTO {$prefix}user_projects (user_id, project_id) VALUES (?, ?)");
@@ -92,8 +95,11 @@ if (isset($_POST['update_user'])) {
             $stmt = $pdo->prepare("UPDATE {$prefix}users SET firstname = ?, lastname = ?, email = ?, role_id = ?, is_active = ? WHERE id = ?");
             $stmt->execute([$firstname, $lastname, $email, $role_id, $is_active, $id]);
             
-            // Wenn die neue Rolle das 'project_admin' Feature hat, speichere die zugewiesenen Projekte
-            if (isset($role_features[$role_id]) && isset($role_features[$role_id]['project_admin']) && $role_features[$role_id]['project_admin']) {
+            // Wenn die neue Rolle "Projekte schreiben" Berechtigung hat, speichere die zugewiesenen Projekte
+            $stmt_check = $pdo->prepare("SELECT visible FROM {$prefix}role_menu_access WHERE role_id = ? AND menu_key = 'projects_write'");
+            $stmt_check->execute([$role_id]);
+            $has_projects_write = $stmt_check->fetch(PDO::FETCH_ASSOC);
+            if ($has_projects_write && $has_projects_write['visible']) {
                 try {
                     // Erst alte Zuordnungen löschen
                     $stmt = $pdo->prepare("DELETE FROM {$prefix}user_projects WHERE user_id = ?");
@@ -152,12 +158,12 @@ $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
 $stmt = $pdo->query("SELECT id, name FROM {$prefix}projects ORDER BY name");
 $all_projects = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-// Lade für jeden User die zugewiesenen Projekte (nur wenn Rolle 'project_admin' Feature hat)
+// Lade für jeden User die zugewiesenen Projekte (nur wenn Rolle 'projects_write' Berechtigung hat)
 $user_projects = [];
 try {
-    // Finde alle Rollen mit 'project_admin' Feature
-    $stmt = $pdo->prepare("SELECT DISTINCT role_id FROM {$prefix}role_features 
-                         WHERE feature_name = 'project_admin' AND enabled = 1");
+    // Finde alle Rollen mit 'projects_write' Berechtigung
+    $stmt = $pdo->prepare("SELECT DISTINCT role_id FROM {$prefix}role_menu_access 
+                         WHERE menu_key = 'projects_write' AND visible = 1");
     $stmt->execute();
     $project_admin_roles = $stmt->fetchAll(PDO::FETCH_COLUMN, 0);
     

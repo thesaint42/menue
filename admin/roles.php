@@ -153,11 +153,6 @@ try {
     error_log("Could not load role_features: " . $e->getMessage());
 }
 
-// Definiere verfügbare Features
-$available_features = [
-    'project_admin' => 'Projektadmin - Kann Projekte verwalten und zuweisen'
-];
-
 // Definiere verfügbare Features für Featureverwaltung (im Burger-Menü)
 $available_menu_items = [
     'dashboard' => 'Startseite',
@@ -390,25 +385,8 @@ $available_menu_items = [
                                                 <div class="alert alert-info mb-3">
                                                     🔒 <strong><?php echo ($role['id'] === 1 ? 'Systemadmin' : 'Projektadmin'); ?>-Rolle (Systemrolle)</strong> - Diese Rolle hat standardmäßig ihre Features und kann nicht verändert werden. Für weitere Anpassungen weitere Rollen anlegen.
                                                 </div>
-                                                <?php else: ?>
-                                                <h6 class="mb-3 text-white">📋 Verfügbare Features:</h6>
                                                 <?php endif; ?>
-                                                <?php foreach ($available_features as $feature_key => $feature_label): 
-                                                    $is_enabled = isset($role_features[$role['id']][$feature_key]) && $role_features[$role['id']][$feature_key];
-                                                ?>
-                                                <div class="form-check mb-3">
-                                                    <input type="checkbox" id="feature_<?php echo $role['id']; ?>_<?php echo $feature_key; ?>" class="form-check-input feature-checkbox" 
-                                                           data-role-id="<?php echo $role['id']; ?>" data-feature-key="<?php echo $feature_key; ?>" 
-                                                           <?php echo $is_enabled ? 'checked' : ''; ?>
-                                                           <?php echo $is_protected ? 'disabled' : ''; ?>>
-                                                    <label class="form-check-label" for="feature_<?php echo $role['id']; ?>_<?php echo $feature_key; ?>">
-                                                        <strong><?php echo htmlspecialchars(explode(' - ', $feature_label)[0]); ?></strong><br>
-                                                        <small><?php echo htmlspecialchars(isset($feature_label) ? explode(' - ', $feature_label)[1] : ''); ?></small>
-                                                    </label>
-                                                </div>
-                                                <?php endforeach; ?>
                                                 
-                                                <hr class="bg-secondary">
                                                 <h6 class="mb-3 text-white">⚙️ Featureverwaltung:</h6>
                                                 <?php foreach ($available_menu_items as $menu_key => $menu_label): 
                                                     // Systemadmin (ID 1) hat ALLE Features standardmäßig
