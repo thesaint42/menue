@@ -12,6 +12,9 @@
 # Configuration (wird bei Installation generiert)
 script/config.yaml
 
+# Installation (nach der ersten Ausführung)
+install.php
+
 # Logs und Temporary Files
 storage/logs/*
 storage/tmp/*

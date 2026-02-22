@@ -44,6 +44,7 @@ if [ "$1" = "--cleanup" ]; then
         "DEPLOY_LOCAL.md"
         "deploy.sh"
         ".last-deploy-hash"
+        "install.php"
         "add_backup_feature.php"
         "add_menus_read_feature.php"
         "analyze_db.php"
