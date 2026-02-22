@@ -330,11 +330,11 @@ try {
                         </div>
                         <div class="col-12">
                             <label for="email" class="form-label">E-Mail</label>
-                            <input type="email" name="email" id="email" class="form-control form-control-sm" required>
+                            <input type="email" name="email" id="email" class="form-control form-control-sm" autocomplete="off" required>
                         </div>
                         <div class="col-12">
                             <label for="password" class="form-label">Passwort</label>
-                            <input type="password" name="password" id="password" class="form-control form-control-sm" required>
+                            <input type="password" name="password" id="password" class="form-control form-control-sm" autocomplete="new-password" required>
                         </div>
                         <div class="col-12">
                             <label for="role_id" class="form-label">Rolle</label>
