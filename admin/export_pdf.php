@@ -73,72 +73,76 @@ if (isset($_GET['download'])) {
         die('TCPDF ist nicht verfügbar. Bitte installieren Sie TCPDF.');
     }
     
-    require_once '../script/tcpdf/tcpdf.php';
+    try {
+        require_once '../script/tcpdf/tcpdf.php';
 
-    $pdf = new TCPDF('P', 'mm', 'A4', true, 'UTF-8', false);
-    $pdf->SetCreator('Event Menue Order System (EMOS)');
-    $pdf->SetTitle('Bestellungsübersicht - ' . $project['name']);
-    $pdf->SetMargins(10, 10, 10);
-    $pdf->SetAutoPageBreak(true, 15);
-    $pdf->AddPage();
-    
-    // Header
-    $pdf->SetFillColor(13, 110, 253);
-    $pdf->SetTextColor(255, 255, 255);
-    $pdf->SetFont('helvetica', 'B', 16);
-    $pdf->Cell(0, 10, 'Bestellungsübersicht - ' . $project['name'], 0, 1, 'C', true);
-    
-    $pdf->SetTextColor(0, 0, 0);
-    $pdf->SetFont('helvetica', '', 10);
-    $pdf->Cell(0, 5, 'Erstellt am: ' . date('d.m.Y H:i:s'), 0, 1, 'R');
-    $pdf->Ln(5);
+        $pdf = new TCPDF('P', 'mm', 'A4', true, 'UTF-8', false);
+        $pdf->SetCreator('Event Menue Order System (EMOS)');
+        $pdf->SetTitle('Bestellungsübersicht - ' . $project['name']);
+        $pdf->SetMargins(10, 10, 10);
+        $pdf->SetAutoPageBreak(true, 15);
+        $pdf->AddPage();
+        
+        // Header
+        $pdf->SetFillColor(13, 110, 253);
+        $pdf->SetTextColor(255, 255, 255);
+        $pdf->SetFont('helvetica', 'B', 16);
+        $pdf->Cell(0, 10, 'Bestellungsübersicht - ' . $project['name'], 0, 1, 'C', true);
+        
+        $pdf->SetTextColor(0, 0, 0);
+        $pdf->SetFont('helvetica', '', 10);
+        $pdf->Cell(0, 5, 'Erstellt am: ' . date('d.m.Y H:i:s'), 0, 1, 'R');
+        $pdf->Ln(5);
 
-    // Projekt Info
-    $pdf->SetFont('helvetica', 'B', 11);
-    $pdf->Cell(0, 6, 'Projektdetails:', 0, 1);
-    $pdf->SetFont('helvetica', '', 10);
-    $pdf->Cell(0, 5, 'Name: ' . $project['name'], 0, 1);
-    if ($project['location']) {
-        $pdf->Cell(0, 5, 'Ort: ' . $project['location'], 0, 1);
-    }
-    $pdf->Cell(0, 5, 'Anmeldungen: ' . count($guests) . ' / ' . $project['max_guests'], 0, 1);
-    $pdf->Ln(5);
-
-    // Tabelle
-    $pdf->SetFont('helvetica', 'B', 10);
-    $pdf->SetFillColor(200, 200, 200);
-    $pdf->Cell(40, 7, 'Name', 1, 0, 'L', true);
-    $pdf->Cell(40, 7, 'Email', 1, 0, 'L', true);
-    $pdf->Cell(30, 7, 'Telefon', 1, 0, 'L', true);
-    $pdf->Cell(30, 7, 'Typ', 1, 0, 'C', true);
-    $pdf->Cell(25, 7, 'Bestellungen', 1, 1, 'C', true);
-
-    $pdf->SetFont('helvetica', '', 9);
-    $pdf->SetFillColor(245, 245, 245);
-    $fill = false;
-
-    foreach ($guests as $g) {
-        $pdf->SetFillColor($fill ? 245 : 255, $fill ? 245 : 255, $fill ? 245 : 255);
-        $pdf->MultiCell(40, 7, $g['firstname'] . ' ' . $g['lastname'], 1, 'L', $fill);
-        $pdf->SetXY(50, $pdf->GetY() - 7);
-        $pdf->MultiCell(40, 7, $g['email'], 1, 'L', $fill);
-        $pdf->SetXY(90, $pdf->GetY() - 7);
-        $pdf->MultiCell(30, 7, $g['phone'] ?? '–', 1, 'C', $fill);
-        $pdf->SetXY(120, $pdf->GetY() - 7);
-        $guest_type = $g['guest_type'] === 'family' ? 'Fam.' : 'Einz.';
-        if ($g['guest_type'] === 'family') {
-            $guest_type .= '(' . $g['family_size'] . ')';
+        // Projekt Info
+        $pdf->SetFont('helvetica', 'B', 11);
+        $pdf->Cell(0, 6, 'Projektdetails:', 0, 1);
+        $pdf->SetFont('helvetica', '', 10);
+        $pdf->Cell(0, 5, 'Name: ' . $project['name'], 0, 1);
+        if ($project['location']) {
+            $pdf->Cell(0, 5, 'Ort: ' . $project['location'], 0, 1);
         }
-        $pdf->MultiCell(30, 7, $guest_type, 1, 'C', $fill);
-        $pdf->SetXY(150, $pdf->GetY() - 7);
-        $pdf->MultiCell(25, 7, $g['order_count'], 1, 'C', $fill);
-        $pdf->Ln();
-        $fill = !$fill;
-    }
+        $pdf->Cell(0, 5, 'Anmeldungen: ' . count($guests) . ' / ' . $project['max_guests'], 0, 1);
+        $pdf->Ln(5);
 
-    $filename = 'bestellungen_' . $project_id . '_' . date('Ymd_Hi') . '.pdf';
-    $pdf->Output($filename, 'D');
-    exit;
+        // Tabelle
+        $pdf->SetFont('helvetica', 'B', 10);
+        $pdf->SetFillColor(200, 200, 200);
+        $pdf->Cell(40, 7, 'Name', 1, 0, 'L', true);
+        $pdf->Cell(40, 7, 'Email', 1, 0, 'L', true);
+        $pdf->Cell(30, 7, 'Telefon', 1, 0, 'L', true);
+        $pdf->Cell(30, 7, 'Typ', 1, 0, 'C', true);
+        $pdf->Cell(25, 7, 'Bestellungen', 1, 1, 'C', true);
+
+        $pdf->SetFont('helvetica', '', 9);
+        $pdf->SetFillColor(245, 245, 245);
+        $fill = false;
+
+        foreach ($guests as $g) {
+            $pdf->SetFillColor($fill ? 245 : 255, $fill ? 245 : 255, $fill ? 245 : 255);
+            $pdf->MultiCell(40, 7, $g['firstname'] . ' ' . $g['lastname'], 1, 'L', $fill);
+            $pdf->SetXY(50, $pdf->GetY() - 7);
+            $pdf->MultiCell(40, 7, $g['email'], 1, 'L', $fill);
+            $pdf->SetXY(90, $pdf->GetY() - 7);
+            $pdf->MultiCell(30, 7, $g['phone'] ?? '–', 1, 'C', $fill);
+            $pdf->SetXY(120, $pdf->GetY() - 7);
+            $guest_type = $g['guest_type'] === 'family' ? 'Fam.' : 'Einz.';
+            if ($g['guest_type'] === 'family') {
+                $guest_type .= '(' . $g['family_size'] . ')';
+            }
+            $pdf->MultiCell(30, 7, $guest_type, 1, 'C', $fill);
+            $pdf->SetXY(150, $pdf->GetY() - 7);
+            $pdf->MultiCell(25, 7, $g['order_count'], 1, 'C', $fill);
+            $pdf->Ln();
+            $fill = !$fill;
+        }
+
+        $filename = 'bestellungen_' . $project_id . '_' . date('Ymd_Hi') . '.pdf';
+        $pdf->Output($filename, 'D');
+        exit;
+    } catch (Exception $e) {
+        die('PDF-Generierungsfehler: ' . htmlspecialchars($e->getMessage()));
+    }
 }
 
 // Projekte für Dropdown
