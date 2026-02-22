@@ -3,14 +3,22 @@
  * admin/admin.php - Admin Dashboard
  */
 
-require_once '../db.php';
-require_once '../script/auth.php';
+// Enable error reporting for debugging
+error_reporting(E_ALL);
+ini_set('display_errors', '1');
 
-checkLogin();
-$prefix = $config['database']['prefix'] ?? 'menu_';
+try {
+    require_once '../db.php';
+    require_once '../script/auth.php';
 
-// Access-Check: Dashboard-Berechtigung erforderlich
-requireMenuAccess($pdo, 'dashboard', 'read', $prefix);
+    checkLogin();
+    $prefix = $config['database']['prefix'] ?? 'menu_';
+
+    // Access-Check: Dashboard-Berechtigung erforderlich
+    requireMenuAccess($pdo, 'dashboard', 'read', $prefix);
+} catch (Exception $e) {
+    die("Initialization Error: " . $e->getMessage());
+}
 
 // Check v2.2.0 tables
 $tables_check = checkV220Tables($pdo, $prefix);
