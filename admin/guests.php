@@ -16,6 +16,9 @@ $messageType = "info";
 // Projekte laden (nur zugängliche für project_admin oder reporting Users)
 $user_role_id = $_SESSION['role_id'] ?? null;
 
+// Prüfe ob User Schreibrechte hat (Admin oder projects_write)
+$has_write_access = ($user_role_id === 1) || hasMenuAccess($pdo, 'projects_write', $prefix);
+
 if ($user_role_id === 1) {
     // Admin: alle Projekte
     $projects = $pdo->query("SELECT * FROM {$prefix}projects WHERE is_active = 1 ORDER BY name")->fetchAll();
@@ -138,8 +141,8 @@ if ($project_id) {
     $stmt->execute(["{$prefix}guests"]);
     $has_guest_order_id = $stmt->fetchColumn() > 0;
 
-    // Bestellung oder Einzelperson löschen
-    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // Bestellung oder Einzelperson löschen (nur mit Schreibrechten)
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && $has_write_access) {
         try {
             // Szenario 1: Ganze Bestellung löschen
             if (isset($_POST['delete_order_id'])) {
@@ -423,12 +426,14 @@ if ($project_id) {
                             <div>
                                 <div><strong>📦 #<?php echo htmlspecialchars($order_data['order_id']); ?> • <?php echo htmlspecialchars($order_data['primary_person_name']); ?></strong></div>
                             </div>
+                            <?php if ($has_write_access): ?>
                             <form method="post" onsubmit="return confirm('Bestellung und alle Personen/Gerichte wirklich löschen?');">
                                 <input type="hidden" name="delete_order_id" value="<?php echo htmlspecialchars($order_data['order_id']); ?>">
                                 <button type="submit" class="btn btn-sm btn-danger guest-btn">
                                     <span class="btn-icon">🗑️</span><span class="btn-text">Alles löschen</span>
                                 </button>
                             </form>
+                            <?php endif; ?>
                         </div>
                         <div class="d-flex flex-wrap align-items-center gap-2 mt-2">
                             <small><?php echo htmlspecialchars($order_data['email']); ?></small>
@@ -457,12 +462,14 @@ if ($project_id) {
                                     <small>🪑 <?php echo $order_data['highchair_count']; ?> <?php echo $order_data['highchair_count'] == 1 ? 'Hochstuhl' : 'Hochstühle'; ?></small>
                                 <?php endif; ?>
                             </div>
+                            <?php if ($has_write_access): ?>
                             <form method="post" onsubmit="return confirm('Bestellung und alle Personen/Gerichte wirklich löschen?');">
                                 <input type="hidden" name="delete_order_id" value="<?php echo htmlspecialchars($order_data['order_id']); ?>">
                                 <button type="submit" class="btn btn-sm btn-danger guest-btn">
                                     <span class="btn-icon">🗑️</span><span class="btn-text">Alles löschen</span>
                                 </button>
                             </form>
+                            <?php endif; ?>
                         </div>
                     </div>
                 </div>
@@ -489,6 +496,7 @@ if ($project_id) {
                                 <span class="badge bg-secondary guest-type-badge">Erwachsener</span>
                             <?php endif; ?>
                         </div>
+                        <?php if ($has_write_access): ?>
                         <form method="post" onsubmit="return confirm('Person und zugehörige Gerichte löschen?');">
                             <input type="hidden" name="delete_person_order_id" value="<?php echo htmlspecialchars($order_data['order_id']); ?>">
                             <input type="hidden" name="delete_person_index" value="<?php echo (int)$person['person_index']; ?>">
@@ -496,6 +504,7 @@ if ($project_id) {
                                 <span class="btn-icon">🗑️</span><span class="btn-text">Löschen</span>
                             </button>
                         </form>
+                        <?php endif; ?>
                     </div>
                 </div>
                 <?php endforeach; ?>
