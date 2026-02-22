@@ -381,9 +381,9 @@ if ($project_id > 0) {
 
             <!-- Export-Buttons -->
             <div class="mt-4 d-flex flex-column flex-sm-row gap-2">
-                <button class="btn btn-primary" onclick="window.print()">
-                    🖨️ Drucken
-                </button>
+                <a href="../admin/export_pdf.php?project=<?php echo $project_id; ?>&download=1" class="btn btn-primary" target="_blank">
+                    🖨️ PDF Download
+                </a>
             </div>
         <?php endif; ?>
     <?php else: ?>
