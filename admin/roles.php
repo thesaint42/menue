@@ -382,8 +382,11 @@ $available_menu_items = [
                                         <div class="collapse" id="features_<?php echo $role['id']; ?>">
                                             <div class="card card-body bg-dark border-secondary p-3 features-section">
                                                 <?php if ($is_protected): ?>
-                                                <div class="alert alert-info mb-3">
-                                                    🔒 <strong><?php echo ($role['id'] === 1 ? 'Systemadmin' : 'Projektadmin'); ?>-Rolle (Systemrolle)</strong> - Diese Rolle hat standardmäßig ihre Features und kann nicht verändert werden. Für weitere Anpassungen weitere Rollen anlegen.
+                                                <div class="alert alert-info mb-3 alert-dismissible fade show system-role-alert" id="system_role_alert_<?php echo $role['id']; ?>" role="alert" data-auto-dismiss="7000">
+                                                    <div>
+                                                        🔒 <strong><?php echo ($role['id'] === 1 ? 'Systemadmin' : 'Projektadmin'); ?>-Rolle (Systemrolle)</strong> - Diese Rolle hat standardmäßig ihre Features und kann nicht verändert werden. Für weitere Anpassungen weitere Rollen anlegen.
+                                                    </div>
+                                                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="alert" aria-label="Schließen" style="background-color: #dc3545; padding: 0.5rem; border-radius: 4px; opacity: 1;"></button>
                                                 </div>
                                                 <?php endif; ?>
                                                 
@@ -392,6 +395,23 @@ $available_menu_items = [
                                                     // Systemadmin (ID 1) hat ALLE Features standardmäßig
                                                     if ($role['id'] === 1) {
                                                         $is_visible = true;
+                                                    } else if ($role['id'] === 2) {
+                                                        // Projektadmin (ID 2) hat diese Features standardmäßig
+                                                        $projektadmin_features = ['dashboard', 'menu_categories_read', 'menu_categories_write', 
+                                                                                 'projects_read', 'projects_write', 'menus_read', 'menus_write',
+                                                                                 'guests_read', 'guests_write', 'orders_read', 'orders_write', 'reporting'];
+                                                        if (in_array($menu_key, $projektadmin_features)) {
+                                                            $is_visible = true;
+                                                        } else {
+                                                            try {
+                                                                $stmt = $pdo->prepare("SELECT visible FROM {$prefix}role_menu_access WHERE role_id = ? AND menu_key = ?");
+                                                                $stmt->execute([$role['id'], $menu_key]);
+                                                                $menu_access = $stmt->fetch(PDO::FETCH_ASSOC);
+                                                                $is_visible = $menu_access && $menu_access['visible'];
+                                                            } catch (Exception $e) {
+                                                                $is_visible = false;
+                                                            }
+                                                        }
                                                     } else {
                                                         try {
                                                             $stmt = $pdo->prepare("SELECT visible FROM {$prefix}role_menu_access WHERE role_id = ? AND menu_key = ?");
@@ -434,11 +454,53 @@ $available_menu_items = [
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const alerts = document.querySelectorAll('.alert');
+    // Allgemeine Alerts (nicht System-Role-Alerts) nach 3 Sekunden entfernen
+    const alerts = document.querySelectorAll('.alert:not(.system-role-alert)');
     alerts.forEach(alert => {
         setTimeout(() => {
             alert.remove();
         }, 3000);
+    });
+
+    // System Role Alert Auto-Dismiss nach 7 Sekunden
+    function initSystemRoleAlert(alert) {
+        const dismissTime = parseInt(alert.getAttribute('data-auto-dismiss')) || 7000;
+        setTimeout(() => {
+            const bsAlert = bootstrap.Alert.getOrCreateInstance(alert);
+            bsAlert.close();
+        }, dismissTime);
+    }
+
+    // Initial: Alle sichtbaren System-Role-Alerts mit Timer versehen
+    document.querySelectorAll('.system-role-alert').forEach(alert => {
+        initSystemRoleAlert(alert);
+    });
+
+    // Zeige Alert jedes Mal wenn Features-Collapse geöffnet wird
+    document.querySelectorAll('[data-bs-toggle="collapse"]').forEach(button => {
+        button.addEventListener('click', function() {
+            const targetId = this.getAttribute('data-bs-target');
+            if (targetId && targetId.startsWith('#features_')) {
+                // Kurze Verzögerung damit Collapse-Animation startet
+                setTimeout(() => {
+                    const roleId = targetId.replace('#features_', '');
+                    const alertElement = document.getElementById('system_role_alert_' + roleId);
+                    if (alertElement) {
+                        // Prüfe ob Collapse gerade geöffnet wurde
+                        const collapseElement = document.querySelector(targetId);
+                        if (collapseElement && collapseElement.classList.contains('show')) {
+                            // Alert wieder anzeigen falls versteckt
+                            if (!alertElement.classList.contains('show')) {
+                                alertElement.classList.add('show');
+                                alertElement.style.display = 'block';
+                            }
+                            // Timer neu starten
+                            initSystemRoleAlert(alertElement);
+                        }
+                    }
+                }, 50);
+            }
+        });
     });
 });
 

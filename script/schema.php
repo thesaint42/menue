@@ -215,6 +215,21 @@ function getMenuSelectionInitData($prefix) {
          (1, 'project_admin', 1),
          (2, 'project_admin', 1)",
 
+        // Menu Access: Projektadmin (ID 2) hat Standard-Features
+        "INSERT IGNORE INTO `{$prefix}role_menu_access` (`role_id`, `menu_key`, `visible`) VALUES 
+         (2, 'dashboard', 1),
+         (2, 'menu_categories_read', 1),
+         (2, 'menu_categories_write', 1),
+         (2, 'projects_read', 1),
+         (2, 'projects_write', 1),
+         (2, 'menus_read', 1),
+         (2, 'menus_write', 1),
+         (2, 'guests_read', 1),
+         (2, 'guests_write', 1),
+         (2, 'orders_read', 1),
+         (2, 'orders_write', 1),
+         (2, 'reporting', 1)",
+
         // Menu Kategorien
         "INSERT IGNORE INTO `{$prefix}menu_categories` (`name`, `sort_order`) VALUES
          ('Vorspeise', 1),
