@@ -84,18 +84,39 @@ if (isset($_POST['delete_role'])) {
 if (isset($_POST['toggle_feature'])) {
     $role_id = (int)$_POST['role_id'];
     $feature_name = trim($_POST['feature_name']);
-    $enabled = isset($_POST['enabled']) ? 1 : 0;
+    // Checkbox wird nur gesendet wenn angehakt - also prüfe ob der Wert im POST ist
+    $enabled = isset($_POST['enabled']) && $_POST['enabled'] !== '' ? 1 : 0;
     
     try {
         $stmt = $pdo->prepare("INSERT INTO {$prefix}role_features (role_id, feature_name, enabled) 
                              VALUES (?, ?, ?) 
                              ON DUPLICATE KEY UPDATE enabled = ?");
         $stmt->execute([$role_id, $feature_name, $enabled, $enabled]);
-        $message = "Feature aktualisiert.";
+        $message = "Feature '" . htmlspecialchars($feature_name) . "' für Rolle aktualisiert.";
         $messageType = "success";
     } catch (Exception $e) {
         error_log("Could not update feature: " . $e->getMessage());
-        $message = "Fehler beim Aktualisieren des Features.";
+        $message = "Fehler beim Aktualisieren des Features: " . $e->getMessage();
+        $messageType = "danger";
+    }
+}
+
+// Menu Access togglen
+if (isset($_POST['toggle_menu_access'])) {
+    $role_id = (int)$_POST['role_id'];
+    $menu_key = trim($_POST['menu_key']);
+    $visible = isset($_POST['visible']) && $_POST['visible'] !== '' ? 1 : 0;
+    
+    try {
+        $stmt = $pdo->prepare("INSERT INTO {$prefix}role_menu_access (role_id, menu_key, visible) 
+                             VALUES (?, ?, ?) 
+                             ON DUPLICATE KEY UPDATE visible = ?");
+        $stmt->execute([$role_id, $menu_key, $visible, $visible]);
+        $message = "Menü-Zugriff für '" . htmlspecialchars($menu_key) . "' aktualisiert.";
+        $messageType = "success";
+    } catch (Exception $e) {
+        error_log("Could not update menu access: " . $e->getMessage());
+        $message = "Fehler beim Aktualisieren des Menü-Zugriffs.";
         $messageType = "danger";
     }
 }
@@ -117,6 +138,19 @@ try {
 // Definiere verfügbare Features
 $available_features = [
     'project_admin' => 'Projektadmin - Kann Projekte verwalten und zuweisen'
+];
+
+// Definiere verfügbare Burger-Menü-Punkte
+$available_menu_items = [
+    'projects' => 'Projekte (Projektverwaltung)',
+    'guests' => 'Gästeübersicht',
+    'orders' => 'Bestellübersicht',
+    'dishes' => 'Speisen',
+    'reports' => 'Berichte',
+    'export_pdf' => 'PDF Export',
+    'users' => 'Benutzer',
+    'roles' => 'Rollen',
+    'settings_mail' => 'Mail-Einstellungen'
 ];
 ?>
 <!DOCTYPE html>
@@ -162,6 +196,13 @@ $available_features = [
         .btn-action { min-width: 120px; }
         .action-row { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
         .actions-col { padding-left: 0.5rem; }
+        /* Feature und Menü Styling */
+        .features-section { color: #fff; }
+        .features-section .form-check-label { color: #fff; }
+        .features-section .form-check-label small { color: #bbb; }
+        .menu-section { color: #fff; }
+        .menu-section .form-check-label { color: #fff; }
+        .menu-section .form-check-label small { color: #bbb; }
         @media (max-width: 576px) {
             .action-buttons { flex-direction: column; }
             .action-buttons .btn { width: 100%; }
@@ -251,21 +292,47 @@ $available_features = [
                                 <tr class="table-secondary">
                                     <td colspan="4">
                                         <div class="collapse" id="features_<?php echo $role['id']; ?>">
-                                            <div class="card card-body bg-dark border-secondary p-3">
-                                                <h6 class="mb-3">Verfügbare Features:</h6>
+                                            <div class="card card-body bg-dark border-secondary p-3 features-section">
+                                                <h6 class="mb-3 text-white">📋 Verfügbare Features:</h6>
                                                 <?php foreach ($available_features as $feature_key => $feature_label): 
                                                     $is_enabled = isset($role_features[$role['id']][$feature_key]) && $role_features[$role['id']][$feature_key];
+                                                ?>
+                                                <form method="post" class="mb-3">
+                                                    <div class="form-check">
+                                                        <input type="hidden" name="role_id" value="<?php echo $role['id']; ?>">
+                                                        <input type="hidden" name="feature_name" value="<?php echo $feature_key; ?>">
+                                                        <input type="hidden" name="toggle_feature" value="1">
+                                                        <input type="checkbox" name="enabled" value="1" id="feature_<?php echo $role['id']; ?>_<?php echo $feature_key; ?>" class="form-check-input" <?php echo $is_enabled ? 'checked' : ''; ?> onchange="this.form.submit()">
+                                                        <label class="form-check-label" for="feature_<?php echo $role['id']; ?>_<?php echo $feature_key; ?>">
+                                                            <strong><?php echo htmlspecialchars(explode(' - ', $feature_label)[0]); ?></strong><br>
+                                                            <small><?php echo htmlspecialchars(isset($feature_label) ? explode(' - ', $feature_label)[1] : ''); ?></small>
+                                                        </label>
+                                                    </div>
+                                                </form>
+                                                <?php endforeach; ?>
+                                                
+                                                <hr class="bg-secondary">
+                                                <h6 class="mb-3 text-white">🍔 Burger-Menü Punkte:</h6>
+                                                <?php foreach ($available_menu_items as $menu_key => $menu_label): 
+                                                    // Lade Menü-Zugriff für diese Rolle
+                                                    try {
+                                                        $stmt = $pdo->prepare("SELECT visible FROM {$prefix}role_menu_access WHERE role_id = ? AND menu_key = ?");
+                                                        $stmt->execute([$role['id'], $menu_key]);
+                                                        $menu_access = $stmt->fetch(PDO::FETCH_ASSOC);
+                                                        $is_visible = $menu_access && $menu_access['visible'];
+                                                    } catch (Exception $e) {
+                                                        $is_visible = true; // Standard: sichtbar wenn Tabelle nicht existiert
+                                                    }
                                                 ?>
                                                 <form method="post" class="mb-2">
                                                     <div class="form-check">
                                                         <input type="hidden" name="role_id" value="<?php echo $role['id']; ?>">
-                                                        <input type="hidden" name="feature_name" value="<?php echo $feature_key; ?>">
-                                                        <input type="checkbox" name="enabled" id="feature_<?php echo $role['id']; ?>_<?php echo $feature_key; ?>" class="form-check-input" <?php echo $is_enabled ? 'checked' : ''; ?> onchange="this.form.submit()">
-                                                        <label class="form-check-label" for="feature_<?php echo $role['id']; ?>_<?php echo $feature_key; ?>">
-                                                            <strong><?php echo htmlspecialchars(explode(' - ', $feature_label)[0]); ?></strong><br>
-                                                            <small class="text-muted"><?php echo htmlspecialchars(isset($feature_label) ? explode(' - ', $feature_label)[1] : ''); ?></small>
+                                                        <input type="hidden" name="menu_key" value="<?php echo $menu_key; ?>">
+                                                        <input type="hidden" name="toggle_menu_access" value="1">
+                                                        <input type="checkbox" name="visible" value="1" id="menu_<?php echo $role['id']; ?>_<?php echo $menu_key; ?>" class="form-check-input" <?php echo $is_visible ? 'checked' : ''; ?> onchange="this.form.submit()">
+                                                        <label class="form-check-label" for="menu_<?php echo $role['id']; ?>_<?php echo $menu_key; ?>">
+                                                            <?php echo htmlspecialchars($menu_label); ?>
                                                         </label>
-                                                        <button type="submit" name="toggle_feature" style="display: none;"></button>
                                                     </div>
                                                 </form>
                                                 <?php endforeach; ?>
