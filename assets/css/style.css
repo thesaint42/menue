@@ -179,7 +179,7 @@ main.container {
 }
 
 .badge.guest-type-badge {
-    min-width: fit-content;
+    min-width: 95px;
     display: inline-flex;
     justify-content: center;
     align-items: center;
