@@ -155,19 +155,17 @@ for file in $DEPLOY_FILES; do
     fi
 done
 
-LFTP_CMDS="$LFTP_CMDS bye"
+LFTP_CMDS=\"$LFTP_CMDS quit;\"
 
-# Führe aus und cleanup Verbindung
+# Führe aus
 DEPLOY_EXIT_CODE=0
-lftp -c "$LFTP_CMDS" || DEPLOY_EXIT_CODE=$?
+lftp -c \"$LFTP_CMDS\" || DEPLOY_EXIT_CODE=$?
 
 # Cleanup: Stelle sicher dass Verbindungen geschlossen sind
-echo "🧹 Cleanup FTP-Verbindungen..."
-timeout 5 lftp -c "
-    set net:timeout 3;
-    set ftp:passive-mode true;
-    quit;
-" 2>/dev/null || true
+echo \"🧹 Cleanup FTP-Verbindungen...\"
+# Beende alle lftp-Prozesse falls noch vorhanden
+pkill -f lftp 2>/dev/null || true
+sleep 1
 
 # Check Exit Code
 if [ $DEPLOY_EXIT_CODE -eq 0 ]; then
