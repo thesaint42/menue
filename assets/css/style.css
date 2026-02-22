@@ -288,25 +288,5 @@ a:hover {
     .projects-table tbody td:nth-child(8) {
         padding-top: 0.75rem;
     }
-    
-    /* Guests table - make responsive */
-    .guests-table {
-        font-size: 0.9rem;
-    }
-    
-    .guests-table td,
-    .guests-table th {
-        padding: 0.5rem 0.25rem !important;
-    }
-    
-    /* Hide less important columns on mobile */
-    .guests-table th:nth-child(5),
-    .guests-table td:nth-child(5),
-    .guests-table th:nth-child(6),
-    .guests-table td:nth-child(6),
-    .guests-table th:nth-child(7),
-    .guests-table td:nth-child(7) {
-        display: none;
-    }
 }
 

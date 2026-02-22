@@ -315,8 +315,12 @@ if ($project_id) {
     <style>
         /* Guest action buttons - uniform size */
         .guest-btn {
-            min-width: 100px;
+            min-width: 110px;
             white-space: nowrap;
+        }
+        
+        .guest-btn .btn-icon {
+            margin-right: 0.35rem;
         }
         
         /* Mobile: Symbol only for action buttons */
@@ -357,102 +361,84 @@ if ($project_id) {
         </div>
     </div>
 
-    <!-- GÄSTE TABELLE - Nur wenn Projekt ausgewählt -->
+    <!-- GÄSTE KARTEN - Nur wenn Projekt ausgewählt -->
     <?php if ($project_id): ?>
-    <div class="card border-0 shadow">
-        <div class="card-header bg-success text-white py-3">
-            <h5 class="mb-0"><?php echo htmlspecialchars($project['name']); ?> - <?php echo count($orders_with_people); ?> Bestellung(en)</h5>
-        </div>
-        <div class="table-responsive">
-            <table class="table table-hover mb-0 guests-table">
-                <thead class="table-dark">
-                    <tr>
-                        <th colspan="2">Bestell-Nr. / Person</th>
-                        <th>Name</th>
-                        <th>Email</th>
-                        <th>Typ</th>
-                        <th>Alter</th>
-                        <th class="text-center">Bestellung</th>
-                        <th></th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php if (empty($orders_with_people)): ?>
-                        <tr><td colspan="8" class="text-center text-muted py-4">Noch keine Bestellungen vorhanden.</td></tr>
-                    <?php else: ?>
-                        <?php foreach ($orders_with_people as $order_data): ?>
-                            <!-- BESTELLUNGS-HAUPTZEILE -->
-                            <tr class="order-header" style="background-color: #3d3d3d; font-weight: bold;">
-                                <td colspan="2">
-                                    📦 Bestellung #<?php echo htmlspecialchars($order_data['order_id']); ?>
-                                    <small class="text-muted ms-2"><?php echo date('d.m.Y H:i', strtotime($order_data['created_at'])); ?></small>
-                                </td>
-                                <td></td>
-                                <td><?php echo htmlspecialchars($order_data['email']); ?></td>
-                                <td>
-                                    <?php if ($order_data['highchair_count'] > 0): ?>
-                                        <?php echo $order_data['highchair_count']; ?> x 🪑
-                                    <?php endif; ?>
-                                </td>
-                                <td></td>
-                                <td class="text-center fw-bold" style="background-color: #4d4d4d;">
-                                    <?php echo count($order_data['people']); ?>
-                                </td>
-                                <td>
-                                    <form method="post" style="display: inline;" onsubmit="return confirm('Bestellung und alle Personen/Gerichte wirklich löschen?');">
-                                        <input type="hidden" name="delete_order_id" value="<?php echo htmlspecialchars($order_data['order_id']); ?>">
-                                        <button type="submit" class="btn btn-sm btn-danger guest-btn">
-                                            <span class="btn-icon">🗑️</span><span class="btn-text">Alles löschen</span>
-                                        </button>
-                                    </form>
-                                </td>
-                            </tr>
-                            
-                            <!-- PERSONEN-UNTERZEILEN -->
-                            <?php foreach ($order_data['people'] as $person): ?>
-                                <tr class="order-person" style="padding-left: 2em;">
-                                    <td style="width: 1%; color: #888;">└─</td>
-                                    <td style="padding-left: 1em;">
-                                        Person <?php echo ($person['person_index'] + 1); ?>
-                                    </td>
-                                    <td><?php echo htmlspecialchars($person['name'] ?? 'N/A'); ?></td>
-                                    <td><?php echo htmlspecialchars($person['email'] ?? '–'); ?></td>
-                                    <td>
-                                        <?php 
-                                            $type = strtolower($person['person_type'] ?? 'adult');
-                                            echo $type === 'child' ? 'Kind' : 'Erwachsen';
-                                            if ($type === 'child' && isset($person['highchair_needed']) && $person['highchair_needed']) {
-                                                echo ' 🪑';
-                                            }
-                                        ?>
-                                    </td>
-                                    <td>
-                                        <?php 
-                                            if (strtolower($person['person_type'] ?? 'adult') === 'child') {
-                                                echo htmlspecialchars($person['child_age'] ?? '–');
-                                            } else {
-                                                echo '–';
-                                            }
-                                        ?>
-                                    </td>
-                                    <td class="text-center">1</td>
-                                    <td>
-                                        <form method="post" style="display: inline;" onsubmit="return confirm('Person und zugehörige Gerichte löschen?');">
-                                            <input type="hidden" name="delete_person_order_id" value="<?php echo htmlspecialchars($order_data['order_id']); ?>">
-                                            <input type="hidden" name="delete_person_index" value="<?php echo (int)$person['person_index']; ?>">
-                                            <button type="submit" class="btn btn-sm btn-warning guest-btn">
-                                                <span class="btn-icon">🗑️</span><span class="btn-text">Löschen</span>
-                                            </button>
-                                        </form>
-                                    </td>
-                                </tr>
-                            <?php endforeach; ?>
-                        <?php endforeach; ?>
-                    <?php endif; ?>
-                </tbody>
-            </table>
-        </div>
+    <div class="mb-3">
+        <h5><?php echo htmlspecialchars($project['name']); ?> - <?php echo count($orders_with_people); ?> Bestellung(en)</h5>
     </div>
+    
+    <?php if (empty($orders_with_people)): ?>
+        <div class="alert alert-info">Noch keine Bestellungen vorhanden.</div>
+    <?php else: ?>
+        <?php foreach ($orders_with_people as $order_data): ?>
+        <div class="card border-0 shadow mb-4">
+            <div class="card-header bg-success text-white">
+                <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-2">
+                    <div>
+                        <h5 class="mb-0">
+                            📦 Bestellung #<?php echo htmlspecialchars($order_data['order_id']); ?>
+                        </h5>
+                        <small>
+                            <?php echo htmlspecialchars($order_data['email']); ?>
+                            | <?php echo date('d.m.Y H:i', strtotime($order_data['created_at'])); ?>
+                        </small>
+                    </div>
+                    <div class="text-md-end">
+                        <small class="d-block"><?php echo count($order_data['people']); ?> Person(en)</small>
+                        <?php if ($order_data['highchair_count'] > 0): ?>
+                            <small><?php echo $order_data['highchair_count']; ?> x 🪑 Hochstuhl</small>
+                        <?php endif; ?>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <form method="post" onsubmit="return confirm('Bestellung und alle Personen/Gerichte wirklich löschen?');">
+                            <input type="hidden" name="delete_order_id" value="<?php echo htmlspecialchars($order_data['order_id']); ?>">
+                            <button type="submit" class="btn btn-sm btn-danger guest-btn">
+                                <span class="btn-icon">🗑️</span><span class="btn-text">Alles löschen</span>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                <?php foreach ($order_data['people'] as $person): ?>
+                <div class="mb-3 pb-3 border-bottom">
+                    <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-2">
+                        <div>
+                            <h6 class="fw-bold mb-1">
+                                👤 <?php echo htmlspecialchars($person['name'] ?? 'N/A'); ?>
+                            </h6>
+                            <div class="d-flex flex-wrap gap-2 align-items-center">
+                                <?php 
+                                    $type = strtolower($person['person_type'] ?? 'adult');
+                                    if ($type === 'child'): ?>
+                                    <span class="badge bg-info">Kind (<?php echo htmlspecialchars($person['child_age'] ?? '?'); ?> Jahre)</span>
+                                    <?php if (isset($person['highchair_needed']) && $person['highchair_needed']): ?>
+                                        <span class="badge bg-warning text-dark">🪑 Hochstuhl</span>
+                                    <?php endif; ?>
+                                <?php else: ?>
+                                    <span class="badge bg-secondary">Erwachsener</span>
+                                <?php endif; ?>
+                                <?php if ($person['email'] && $person['email'] !== $order_data['email']): ?>
+                                    <small class="text-muted"><?php echo htmlspecialchars($person['email']); ?></small>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <form method="post" onsubmit="return confirm('Person und zugehörige Gerichte löschen?');">
+                                <input type="hidden" name="delete_person_order_id" value="<?php echo htmlspecialchars($order_data['order_id']); ?>">
+                                <input type="hidden" name="delete_person_index" value="<?php echo (int)$person['person_index']; ?>">
+                                <button type="submit" class="btn btn-sm btn-outline-danger guest-btn">
+                                    <span class="btn-icon">🗑️</span><span class="btn-text">Löschen</span>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                <?php endforeach; ?>
+            </div>
+        </div>
+        <?php endforeach; ?>
+    <?php endif; ?>
     <?php endif; ?>
 </div>
 
