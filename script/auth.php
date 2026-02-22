@@ -166,8 +166,8 @@ function hasMenuAccess($pdo, $menu_key, $prefix = null) {
 
 /**
  * Get all projects accessible to the current user
- * - Admin users (role_id = 1): all projects
- * - Users with 'projects_write' menu access: only assigned projects
+ * - Admin users (role_id = 1): all active projects
+ * - Projektadmin/Reporter (ID 2/3): all assigned projects (including inactive)
  * - Other users: no projects
  */
 function getUserProjects($pdo, $prefix = null) {
@@ -183,17 +183,18 @@ function getUserProjects($pdo, $prefix = null) {
     $user_id = getUserId();
     $role_id = getUserRole();
     
-    // Admin sees all projects
+    // Admin sees all active projects
     if ($role_id === 1) {
         $stmt = $pdo->query("SELECT id, name FROM {$prefix}projects WHERE is_active = 1 ORDER BY name");
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
     
-    // Check if user has 'project_admin' feature
-    if (hasRoleFeature($pdo, 'project_admin', $prefix)) {
+    // Projektadmin (ID 2) or Reporter (ID 3) - see ALL assigned projects (including inactive ones)
+    // so they can re-activate them
+    if ($role_id === 2 || $role_id === 3) {
         $stmt = $pdo->prepare("SELECT p.id, p.name FROM {$prefix}projects p 
                              INNER JOIN {$prefix}user_projects up ON p.id = up.project_id 
-                             WHERE up.user_id = ? AND p.is_active = 1 
+                             WHERE up.user_id = ? 
                              ORDER BY p.name");
         $stmt->execute([$user_id]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
