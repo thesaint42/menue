@@ -13,6 +13,18 @@ $prefix = $config['database']['prefix'] ?? 'menu_';
 $message = "";
 $messageType = "info";
 
+// Rollen laden und Projektverwaltung ID finden
+$stmt = $pdo->query("SELECT * FROM {$prefix}roles ORDER BY name");
+$roles = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+$projektverwaltung_role_id = null;
+foreach ($roles as $role) {
+    if (strtolower($role['name']) === strtolower('Projektverwaltung')) {
+        $projektverwaltung_role_id = $role['id'];
+        break;
+    }
+}
+
 // Benutzer erstellen
 if (isset($_POST['create_user'])) {
     $firstname = trim($_POST['firstname']);
@@ -106,19 +118,6 @@ if (isset($_POST['delete_user'])) {
 // Benutzer laden
 $stmt = $pdo->query("SELECT u.*, r.name as role_name FROM {$prefix}users u LEFT JOIN {$prefix}roles r ON u.role_id = r.id ORDER BY u.firstname, u.lastname");
 $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-// Rollen laden
-$stmt = $pdo->query("SELECT * FROM {$prefix}roles ORDER BY name");
-$roles = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-// Finde die Rolle "Projektverwaltung"
-$projektverwaltung_role_id = null;
-foreach ($roles as $role) {
-    if (strtolower($role['name']) === strtolower('Projektverwaltung')) {
-        $projektverwaltung_role_id = $role['id'];
-        break;
-    }
-}
 
 // Lade alle Projekte
 $stmt = $pdo->query("SELECT id, name FROM {$prefix}projects ORDER BY name");
