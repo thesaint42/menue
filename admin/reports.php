@@ -284,8 +284,8 @@ if (isset($_GET['download']) && $_GET['download'] === 'pdf') {
         // Küchen-Tabelle: Kategorie | Gericht | Anzahl
         $pdf->SetFont('helvetica', 'B', 9);
         $pdf->SetFillColor(200, 200, 200);
-        $pdf->Cell(70, 7, 'Kategorie', 1, 0, 'L', true);
-        $pdf->Cell(80, 7, 'Gericht', 1, 0, 'L', true);
+        $pdf->Cell(65, 7, 'Kategorie', 1, 0, 'L', true);
+        $pdf->Cell(95, 7, 'Gericht', 1, 0, 'L', true);
         $pdf->Cell(30, 7, 'Anzahl', 1, 1, 'C', true);
 
         $pdf->SetFont('helvetica', '', 9);
@@ -295,8 +295,8 @@ if (isset($_GET['download']) && $_GET['download'] === 'pdf') {
                 $pdf->AddPage();
             }
             $pdf->SetFillColor($fill ? 245 : 255, $fill ? 245 : 255, $fill ? 245 : 255);
-            $pdf->Cell(70, 6, $row['category'], 1, 0, 'L', $fill);
-            $pdf->Cell(80, 6, $row['dish'], 1, 0, 'L', $fill);
+            $pdf->Cell(65, 6, $row['category'], 1, 0, 'L', $fill);
+            $pdf->Cell(95, 6, $row['dish'], 1, 0, 'L', $fill);
             $pdf->Cell(30, 6, $row['quantity'], 1, 1, 'C', $fill);
             $fill = !$fill;
         }
