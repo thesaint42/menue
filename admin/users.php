@@ -372,8 +372,8 @@ try {
                                                 <input type="email" name="email" value="<?php echo htmlspecialchars($user['email']); ?>" class="form-control form-control-sm w-100" disabled>
                                             </div>
                                             <div class="mt-2">
-                                                <input type="password" name="password" placeholder="Neues Passwort (optional)" class="form-control form-control-sm w-100" disabled>
-                                                <small class="text-muted d-block mt-1">Leer lassen, um Passwort nicht zu ändern</small>
+                                                <input type="password" name="password" placeholder="Neues Passwort (optional)" class="form-control form-control-sm w-100" disabled style="color: #888;">
+                                                <small class="d-block mt-1" style="color: #888;">Leer lassen, um Passwort nicht zu ändern</small>
                                             </div>
                                             <div class="mt-2">
                                                 <select name="role_id" class="form-select form-select-sm w-100 role-select" onchange="toggleProjectsSection(this, <?php echo $user['id']; ?>)" disabled>
