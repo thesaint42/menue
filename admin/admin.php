@@ -16,19 +16,60 @@ requireMenuAccess($pdo, 'dashboard', 'read', $prefix);
 $tables_check = checkV220Tables($pdo, $prefix);
 $v220_ready = !in_array(false, $tables_check, true);
 
-// Statistiken
-$stmt = $pdo->query("SELECT COUNT(*) as count FROM {$prefix}projects WHERE is_active = 1");
-$project_count = $stmt->fetch()['count'];
+// Benutzer-Rolle ermitteln
+$user_role_id = $_SESSION['role_id'] ?? null;
+$is_systemadmin = ($user_role_id === 1);
 
-$stmt = $pdo->query("SELECT COUNT(*) as count FROM {$prefix}guests");
-$guest_count = $stmt->fetch()['count'];
+// Zugängliche Projekt-IDs ermitteln
+$accessible_project_ids = [];
+if ($is_systemadmin) {
+    // Systemadmin: Alle aktiven Projekte
+    $stmt = $pdo->query("SELECT id FROM {$prefix}projects WHERE is_active = 1");
+    $accessible_project_ids = $stmt->fetchAll(PDO::FETCH_COLUMN);
+} else {
+    // Andere Rollen: nur zugewiesene Projekte
+    $user_projects = getUserProjects($pdo, $prefix);
+    if (!empty($user_projects)) {
+        $accessible_project_ids = array_column($user_projects, 'id');
+    }
+}
 
-$stmt = $pdo->query("SELECT COUNT(*) as count FROM {$prefix}orders");
-$order_count = $stmt->fetch()['count'];
+// Statistiken basierend auf zugänglichen Projekten
+$project_count = count($accessible_project_ids);
 
-// Aktuelle Projekte
-$stmt = $pdo->query("SELECT * FROM {$prefix}projects WHERE is_active = 1 ORDER BY created_at DESC LIMIT 5");
-$recent_projects = $stmt->fetchAll();
+// Gäste aus Bestellungen zählen
+$guest_count = 0;
+if (!empty($accessible_project_ids)) {
+    $placeholders = rtrim(str_repeat('?,', count($accessible_project_ids)), ',');
+    $stmt = $pdo->prepare("
+        SELECT COUNT(DISTINCT g.id) as count 
+        FROM {$prefix}guests g
+        INNER JOIN {$prefix}orders o ON g.order_id = o.id
+        WHERE o.project_id IN ($placeholders)
+    ");
+    $stmt->execute($accessible_project_ids);
+    $result = $stmt->fetch(PDO::FETCH_ASSOC);
+    $guest_count = $result ? intval($result['count']) : 0;
+}
+
+// Bestellungen zählen
+$order_count = 0;
+if (!empty($accessible_project_ids)) {
+    $placeholders = rtrim(str_repeat('?,', count($accessible_project_ids)), ',');
+    $stmt = $pdo->prepare("SELECT COUNT(*) as count FROM {$prefix}orders WHERE project_id IN ($placeholders)");
+    $stmt->execute($accessible_project_ids);
+    $result = $stmt->fetch(PDO::FETCH_ASSOC);
+    $order_count = $result ? intval($result['count']) : 0;
+}
+
+// Aktuelle Projekte (nur zugängliche)
+$recent_projects = [];
+if (!empty($accessible_project_ids)) {
+    $placeholders = rtrim(str_repeat('?,', count($accessible_project_ids)), ',');
+    $stmt = $pdo->prepare("SELECT * FROM {$prefix}projects WHERE is_active = 1 AND id IN ($placeholders) ORDER BY created_at DESC LIMIT 5");
+    $stmt->execute($accessible_project_ids);
+    $recent_projects = $stmt->fetchAll();
+}
 ?>
 <!DOCTYPE html>
 <html lang="de" data-bs-theme="dark">
@@ -93,8 +134,14 @@ $recent_projects = $stmt->fetchAll();
                     <h6 class="text-uppercase opacity-75 small mb-2">Plätze belegt</h6>
                     <h2 class="display-6 display-md-5 fw-bold mb-0">
                         <?php 
-                            $stmt = $pdo->query("SELECT SUM(max_guests) as total FROM {$prefix}projects WHERE is_active = 1");
-                            $max = $stmt->fetch()['total'] ?? 0;
+                            $max = 0;
+                            if (!empty($accessible_project_ids)) {
+                                $placeholders = rtrim(str_repeat('?,', count($accessible_project_ids)), ',');
+                                $stmt = $pdo->prepare("SELECT SUM(max_guests) as total FROM {$prefix}projects WHERE is_active = 1 AND id IN ($placeholders)");
+                                $stmt->execute($accessible_project_ids);
+                                $result = $stmt->fetch(PDO::FETCH_ASSOC);
+                                $max = ($result && $result['total']) ? intval($result['total']) : 0;
+                            }
                             echo $max > 0 ? round(($guest_count / $max) * 100) : 0;
                         ?>%
                     </h2>
