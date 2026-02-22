@@ -438,11 +438,17 @@ try {
 
                                 <!-- Action Buttons -->
                                 <div class="col-12">
-                                    <div class="d-flex gap-2 flex-wrap">
-                                        <button type="button" class="btn btn-sm btn-success edit-btn" onclick="toggleEdit(this, <?php echo $user['id']; ?>)">
+                                    <div class="d-flex justify-content-end gap-2">
+                                        <!-- Löschen-Button (außerhalb des Edit-Forms) -->
+                                        <button type="button" class="btn btn-sm btn-danger" style="min-width: 110px;" onclick="deleteUser(<?php echo $user['id']; ?>, '<?php echo htmlspecialchars($user['firstname'] . ' ' . $user['lastname'], ENT_QUOTES); ?>')">
+                                            <i class="bi bi-trash-fill"></i> <span>Löschen</span>
+                                        </button>
+                                        
+                                        <!-- Bearbeiten/Speichern-Buttons -->
+                                        <button type="button" class="btn btn-sm btn-success edit-btn" style="min-width: 110px;" onclick="toggleEdit(this, <?php echo $user['id']; ?>)">
                                             <i class="bi bi-pencil-fill"></i> <span>Bearbeiten</span>
                                         </button>
-                                        <button type="submit" name="update_user" class="btn btn-sm btn-warning d-none save-btn-<?php echo $user['id']; ?>">
+                                        <button type="submit" name="update_user" class="btn btn-sm btn-warning d-none save-btn-<?php echo $user['id']; ?>" style="min-width: 110px;">
                                             <i class="bi bi-check-lg"></i> <span>Speichern</span>
                                         </button>
                                     </div>
@@ -450,12 +456,10 @@ try {
                             </div>
                         </form>
                         
-                        <!-- Löschen-Button außerhalb des Edit-Forms -->
-                        <form method="post" class="mt-2" onsubmit="return confirm('⚠️ Benutzer <?php echo htmlspecialchars($user['firstname'] . ' ' . $user['lastname']); ?> wirklich löschen?\n\nDiese Aktion kann nicht rückgängig gemacht werden.');">
+                        <!-- Hidden form für Löschen -->
+                        <form method="post" id="delete_form_<?php echo $user['id']; ?>" style="display: none;">
                             <input type="hidden" name="id" value="<?php echo $user['id']; ?>">
-                            <button type="submit" name="delete_user" class="btn btn-sm btn-danger">
-                                <i class="bi bi-trash-fill"></i> <span>Löschen</span>
-                            </button>
+                            <input type="hidden" name="delete_user" value="1">
                         </form>
                     </div>
                 </div>
@@ -528,8 +532,8 @@ function toggleProjectsSection(roleSelect, userId) {
     const hasProjectAdmin = selectedOption && selectedOption.dataset.hasProjectAdmin === '1';
     
     // Prüfe ob wir im Bearbeitungsmodus sind (andere Felder sind nicht disabled)
-    const row = roleSelect.closest('tr');
-    const otherInputs = row.querySelectorAll('input[type=text], input[type=email]');
+    const card = roleSelect.closest('.card-body');
+    const otherInputs = card.querySelectorAll('input[type=text], input[type=email]');
     const isEditMode = otherInputs.length > 0 && !otherInputs[0].disabled;
     
     if (hasProjectAdmin) {
@@ -545,6 +549,12 @@ function toggleProjectsSection(roleSelect, userId) {
             cb.checked = false;
             cb.disabled = true;
         });
+    }
+}
+
+function deleteUser(userId, userName) {
+    if (confirm('⚠️ Benutzer ' + userName + ' wirklich löschen?\n\nDiese Aktion kann nicht rückgängig gemacht werden.')) {
+        document.getElementById('delete_form_' + userId).submit();
     }
 }
 </script>
