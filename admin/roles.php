@@ -158,17 +158,26 @@ $available_features = [
     'project_admin' => 'Projektadmin - Kann Projekte verwalten und zuweisen'
 ];
 
-// Definiere verfügbare Burger-Menü-Punkte
+// Definiere verfügbare Features für Featureverwaltung (im Burger-Menü)
 $available_menu_items = [
-    'projects' => 'Projekte (Projektverwaltung)',
-    'guests' => 'Gästeübersicht',
-    'orders' => 'Bestellübersicht',
-    'dishes' => 'Speisen',
-    'reports' => 'Berichte',
-    'export_pdf' => 'PDF Export',
-    'users' => 'Benutzer',
-    'roles' => 'Rollen',
-    'settings_mail' => 'Mail-Einstellungen'
+    'dashboard' => 'Startseite',
+    'menu_categories_read' => 'Menükategorien lesen',
+    'menu_categories_write' => 'Menükategorien schreiben',
+    'projects_read' => 'Projekte lesen',
+    'projects_write' => 'Projekte schreiben',
+    'menus_read' => 'Menüs lesen',
+    'menus_write' => 'Menüs schreiben',
+    'guests_read' => 'Gästeübersicht lesen',
+    'guests_write' => 'Gästeübersicht schreiben',
+    'orders_read' => 'Bestellübersicht lesen',
+    'orders_write' => 'Bestellübersicht schreiben',
+    'reporting' => 'Reporting',
+    'users' => 'Benutzer verwalten',
+    'roles' => 'Rollen verwalten',
+    'settings_mail' => 'Mail Setup',
+    'update' => 'Update durchführen',
+    'backup_create' => 'Backup erstellen',
+    'backup_import' => 'Backup importieren'
 ];
 ?>
 <!DOCTYPE html>
@@ -400,15 +409,20 @@ $available_menu_items = [
                                                 <?php endforeach; ?>
                                                 
                                                 <hr class="bg-secondary">
-                                                <h6 class="mb-3 text-white">🍔 Burger-Menü Punkte:</h6>
+                                                <h6 class="mb-3 text-white">⚙️ Featureverwaltung:</h6>
                                                 <?php foreach ($available_menu_items as $menu_key => $menu_label): 
-                                                    try {
-                                                        $stmt = $pdo->prepare("SELECT visible FROM {$prefix}role_menu_access WHERE role_id = ? AND menu_key = ?");
-                                                        $stmt->execute([$role['id'], $menu_key]);
-                                                        $menu_access = $stmt->fetch(PDO::FETCH_ASSOC);
-                                                        $is_visible = $menu_access && $menu_access['visible'];
-                                                    } catch (Exception $e) {
+                                                    // Systemadmin (ID 1) hat ALLE Features standardmäßig
+                                                    if ($role['id'] === 1) {
                                                         $is_visible = true;
+                                                    } else {
+                                                        try {
+                                                            $stmt = $pdo->prepare("SELECT visible FROM {$prefix}role_menu_access WHERE role_id = ? AND menu_key = ?");
+                                                            $stmt->execute([$role['id'], $menu_key]);
+                                                            $menu_access = $stmt->fetch(PDO::FETCH_ASSOC);
+                                                            $is_visible = $menu_access && $menu_access['visible'];
+                                                        } catch (Exception $e) {
+                                                            $is_visible = false;
+                                                        }
                                                     }
                                                 ?>
                                                 <div class="form-check mb-2">
