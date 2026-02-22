@@ -11,6 +11,7 @@ checkLogin();
 
 $prefix = $config['database']['prefix'] ?? 'menu_';
 $project_id = isset($_GET['project']) ? (int)$_GET['project'] : null;
+$current_view = isset($_GET['view']) ? $_GET['view'] : null;
 $no_projects = false;
 $project_not_found = false;
 
@@ -718,11 +719,19 @@ if (isset($_GET['download']) && $_GET['download'] === 'pdf') {
 
         <!-- Drucken / PDF -->
         <div class="col-12 col-sm-6 col-lg-4">
-            <a href="#" data-bs-toggle="modal" data-bs-target="#pdfModal" class="report-icon-btn">
-                <div class="icon">🖨️</div>
-                <div class="title">PDF Export</div>
-                <div class="subtitle">Anzeigen oder herunterladen</div>
-            </a>
+            <?php if ($current_view && ($current_view === 'orders' || $current_view === 'kitchen')): ?>
+                <a href="#" data-bs-toggle="modal" data-bs-target="#pdfModal" class="report-icon-btn">
+                    <div class="icon">🖨️</div>
+                    <div class="title">PDF Export</div>
+                    <div class="subtitle">Anzeigen oder herunterladen</div>
+                </a>
+            <?php else: ?>
+                <div class="report-icon-btn disabled" style="opacity: 0.5; cursor: not-allowed;">
+                    <div class="icon">🖨️</div>
+                    <div class="title">PDF Export</div>
+                    <div class="subtitle">Wähle zuerst einen Report</div>
+                </div>
+            <?php endif; ?>
         </div>
 
         <!-- Bestellte Gerichte (Küche) -->
