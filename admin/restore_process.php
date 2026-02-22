@@ -9,9 +9,25 @@ require_once '../script/auth.php';
 header('Content-Type: application/json; charset=utf-8');
 
 checkLogin();
-checkAdmin();
 
 $prefix = $config['database']['prefix'] ?? 'menu_';
+$user_role_id = $_SESSION['role_id'] ?? null;
+
+// Zugriff: Admin (role 1) oder Projekt Admin (role mit projects_write)
+$is_admin = ($user_role_id === 1);
+$is_project_admin = hasMenuAccess($pdo, 'projects_write', $prefix);
+
+if (!$is_admin && !$is_project_admin) {
+    http_response_code(403);
+    echo json_encode(['success' => false, 'error' => 'Zugriff verweigert']);
+    exit;
+}
+
+// Für Projekt Admin: Nur die eigenen Projekte abrufen
+$user_projects = [];
+if ($is_project_admin && !$is_admin) {
+    $user_projects = getUserProjects($pdo, $prefix);
+}
 $backup_dir = __DIR__ . '/../storage/backups';
 
 // Action: restore backup
@@ -27,6 +43,23 @@ if ($_REQUEST['action'] === 'restore') {
         http_response_code(400);
         echo json_encode(['success' => false, 'error' => 'Invalid parameters']);
         exit;
+    }
+    
+    // Für Projekt Admin: Nur eigene Projekt-Backups wiederherstellen
+    if (!$is_admin && $is_project_admin) {
+        if (preg_match('/^project_backup_(\d+)_/', $backup_file, $matches)) {
+            $project_id = (int)$matches[1];
+            $allowed_project_ids = array_column($user_projects, 'id');
+            if (!in_array($project_id, $allowed_project_ids)) {
+                http_response_code(403);
+                echo json_encode(['success' => false, 'error' => 'Zugriff verweigert: Sie können nur Backups Ihrer eigenen Projekte wiederherstellen.']);
+                exit;
+            }
+        } else {
+            http_response_code(403);
+            echo json_encode(['success' => false, 'error' => 'Zugriff verweigert: Sie können nur Projekt-Backups wiederherstellen.']);
+            exit;
+        }
     }
     
     $backup_path = $backup_dir . '/' . $backup_file;

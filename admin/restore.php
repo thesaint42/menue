@@ -7,9 +7,23 @@ require_once '../db.php';
 require_once '../script/auth.php';
 
 checkLogin();
-checkAdmin();
 
 $prefix = $config['database']['prefix'] ?? 'menu_';
+$user_role_id = $_SESSION['role_id'] ?? null;
+
+// Zugriff: Admin (role 1) oder Projekt Admin (role mit projects_write)
+$is_admin = ($user_role_id === 1);
+$is_project_admin = hasMenuAccess($pdo, 'projects_write', $prefix);
+
+if (!$is_admin && !$is_project_admin) {
+    die("Zugriff verweigert: Sie haben keine Berechtigung für Wiederherstellungen.");
+}
+
+// Für Projekt Admin: Nur die eigenen Projekte abrufen
+$user_projects = [];
+if ($is_project_admin && !$is_admin) {
+    $user_projects = getUserProjects($pdo, $prefix);
+}
 $message = "";
 $messageType = "info";
 
@@ -20,8 +34,28 @@ $backup_dir = __DIR__ . '/../storage/backups';
 $backup_files = [];
 if (is_dir($backup_dir)) {
     $files = scandir($backup_dir, SCANDIR_SORT_DESCENDING);
+    
+    // Für Projekt Admin: Nur die eigenen Projekt-Backups anzeigen
+    $allowed_project_ids = [];
+    if (!$is_admin && $is_project_admin && !empty($user_projects)) {
+        $allowed_project_ids = array_column($user_projects, 'id');
+    }
+    
     foreach ($files as $file) {
         if ($file !== '.' && $file !== '..' && (strpos($file, 'backup_') !== false || strpos($file, 'db_backup_') !== false)) {
+            // Für Projekt Admin: Nur Projekt-spezifische Backups anzeigen
+            if (!$is_admin && $is_project_admin) {
+                // Nur project_backup_X_* anzeigen und nur wenn X in erlaubten Projekten
+                if (preg_match('/^project_backup_(\d+)_/', $file, $matches)) {
+                    $project_id = (int)$matches[1];
+                    if (!in_array($project_id, $allowed_project_ids)) {
+                        continue; // Skip backup von nicht-erlaubtem Projekt
+                    }
+                } else {
+                    continue; // Skip non-project backups (db_backup, files_backup, etc.)
+                }
+            }
+            
             $backup_files[] = [
                 'name' => $file,
                 'size' => filesize($backup_dir . '/' . $file),
