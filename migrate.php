@@ -586,6 +586,24 @@ if (isset($_POST['reset_migrations'])) {
     }
 }
 
+// Einzelne Migration zurücksetzen
+if (isset($_POST['reset_single_migration']) && isset($_POST['migration_key'])) {
+    $migration_key = $_POST['migration_key'];
+    try {
+        $stmt = $pdo->prepare("DELETE FROM `{$prefix}migrations` WHERE migration = ?");
+        $stmt->execute([$migration_key]);
+        
+        // Entferne aus executed_migrations Array
+        $executed_migrations = array_diff($executed_migrations, [$migration_key]);
+        
+        $message = "✓ Migration '{$migration_key}' zurückgesetzt. Sie können sie jetzt erneut ausführen.";
+        $messageType = "success";
+    } catch (Exception $e) {
+        $message = "Fehler beim Zurücksetzen: " . $e->getMessage();
+        $messageType = "danger";
+    }
+}
+
 // Migration durchführen wenn angefordert
 if (isset($_POST['run_migration']) && isset($_POST['migration_key'])) {
     $migration_key = $_POST['migration_key'];
@@ -720,7 +738,15 @@ if (isset($_POST['run_migration']) && isset($_POST['migration_key'])) {
                                     </div>
                                     <div class="col-auto">
                                         <?php if (in_array($key, $executed_migrations)): ?>
-                                            <span class="badge bg-success">✓ Ausgeführt</span>
+                                            <div class="d-flex gap-2">
+                                                <span class="badge bg-success">✓ Ausgeführt</span>
+                                                <form method="post" style="display: inline;">
+                                                    <input type="hidden" name="migration_key" value="<?php echo $key; ?>">
+                                                    <button type="submit" name="reset_single_migration" class="btn btn-sm btn-warning" onclick="return confirm('Migration zurücksetzen? Sie können sie danach erneut ausführen.')">
+                                                        🔄 Erneut ausführen
+                                                    </button>
+                                                </form>
+                                            </div>
                                         <?php else: ?>
                                             <form method="post" style="display: inline;">
                                                 <input type="hidden" name="migration_key" value="<?php echo $key; ?>">
