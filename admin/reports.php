@@ -281,12 +281,19 @@ if (isset($_GET['download']) && $_GET['download'] === 'pdf') {
     $pdf->Ln(5);
 
     if ($requested_view === 'kitchen') {
+        // Berechne verfügbare Breite (Seitenbreite minus Margins)
+        $page_width = $pdf->getPageWidth() - $pdf->getMargins()['left'] - $pdf->getMargins()['right'];
+        
         // Küchen-Tabelle: Kategorie | Gericht | Anzahl
+        $col1_width = $page_width * 0.35; // 35% für Kategorie
+        $col2_width = $page_width * 0.50; // 50% für Gericht
+        $col3_width = $page_width * 0.15; // 15% für Anzahl
+        
         $pdf->SetFont('helvetica', 'B', 9);
         $pdf->SetFillColor(200, 200, 200);
-        $pdf->Cell(65, 7, 'Kategorie', 1, 0, 'L', true);
-        $pdf->Cell(95, 7, 'Gericht', 1, 0, 'L', true);
-        $pdf->Cell(30, 7, 'Anzahl', 1, 1, 'C', true);
+        $pdf->Cell($col1_width, 7, 'Kategorie', 1, 0, 'L', true);
+        $pdf->Cell($col2_width, 7, 'Gericht', 1, 0, 'L', true);
+        $pdf->Cell($col3_width, 7, 'Anzahl', 1, 1, 'C', true);
 
         $pdf->SetFont('helvetica', '', 9);
         $fill = false;
@@ -295,9 +302,9 @@ if (isset($_GET['download']) && $_GET['download'] === 'pdf') {
                 $pdf->AddPage();
             }
             $pdf->SetFillColor($fill ? 245 : 255, $fill ? 245 : 255, $fill ? 245 : 255);
-            $pdf->Cell(65, 6, $row['category'], 1, 0, 'L', $fill);
-            $pdf->Cell(95, 6, $row['dish'], 1, 0, 'L', $fill);
-            $pdf->Cell(30, 6, $row['quantity'], 1, 1, 'C', $fill);
+            $pdf->Cell($col1_width, 6, $row['category'], 1, 0, 'L', $fill);
+            $pdf->Cell($col2_width, 6, $row['dish'], 1, 0, 'L', $fill);
+            $pdf->Cell($col3_width, 6, $row['quantity'], 1, 1, 'C', $fill);
             $fill = !$fill;
         }
     } else {
