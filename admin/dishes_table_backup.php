@@ -158,16 +158,17 @@ if ($project_id) {
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Gerichte - EMOS</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
     <style>
         body { background-color: #1a1a1a; color: #fff; }
         .card { background-color: #222; border-color: #444; }
+        .table-dark { background-color: #222; }
         .form-control, .form-select, textarea { background-color: #333; color: #fff; border-color: #555; }
         .form-control:focus, .form-select:focus, textarea:focus { background-color: #333; color: #fff; border-color: #0d6efd; }
         .form-control:disabled { background-color: #444; color: #fff; border-color: #555; opacity: 1; }
         .form-select:disabled { background-color: #444; color: #fff; border-color: #555; opacity: 1; }
-        textarea:disabled { background-color: #444; color: #fff; border-color: #555; opacity: 1; }
         .form-control::placeholder { color: #b0b0b0; opacity: 1; }
+        .form-control::-webkit-input-placeholder { color: #b0b0b0; }
+        .form-control:-ms-input-placeholder { color: #b0b0b0; }
         .btn-close-white {
             background-color: #dc3545 !important;
             border: none !important;
@@ -200,29 +201,48 @@ if ($project_id) {
             background-color: #bb2d3b;
         }
         
-        /* Karten-Layout */
-        .dish-card {
-            background-color: #2a2a2a;
-            border: 1px solid #444;
-            border-radius: 8px;
-            padding: 1rem;
-            margin-bottom: 1rem;
+        /* Beschreibung initial gleich hoch wie andere Felder */
+        textarea[name="description"]:disabled {
+            height: 38px;
+            resize: none;
+            overflow: hidden;
         }
         
-        .dish-card .form-label {
-            color: #aaa;
-            font-size: 0.85rem;
-            margin-bottom: 0.25rem;
-            font-weight: 600;
-        }
-        
-        .dish-card .btn {
-            min-width: 110px;
-        }
-        
-        /* Mobile: Buttons nebeneinander, Löschen links, Bearbeiten rechts */
+        /* Mobile Ansicht */
         @media (max-width: 767.98px) {
-            .dish-card .btn {
+            /* Tabellen-Header verstecken */
+            .table thead {
+                display: none;
+            }
+            
+            /* Tabellenzeilen als Block-Elemente */
+            .table tbody tr {
+                display: block;
+                margin-bottom: 1.5rem;
+                padding: 1rem;
+                background-color: #2a2a2a;
+                border-radius: 8px;
+            }
+            
+            .table tbody td {
+                display: block;
+                width: 100% !important;
+                padding: 0.5rem 0;
+                border: none;
+            }
+            
+            /* Labels für Mobile hinzufügen */
+            .table tbody td::before {
+                content: attr(data-label);
+                font-weight: bold;
+                display: block;
+                margin-bottom: 0.25rem;
+                color: #aaa;
+                font-size: 0.85rem;
+            }
+            
+            /* Buttons: quadratisch, nur Icons */
+            .table .btn {
                 width: 45px !important;
                 height: 45px !important;
                 min-width: 45px !important;
@@ -232,18 +252,20 @@ if ($project_id) {
                 justify-content: center;
             }
             
-            .dish-card .btn .btn-text {
+            .table .btn .btn-text {
                 display: none;
             }
             
-            .dish-card .action-buttons {
+            /* Aktions-Spalte: Buttons nebeneinander */
+            .table tbody td:last-child {
                 display: flex;
-                justify-content: space-between;
                 gap: 0.5rem;
+                padding-top: 1rem;
             }
             
-            .price-field-mobile {
-                max-width: 150px;
+            /* Textarea auf Mobile größer */
+            textarea[name="description"] {
+                min-height: 60px !important;
             }
         }
     </style>
@@ -307,90 +329,85 @@ if ($project_id) {
                 <div class="col-12 col-md-2">
                     <input type="text" name="price" class="form-control" placeholder="Preis (€)" <?php echo !$can_write_menus ? 'disabled' : ''; ?>>
                 </div>
-                <div class="col-6 col-md-1">
+                <div class="col-12 col-md-1">
                     <input type="number" name="sort_order" class="form-control" placeholder="Sort" min="0" value="0" <?php echo !$can_write_menus ? 'disabled' : ''; ?>>
                 </div>
-                <div class="col-6 col-md-2">
-                    <button type="submit" name="create_dish" class="btn btn-primary w-100" <?php echo !$can_write_menus ? 'disabled' : ''; ?>>
-                        <i class="bi bi-plus-lg"></i> Erstellen
-                    </button>
+                <div class="col-12 order-md-5 col-md-2">
+                    <button type="submit" name="create_dish" class="btn btn-primary w-100" <?php echo !$can_write_menus ? 'disabled' : ''; ?>>Erstellen</button>
                 </div>
-                <div class="col-12">
+                <div class="col-12 order-md-4">
                     <textarea name="description" class="form-control" placeholder="Beschreibung (optional)" rows="2" <?php echo !$can_write_menus ? 'disabled' : ''; ?>></textarea>
                 </div>
             </form>
         </div>
     </div>
 
-    <!-- Gerichte als Karten -->
+    <!-- Tabelle -->
     <div class="card">
         <div class="card-header bg-secondary">
             <h5 class="mb-0">Gerichte <span class="badge bg-primary ms-2"><?php echo count($dishes); ?></span></h5>
         </div>
-        <div class="card-body">
-            <?php if (empty($dishes)): ?>
-                <p class="text-muted text-center py-4">Noch keine Gerichte angelegt.</p>
-            <?php else: ?>
-                <?php foreach ($dishes as $dish): ?>
-                    <div class="dish-card">
-                        <form method="post" id="form_<?php echo $dish['id']; ?>">
-                            <input type="hidden" name="id" value="<?php echo $dish['id']; ?>">
-                            <input type="hidden" name="sort_order" value="<?php echo $dish['sort_order']; ?>">
-                            
-                            <div class="row g-2">
-                                <!-- Kategorie -->
-                                <div class="col-12 col-md-3">
-                                    <label class="form-label">Kategorie</label>
-                                    <select name="category_id" class="form-select form-select-sm" disabled>
-                                        <?php foreach ($categories as $cat): ?>
-                                            <option value="<?php echo $cat['id']; ?>" <?php echo $dish['category_id'] == $cat['id'] ? 'selected' : ''; ?>>
-                                                <?php echo htmlspecialchars($cat['name']); ?>
-                                            </option>
-                                        <?php endforeach; ?>
-                                    </select>
-                                </div>
-                                
-                                <!-- Gericht -->
-                                <div class="col-12 col-md-4">
-                                    <label class="form-label">Gericht</label>
+        <div class="table-responsive">
+            <table class="table table-dark table-hover table-sm mb-0">
+                <thead>
+                    <tr>
+                        <th style="width: 20%">Kategorie</th>
+                        <th style="width: 25%">Gericht</th>
+                        <th style="width: 35%">Beschreibung</th>
+                        <th style="width: 10%">Preis</th>
+                        <th style="width: 10%">Aktionen</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php if (empty($dishes)): ?>
+                        <tr>
+                            <td colspan="5" class="text-center text-muted py-3">Keine Gerichte vorhanden</td>
+                        </tr>
+                    <?php else: ?>
+                        <?php foreach ($dishes as $dish): ?>
+                            <tr>
+                                <td data-label="Kategorie">
+                                    <form method="post" id="form_<?php echo $dish['id']; ?>" style="display: inline;">
+                                        <input type="hidden" name="id" value="<?php echo $dish['id']; ?>">
+                                        <input type="hidden" name="sort_order" value="<?php echo $dish['sort_order']; ?>">
+                                        <select name="category_id" class="form-select form-select-sm" disabled>
+                                            <?php foreach ($categories as $cat): ?>
+                                                <option value="<?php echo $cat['id']; ?>" <?php echo $dish['category_id'] == $cat['id'] ? 'selected' : ''; ?>>
+                                                    <?php echo htmlspecialchars($cat['name']); ?>
+                                                </option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                </td>
+                                <td data-label="Gericht">
                                     <input type="text" name="name" value="<?php echo htmlspecialchars($dish['name']); ?>" class="form-control form-control-sm" required disabled>
-                                </div>
-                                
-                                <!-- Preis -->
-                                <div class="col-6 col-md-2">
-                                    <label class="form-label">Preis</label>
-                                    <input type="text" name="price" value="<?php echo is_null($dish['price']) ? '' : number_format((float)$dish['price'], 2, ',', '.'); ?>" class="form-control form-control-sm price-field-mobile" disabled>
-                                </div>
-                                
-                                <!-- Buttons -->
-                                <div class="col-6 col-md-3 d-flex align-items-end">
-                                    <div class="action-buttons w-100">
-                                        <?php if ($can_write_menus): ?>
-                                        <button type="button" class="btn btn-sm btn-danger delete-btn" data-bs-toggle="modal" data-bs-target="#deleteModal" onclick="document.getElementById('deleteForm').innerHTML = '<input type=hidden name=id value=<?php echo $dish['id']; ?>><input type=hidden name=delete_dish value=1>'">
-                                            🗑️ <span class="btn-text">Löschen</span>
-                                        </button>
-                                        <button type="button" class="btn btn-sm btn-success edit-btn" onclick="toggleEdit(this, <?php echo $dish['id']; ?>)" data-id="<?php echo $dish['id']; ?>">
-                                            ✏️ <span class="btn-text">Bearbeiten</span>
-                                        </button>
-                                        <button type="submit" name="update_dish" class="btn btn-sm btn-warning d-none save-btn" data-id="<?php echo $dish['id']; ?>">
-                                            💾 <span class="btn-text">Speichern</span>
-                                        </button>
-                                        <?php else: ?>
-                                        <span class="badge bg-secondary">Nur Lesezugriff</span>
-                                        <?php endif; ?>
-                                    </div>
-                                </div>
-                                
-                                <!-- Beschreibung -->
-                                <div class="col-12">
-                                    <label class="form-label">Beschreibung</label>
-                                    <textarea name="description" class="form-control form-control-sm" rows="2" disabled><?php echo htmlspecialchars($dish['description']); ?></textarea>
-                                </div>
-                            </div>
-                        </form>
-                    </div>
-                <?php endforeach; ?>
-            <?php endif; ?>
+                                </td>
+                                <td data-label="Beschreibung">
+                                    <textarea name="description" class="form-control form-control-sm" rows="1" disabled><?php echo htmlspecialchars($dish['description']); ?></textarea>
+                                </td>
+                                <td data-label="Preis">
+                                    <input type="text" name="price" value="<?php echo is_null($dish['price']) ? '' : number_format((float)$dish['price'], 2, ',', '.'); ?>" class="form-control form-control-sm" disabled>
+                                </td>
+                                <td data-label="Aktionen">
+                                    <?php if ($can_write_menus): ?>
+                                    <button type="button" class="btn btn-sm btn-success edit-btn" onclick="toggleEdit(this, <?php echo $dish['id']; ?>)" data-id="<?php echo $dish['id']; ?>">
+                                        ✏️ <span class="btn-text">Bearbeiten</span>
+                                    </button>
+                                    <button type="submit" name="update_dish" form="form_<?php echo $dish['id']; ?>" class="btn btn-sm btn-warning d-none" data-id="<?php echo $dish['id']; ?>">
+                                        💾 <span class="btn-text">Speichern</span>
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#deleteModal" onclick="document.getElementById('deleteForm').innerHTML = '<input type=hidden name=id value=<?php echo $dish['id']; ?>><input type=hidden name=delete_dish value=1>'">
+                                        🗑️ <span class="btn-text">Löschen</span>
+                                    </button>
+                                    <?php else: ?>
+                                    <span class="badge bg-secondary">Nur Lesezugriff</span>
+                                    <?php endif; ?>
+                                    </form>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                </tbody>
+            </table>
         </div>
     </div>
     <?php else: ?>
@@ -436,13 +453,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
 function toggleEdit(btn, id) {
     const form = document.getElementById('form_' + id);
-    const card = form.closest('.dish-card');
+    const row = form.closest('tr');
     
-    // Finde alle Input-Felder
-    const inputs = card.querySelectorAll('input[type=text], select, textarea');
-    const editBtn = card.querySelector('.edit-btn');
-    const saveBtn = card.querySelector('.save-btn');
-    const deleteBtn = card.querySelector('.delete-btn');
+    // Finde alle Input-Felder in dieser Reihe (außer dem hidden input für id)
+    const inputs = row.querySelectorAll('input[type=text], select, textarea');
+    const editBtn = btn;
+    const saveBtn = document.querySelector(`button[name=update_dish][data-id="${id}"]`);
     
     inputs.forEach(input => {
         input.toggleAttribute('disabled');
@@ -450,7 +466,6 @@ function toggleEdit(btn, id) {
     
     editBtn.classList.toggle('d-none');
     saveBtn.classList.toggle('d-none');
-    deleteBtn.classList.toggle('d-none');
 }
 </script>
 
