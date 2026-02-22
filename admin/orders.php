@@ -9,6 +9,9 @@ require_once '../script/auth.php';
 // Authentifizierung prüfen
 checkLogin();
 
+// Prefix definieren
+$prefix = $config['database']['prefix'] ?? 'menu_';
+
 // PDF Download
 if (isset($_GET['download']) && $_GET['download'] === '1') {
     $project_id = isset($_GET['project']) ? (int)$_GET['project'] : null;
@@ -88,7 +91,6 @@ if (isset($_GET['download']) && $_GET['download'] === '1') {
 $project_id = isset($_GET['project']) ? (int)$_GET['project'] : 0;
 
 // Projekte abrufen (nur zugängliche für Benutzer mit projects_write Berechtigung)
-$prefix = $config['database']['prefix'];
 $user_role_id = $_SESSION['role_id'] ?? null;
 
 if ($user_role_id === 1) {
