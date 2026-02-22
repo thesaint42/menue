@@ -381,7 +381,7 @@ if (isset($_GET['download']) && $_GET['download'] === 'pdf') {
 
     $pdf = new TCPDF(PDF_PAGE_ORIENTATION, PDF_UNIT, PDF_PAGE_FORMAT, true, 'UTF-8', false);
     $pdf->SetCreator('Event Menue Order System (EMOS)');
-    $pdf->SetTitle(($requested_view === 'kitchen' ? 'Bestellte Gerichte - ' : 'Bestellübersicht - ') . $project['name']);
+    $pdf->SetTitle(($requested_view === 'kitchen' ? 'Bestellte Gerichte - ' : ($requested_view === 'statistics' ? 'Statistiken - ' : 'Bestellübersicht - ')) . $project['name']);
     $pdf->SetMargins(10, 10, 10);
     $pdf->SetAutoPageBreak(true, 15);
     $pdf->AddPage();
@@ -390,7 +390,7 @@ if (isset($_GET['download']) && $_GET['download'] === 'pdf') {
     $pdf->SetFillColor(13, 110, 253);
     $pdf->SetTextColor(255, 255, 255);
     $pdf->SetFont('helvetica', 'B', 16);
-    $pdf->Cell(0, 10, ($requested_view === 'kitchen' ? 'Bestellte Gerichte - ' : 'Bestellübersicht - ') . $project['name'], 0, 1, 'C', true);
+    $pdf->Cell(0, 10, ($requested_view === 'kitchen' ? 'Bestellte Gerichte - ' : ($requested_view === 'statistics' ? 'Statistiken - ' : 'Bestellübersicht - ')) . $project['name'], 0, 1, 'C', true);
     
     $pdf->SetTextColor(0, 0, 0);
     $pdf->SetFont('helvetica', '', 10);
@@ -587,6 +587,51 @@ if (isset($_GET['download']) && $_GET['download'] === 'pdf') {
             $pdf->SetFont('helvetica', '', 8);
             $fill = !$fill;
         }
+    }
+    
+    if ($requested_view === 'statistics') {
+        // Statistiken-View für PDF
+        $pdf->SetFont('helvetica', 'B', 12);
+        $pdf->Cell(0, 8, 'Übersicht', 0, 1);
+        $pdf->SetFont('helvetica', '', 10);
+        $pdf->Ln(3);
+        
+        // Berechne Statistiken
+        $total_individual_persons = 0;
+        $total_family_persons = 0;
+        $total_families = 0;
+        
+        foreach ($orders_by_id as $order_data) {
+            if ($order_data['guest_type'] === 'individual') {
+                $total_individual_persons += count($order_data['persons']);
+            } elseif ($order_data['guest_type'] === 'family') {
+                $total_families++;
+                $total_family_persons += count($order_data['persons']);
+            }
+        }
+        
+        $total_all_persons = $total_individual_persons + $total_family_persons;
+        
+        // Statistik-Boxen
+        $pdf->SetFillColor(230, 230, 230);
+        $pdf->SetFont('helvetica', 'B', 10);
+        $pdf->Cell(0, 7, 'Gesamt Gäste', 0, 1, 'L', true);
+        $pdf->SetFont('helvetica', '', 11);
+        $pdf->Cell(0, 8, $total_all_persons . ' / ' . $project['max_guests'] . ' (' . round(($total_all_persons / $project['max_guests']) * 100) . '%)', 0, 1);
+        $pdf->Ln(3);
+        
+        $pdf->SetFillColor(230, 230, 230);
+        $pdf->SetFont('helvetica', 'B', 10);
+        $pdf->Cell(0, 7, 'Einzelpersonen', 0, 1, 'L', true);
+        $pdf->SetFont('helvetica', '', 11);
+        $pdf->Cell(0, 8, $total_individual_persons, 0, 1);
+        $pdf->Ln(3);
+        
+        $pdf->SetFillColor(230, 230, 230);
+        $pdf->SetFont('helvetica', 'B', 10);
+        $pdf->Cell(0, 7, 'Familien / Personen', 0, 1, 'L', true);
+        $pdf->SetFont('helvetica', '', 11);
+        $pdf->Cell(0, 8, $total_families . ' / ' . $total_family_persons, 0, 1);
     }
 
     $filename = 'bestellungen_' . $project_id . '_' . date('Ymd_Hi') . '.pdf';
