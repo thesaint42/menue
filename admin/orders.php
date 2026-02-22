@@ -393,11 +393,11 @@ if ($project_id > 0) {
                 <div class="card-body">
                     <?php foreach ($order_data['persons'] as $person): ?>
                     <div class="mb-3 pb-3 border-bottom">
-                        <div class="d-flex justify-content-between align-items-center gap-2">
-                            <h6 class="fw-bold mb-0">
+                        <div class="d-flex justify-content-between align-items-center gap-1">
+                            <h6 class="fw-bold mb-0 text-nowrap">
                             👤 <?php echo htmlspecialchars($person['name']); ?>
                             </h6>
-                            <div class="d-flex gap-2 align-items-center justify-content-md-end person-actions">
+                            <div class="d-flex gap-1 align-items-center justify-content-md-end person-actions">
                                 <?php if ($person['highchair']): ?>
                                     <span class="badge bg-warning text-dark badge-highchair">🪑<span class="badge-text"> Hochstuhl</span></span>
                                 <?php endif; ?>
