@@ -264,6 +264,13 @@ if ($project_id > 0) {
             .badge-highchair .badge-text {
                 display: none;
             }
+            
+            /* Person-Aktionen rechtsbündig auf Mobile */
+            .person-actions {
+                width: 100%;
+                justify-content: flex-end !important;
+                flex-wrap: wrap;
+            }
         }
     </style>
 </head>
@@ -390,17 +397,15 @@ if ($project_id > 0) {
                             <h6 class="fw-bold mb-0">
                             👤 <?php echo htmlspecialchars($person['name']); ?>
                             </h6>
-                            <div class="d-flex gap-2 align-items-center">
-                                <div class="d-flex gap-2">
-                                    <?php if ($person['highchair']): ?>
-                                        <span class="badge bg-warning text-dark badge-highchair">🪑<span class="badge-text"> Hochstuhl</span></span>
-                                    <?php endif; ?>
-                                    <?php if ($person['type'] === 'child'): ?>
-                                        <span class="badge bg-info">Kind (<?php echo $person['age']; ?> Jahre)</span>
-                                    <?php else: ?>
-                                        <span class="badge bg-secondary">Erwachsener</span>
-                                    <?php endif; ?>
-                                </div>
+                            <div class="d-flex gap-2 align-items-center justify-content-md-end person-actions">
+                                <?php if ($person['highchair']): ?>
+                                    <span class="badge bg-warning text-dark badge-highchair">🪑<span class="badge-text"> Hochstuhl</span></span>
+                                <?php endif; ?>
+                                <?php if ($person['type'] === 'child'): ?>
+                                    <span class="badge bg-info">Kind (<?php echo $person['age']; ?> Jahre)</span>
+                                <?php else: ?>
+                                    <span class="badge bg-secondary">Erwachsener</span>
+                                <?php endif; ?>
                                 <form method="post" onsubmit="return confirm('Diese Person und ihre Auswahl wirklich löschen?');" class="d-inline">
                                     <input type="hidden" name="delete_person_order_id" value="<?php echo htmlspecialchars($order_id); ?>">
                                     <input type="hidden" name="delete_person_index" value="<?php echo (int)$person['person_index']; ?>">
