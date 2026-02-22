@@ -18,13 +18,8 @@ $v220_ready = !in_array(false, $tables_check, true);
 
 // Zugängliche Projekt-IDs ermitteln (getUserProjects handhabt alle Rollen korrekt)
 $accessible_project_ids = [];
-$debug_info = [];
 try {
     $user_projects = getUserProjects($pdo, $prefix);
-    $debug_info['user_projects'] = $user_projects;
-    $debug_info['is_array'] = is_array($user_projects);
-    $debug_info['count'] = is_array($user_projects) ? count($user_projects) : 0;
-    
     if (is_array($user_projects) && !empty($user_projects)) {
         foreach ($user_projects as $proj) {
             if (isset($proj['id'])) {
@@ -32,11 +27,9 @@ try {
             }
         }
     }
-    $debug_info['accessible_ids'] = $accessible_project_ids;
 } catch (Exception $e) {
     error_log("Dashboard: Fehler beim Laden der Projekte - " . $e->getMessage());
     $accessible_project_ids = [];
-    $debug_info['error'] = $e->getMessage();
 }
 
 // Statistiken basierend auf zugänglichen Projekten
@@ -44,44 +37,33 @@ $project_count = count($accessible_project_ids);
 $guest_count = 0;
 $order_count = 0;
 $recent_projects = [];
-$debug_queries = [];
 
 // Nur Statistiken laden wenn Projekte vorhanden
 if ($project_count > 0) {
     try {
         // Gäste zählen - ALLE Personen aus order_people für zugängliche Projekte
         $placeholders = implode(',', array_fill(0, count($accessible_project_ids), '?'));
-        $guest_query = "SELECT COUNT(*) as count FROM {$prefix}order_people op 
-                        INNER JOIN {$prefix}order_sessions os ON op.order_id = os.order_id 
-                        WHERE os.project_id IN ($placeholders)";
-        $debug_queries['guest_query'] = $guest_query;
-        $debug_queries['guest_params'] = $accessible_project_ids;
-        
-        $stmt = $pdo->prepare($guest_query);
+        $stmt = $pdo->prepare("SELECT COUNT(*) as count FROM {$prefix}order_people op 
+                               INNER JOIN {$prefix}order_sessions os ON op.order_id = os.order_id 
+                               WHERE os.project_id IN ($placeholders)");
         $stmt->execute($accessible_project_ids);
         $result = $stmt->fetch(PDO::FETCH_ASSOC);
-        $debug_queries['guest_result'] = $result;
         $guest_count = ($result && isset($result['count'])) ? intval($result['count']) : 0;
     } catch (Exception $e) {
         error_log("Dashboard: Fehler beim Zählen der Gäste - " . $e->getMessage());
-        $debug_queries['guest_error'] = $e->getMessage();
     }
 
     try {
-        // Bestellungen zählen - ALLE Bestelleinträge aus orders (Person × Gericht)
+        // Bestellungen zählen - ALLE Bestelleinträge aus orders für zugängliche Projekte
         $placeholders = implode(',', array_fill(0, count($accessible_project_ids), '?'));
-        $order_query = "SELECT COUNT(*) as count FROM {$prefix}orders o INNER JOIN {$prefix}order_sessions os ON o.order_id = os.order_id WHERE os.project_id IN ($placeholders)";
-        $debug_queries['order_query'] = $order_query;
-        $debug_queries['order_params'] = $accessible_project_ids;
-        
-        $stmt = $pdo->prepare($order_query);
+        $stmt = $pdo->prepare("SELECT COUNT(*) as count FROM {$prefix}orders o 
+                               INNER JOIN {$prefix}order_sessions os ON o.order_id = os.order_id 
+                               WHERE os.project_id IN ($placeholders)");
         $stmt->execute($accessible_project_ids);
         $result = $stmt->fetch(PDO::FETCH_ASSOC);
-        $debug_queries['order_result'] = $result;
         $order_count = ($result && isset($result['count'])) ? intval($result['count']) : 0;
     } catch (Exception $e) {
         error_log("Dashboard: Fehler beim Zählen der Bestellungen - " . $e->getMessage());
-        $debug_queries['order_error'] = $e->getMessage();
     }
 
     try {
@@ -109,20 +91,6 @@ if ($project_count > 0) {
 <?php include '../nav/top_nav.php'; ?>
 
 <div class="container py-4">
-    <!-- DEBUG INFO -->
-    <div class="alert alert-info">
-        <strong>DEBUG:</strong><br>
-        User Projects: <?php echo json_encode($debug_info['user_projects'], JSON_PRETTY_PRINT); ?><br>
-        Is Array: <?php echo $debug_info['is_array'] ? 'YES' : 'NO'; ?><br>
-        Count: <?php echo $debug_info['count']; ?><br>
-        Accessible IDs: <?php echo json_encode($debug_info['accessible_ids']); ?><br>
-        Role ID: <?php echo $_SESSION['role_id'] ?? 'NONE'; ?><br>
-        User ID: <?php echo $_SESSION['user_id'] ?? 'NONE'; ?><br>
-        <hr>
-        <strong>SQL QUERIES:</strong><br>
-        <pre><?php echo json_encode($debug_queries, JSON_PRETTY_PRINT); ?></pre>
-    </div>
-    
     <?php if (!$v220_ready): ?>
     <div class="alert alert-warning alert-dismissible fade show" role="alert">
         <strong>⚙️ System-Update erforderlich!</strong> Die neuen Features für v2.2.0 werden initialisiert... 
