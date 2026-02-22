@@ -169,6 +169,7 @@ function addDirToZip(&$zip, $dir, $base_path) {
 <html lang="de" data-bs-theme="dark">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Backup-Verwaltung - Event Menue Order System (EMOS)</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="../assets/css/style.css" rel="stylesheet">
@@ -185,9 +186,9 @@ function addDirToZip(&$zip, $dir, $base_path) {
         </div>
 
         <!-- HAUPT-BUTTONS NEBENEINANDER -->
-        <div class="row g-3 mb-4">
+        <div class="row g-3 g-md-4 mb-4">
             <?php if ($is_admin): ?>
-                <div class="col-md-6">
+                <div class="col-12 col-md-6">
                     <div class="d-grid gap-2">
                         <button type="button" class="btn btn-success btn-lg fw-bold py-3" data-bs-toggle="collapse" data-bs-target="#backupCreateSection" aria-expanded="false">
                             📦 Neues Backup erstellen
@@ -195,7 +196,7 @@ function addDirToZip(&$zip, $dir, $base_path) {
                     </div>
                 </div>
             <?php endif; ?>
-            <div class="col-md-<?php echo $is_admin ? '6' : '12'; ?>">
+            <div class="col-12 col-md-<?php echo $is_admin ? '6' : '12'; ?>">
                 <div class="d-grid gap-2">
                     <a href="restore.php" class="btn btn-warning btn-lg fw-bold py-3">
                         📥 Backup wiederherstellen
@@ -222,8 +223,8 @@ function addDirToZip(&$zip, $dir, $base_path) {
             <div class="card-body p-4">
                 <div id="backupForm">
                     <form id="createBackupForm" onsubmit="startBackup(event)">
-                        <div class="row g-3">
-                            <div class="col-lg-4">
+                        <div class="row g-3 g-md-4">
+                            <div class="col-12 col-lg-4">
                                 <label class="form-label fw-bold">Backup-Typ *</label>
                                 <select id="backupType" name="backup_type" class="form-select" required>
                                     <option value="full" selected>✓ Vollständig (Datenbank + Dateien)</option>
@@ -234,7 +235,7 @@ function addDirToZip(&$zip, $dir, $base_path) {
                                     💡 Vollständig empfohlen für vollständige Wiederherstellung
                                 </small>
                             </div>
-                            <div class="col-lg-8">
+                            <div class="col-12 col-lg-8">
                                 <label class="form-label fw-bold d-block">Aktion</label>
                                 <button type="submit" class="btn btn-success btn-lg fw-bold w-100">
                                     🔒 Jetzt Backup erstellen
