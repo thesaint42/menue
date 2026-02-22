@@ -47,7 +47,8 @@ if (!empty($accessible_project_ids)) {
         WHERE o.project_id IN ($placeholders)
     ");
     $stmt->execute($accessible_project_ids);
-    $guest_count = $stmt->fetch()['count'];
+    $result = $stmt->fetch();
+    $guest_count = $result ? $result['count'] : 0;
 }
 
 // Bestellungen zählen
@@ -56,7 +57,8 @@ if (!empty($accessible_project_ids)) {
     $placeholders = implode(',', array_fill(0, count($accessible_project_ids), '?'));
     $stmt = $pdo->prepare("SELECT COUNT(*) as count FROM {$prefix}orders WHERE project_id IN ($placeholders)");
     $stmt->execute($accessible_project_ids);
-    $order_count = $stmt->fetch()['count'];
+    $result = $stmt->fetch();
+    $order_count = $result ? $result['count'] : 0;
 }
 
 // Aktuelle Projekte (nur zugängliche)
@@ -136,7 +138,8 @@ if (!empty($accessible_project_ids)) {
                                 $placeholders = implode(',', array_fill(0, count($accessible_project_ids), '?'));
                                 $stmt = $pdo->prepare("SELECT SUM(max_guests) as total FROM {$prefix}projects WHERE is_active = 1 AND id IN ($placeholders)");
                                 $stmt->execute($accessible_project_ids);
-                                $max = $stmt->fetch()['total'] ?? 0;
+                                $result = $stmt->fetch();
+                                $max = ($result && isset($result['total'])) ? $result['total'] : 0;
                             }
                             echo $max > 0 ? round(($guest_count / $max) * 100) : 0;
                         ?>%
