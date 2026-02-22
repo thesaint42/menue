@@ -593,8 +593,7 @@ if (isset($_GET['download']) && $_GET['download'] === 'pdf') {
     exit;
 }
 
-// Projekte für Dropdown
-$projects = $pdo->query("SELECT * FROM {$prefix}projects WHERE is_active = 1 ORDER BY name")->fetchAll();
+// Projekte sind bereits oben gefiltert und geladen
 ?>
 <!DOCTYPE html>
 <html lang="de" data-bs-theme="dark">
