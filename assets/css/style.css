@@ -250,26 +250,25 @@ a:hover {
 .project-actions {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 0.35rem;
+    gap: 0.5rem;
 }
+
 .project-actions .btn {
-    width: 100%;
-    font-size: 0.85rem;
-    padding: 0.4rem 0.6rem;
+    width: 100% !important;
+    font-size: 0.875rem;
+    padding: 0.5rem 0.6rem !important;
     white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 38px;
+    box-sizing: border-box;
 }
 
-/* Button text - visible on desktop */
+/* Button text spacing - visible on desktop */
 .project-actions .btn .btn-text {
-    margin-left: 0.25rem;
-}
-
-/* Ensure delete button below actions takes full width and remains small */
-.project-actions + .mt-2 .btn {
-    font-size: 0.85rem;
-    padding: 0.32rem 0.5rem;
+    display: inline;
+    margin-left: 0.4rem;
 }
 
 /* Mobile: Convert table to card layout & symbol-only buttons */
@@ -316,43 +315,30 @@ a:hover {
         padding-top: 0.75rem;
     }
     
-    /* Symbol-only buttons on mobile */
+    /* Symbol-only buttons on mobile - hide text */
     .project-actions .btn .btn-text {
-        display: none;
+        display: none !important;
     }
     
     .project-actions {
-        grid-template-columns: repeat(3, 1fr);
-        gap: 0.4rem;
+        gap: 0.5rem;
     }
     
     .project-actions .btn {
-        font-size: 1.1rem;
-        padding: 0.5rem 0.3rem;
-        min-height: 38px;
+        font-size: 1.3rem !important;
+        padding: 0.6rem 0.4rem !important;
+        min-height: 44px;
     }
 }
 
-/* Tablet: Reduce button text, keep full layout */
+/* Tablet: Keep text but smaller */
 @media (min-width: 769px) and (max-width: 1024px) {
     .project-actions .btn {
-        font-size: 0.8rem;
-        padding: 0.35rem 0.5rem;
+        font-size: 0.8rem !important;
+        padding: 0.45rem 0.5rem !important;
     }
     
     .project-actions .btn .btn-text {
-        font-size: 0.75rem;
-    }
-}
-
-/* Desktop: Full button layout with text + symbols */
-@media (min-width: 1025px) {
-    .project-actions {
-        gap: 0.4rem;
-    }
-    
-    .project-actions .btn {
-        font-size: 0.875rem;
-        padding: 0.4rem 0.65rem;
+        margin-left: 0.3rem;
     }
 }
