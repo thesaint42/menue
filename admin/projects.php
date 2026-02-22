@@ -410,8 +410,30 @@ $projects = $pdo->query("SELECT * FROM {$prefix}projects ORDER BY created_at DES
                 <tbody>
                     <?php foreach ($projects as $p): ?>
                         <?php 
-                            $stmt = $pdo->prepare("SELECT COUNT(*) as count FROM {$prefix}guests WHERE project_id = ?");
-                            $stmt->execute([$p['id']]);
+                            // Zähle tatsächliche Personen aus order_people oder orders
+                            $stmt = $pdo->prepare("SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?");
+                            $stmt->execute(["{$prefix}order_people"]);
+                            $has_order_people = $stmt->fetchColumn() > 0;
+                            
+                            if ($has_order_people) {
+                                // Zähle Personen aus order_people via order_sessions
+                                $stmt = $pdo->prepare("
+                                    SELECT COUNT(DISTINCT CONCAT(op.order_id, '-', op.person_index)) as count
+                                    FROM {$prefix}order_people op
+                                    INNER JOIN {$prefix}order_sessions os ON op.order_id = os.order_id
+                                    WHERE os.project_id = ?
+                                ");
+                                $stmt->execute([$p['id']]);
+                            } else {
+                                // Fallback: Zähle distinct person_id aus orders
+                                $stmt = $pdo->prepare("
+                                    SELECT COUNT(DISTINCT CONCAT(o.order_id, '-', o.person_id)) as count
+                                    FROM {$prefix}orders o
+                                    INNER JOIN {$prefix}order_sessions os ON o.order_id = os.order_id
+                                    WHERE os.project_id = ?
+                                ");
+                                $stmt->execute([$p['id']]);
+                            }
                             $guest_count = $stmt->fetch()['count'];
                         ?>
                         <tr>
