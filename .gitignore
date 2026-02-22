@@ -5,23 +5,33 @@
 .deploy.env
 .deploy.sh
 .last-deploy-hash
+deploy_key
+deploy_key.pub
 
-# GitHub (Workflows & CI/CD - nicht für Production)
+# GitHub (Workflows & CI/CD - nicht für Production/öffentlich)
 .github/
 
-# Configuration (wird bei Installation generiert)
+# Configuration (wird bei Installation generiert - sensibel!)
 script/config.yaml
 
 # Installation (nach der ersten Ausführung)
 install.php
 
+# Backup & Utility Scripts (nur lokal)
+cleanup_root.sh
+admin/dishes_old_backup.php
+admin/dishes_table_backup.php
+admin/*_backup.php
+
 # Logs und Temporary Files
 storage/logs/*
 storage/tmp/*
 storage/pdfs/*
+storage/backups/*
 !storage/logs/.gitkeep
 !storage/tmp/.gitkeep
 !storage/pdfs/.gitkeep
+!storage/backups/.gitkeep
 
 # IDE
 .vscode/
