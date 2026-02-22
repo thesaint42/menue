@@ -471,25 +471,25 @@ $migrations = [
         'up' => function($pdo, $prefix) {
             try {
                 // Prüfe ob Reporting User (Role 3) existiert
-                $stmt = $pdo->prepare("SELECT id FROM {$prefix}roles WHERE id = 3");
+                $stmt = $pdo->prepare("SELECT id FROM `{$prefix}roles` WHERE id = 3");
                 $stmt->execute();
                 if ($stmt->rowCount() === 0) {
                     return true; // Role 3 existiert nicht, skip
                 }
                 
                 // Füge dashboard Feature hinzu, falls nicht vorhanden
-                $stmt = $pdo->prepare("SELECT id FROM {$prefix}role_menu_access WHERE role_id = 3 AND menu_key = 'dashboard'");
+                $stmt = $pdo->prepare("SELECT id FROM `{$prefix}role_menu_access` WHERE role_id = 3 AND menu_key = 'dashboard'");
                 $stmt->execute();
                 if ($stmt->rowCount() === 0) {
-                    $ins = $pdo->prepare("INSERT INTO {$prefix}role_menu_access (role_id, menu_key, visible) VALUES (3, 'dashboard', 1)");
+                    $ins = $pdo->prepare("INSERT INTO `{$prefix}role_menu_access` (role_id, menu_key, visible) VALUES (3, 'dashboard', 1)");
                     $ins->execute();
                 }
                 
                 // Füge projects_read Feature hinzu, falls nicht vorhanden
-                $stmt = $pdo->prepare("SELECT id FROM {$prefix}role_menu_access WHERE role_id = 3 AND menu_key = 'projects_read'");
+                $stmt = $pdo->prepare("SELECT id FROM `{$prefix}role_menu_access` WHERE role_id = 3 AND menu_key = 'projects_read'");
                 $stmt->execute();
                 if ($stmt->rowCount() === 0) {
-                    $ins = $pdo->prepare("INSERT INTO {$prefix}role_menu_access (role_id, menu_key, visible) VALUES (3, 'projects_read', 1)");
+                    $ins = $pdo->prepare("INSERT INTO `{$prefix}role_menu_access` (role_id, menu_key, visible) VALUES (3, 'projects_read', 1)");
                     $ins->execute();
                 }
                 
