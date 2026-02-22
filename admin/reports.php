@@ -284,19 +284,38 @@ if (isset($_GET['download']) && $_GET['download'] === 'pdf') {
         // Berechne verfügbare Breite (Seitenbreite minus Margins)
         $page_width = $pdf->getPageWidth() - $pdf->getMargins()['left'] - $pdf->getMargins()['right'];
         
-        // Küchen-Tabelle: Kategorie | Gericht | Anzahl
-        $col1_width = $page_width * 0.35; // 35% für Kategorie
-        $col2_width = $page_width * 0.50; // 50% für Gericht
-        $col3_width = $page_width * 0.15; // 15% für Anzahl
+        // Prüfe ob Preise angezeigt werden sollen
+        $show_prices = isset($_GET['prices']) && $_GET['prices'] === 'yes';
+        
+        // Küchen-Tabelle: Kategorie | Gericht | Anzahl [| Einzelpreis | Gesamtpreis]
+        if ($show_prices) {
+            $col1_width = $page_width * 0.28; // 28% für Kategorie
+            $col2_width = $page_width * 0.37; // 37% für Gericht
+            $col3_width = $page_width * 0.12; // 12% für Anzahl
+            $col4_width = $page_width * 0.11; // 11% für Einzelpreis
+            $col5_width = $page_width * 0.12; // 12% für Gesamtpreis
+        } else {
+            $col1_width = $page_width * 0.35; // 35% für Kategorie
+            $col2_width = $page_width * 0.50; // 50% für Gericht
+            $col3_width = $page_width * 0.15; // 15% für Anzahl
+        }
         
         $pdf->SetFont('helvetica', 'B', 9);
         $pdf->SetFillColor(200, 200, 200);
         $pdf->Cell($col1_width, 7, 'Kategorie', 1, 0, 'L', true);
         $pdf->Cell($col2_width, 7, 'Gericht', 1, 0, 'L', true);
-        $pdf->Cell($col3_width, 7, 'Anzahl', 1, 1, 'C', true);
+        $pdf->Cell($col3_width, 7, 'Anzahl', 1, 0, 'C', true);
+        if ($show_prices) {
+            $pdf->Cell($col4_width, 7, 'Einzelpreis', 1, 0, 'R', true);
+            $pdf->Cell($col5_width, 7, 'Gesamtpreis', 1, 1, 'R', true);
+        } else {
+            $pdf->Ln();
+        }
 
         $pdf->SetFont('helvetica', '', 9);
         $fill = false;
+        $grand_total = 0;
+        
         foreach ($kitchen_data as $row) {
             if ($pdf->GetY() > 260) {
                 $pdf->AddPage();
@@ -304,8 +323,28 @@ if (isset($_GET['download']) && $_GET['download'] === 'pdf') {
             $pdf->SetFillColor($fill ? 245 : 255, $fill ? 245 : 255, $fill ? 245 : 255);
             $pdf->Cell($col1_width, 6, $row['category'], 1, 0, 'L', $fill);
             $pdf->Cell($col2_width, 6, $row['dish'], 1, 0, 'L', $fill);
-            $pdf->Cell($col3_width, 6, $row['quantity'], 1, 1, 'C', $fill);
+            $pdf->Cell($col3_width, 6, $row['quantity'], 1, 0, 'C', $fill);
+            
+            if ($show_prices) {
+                $price = $row['price'] ?? 0;
+                $quantity = (int)$row['quantity'];
+                $total = $price * $quantity;
+                $grand_total += $total;
+                
+                $pdf->Cell($col4_width, 6, number_format($price, 2, ',', '.') . ' EUR', 1, 0, 'R', $fill);
+                $pdf->Cell($col5_width, 6, number_format($total, 2, ',', '.') . ' EUR', 1, 1, 'R', $fill);
+            } else {
+                $pdf->Ln();
+            }
             $fill = !$fill;
+        }
+        
+        // Summenzeile wenn Preise angezeigt werden
+        if ($show_prices) {
+            $pdf->SetFont('helvetica', 'B', 9);
+            $pdf->SetFillColor(200, 200, 200);
+            $pdf->Cell($col1_width + $col2_width + $col3_width + $col4_width, 7, 'Gesamtsumme:', 1, 0, 'R', true);
+            $pdf->Cell($col5_width, 7, number_format($grand_total, 2, ',', '.') . ' EUR', 1, 1, 'R', true);
         }
     } else {
         // Tabelle
@@ -676,24 +715,48 @@ $projects = $pdo->query("SELECT * FROM {$prefix}projects WHERE is_active = 1 ORD
                         <?php if (empty($kitchen_data)): ?>
                             <p class="text-center text-muted">Keine bestellten Gerichte vorhanden</p>
                         <?php else: ?>
+                            <?php
+                                // Berechne Gesamtsumme
+                                $grand_total = 0;
+                                foreach ($kitchen_data as $row) {
+                                    $price = $row['price'] ?? 0;
+                                    $quantity = (int)$row['quantity'];
+                                    $grand_total += $price * $quantity;
+                                }
+                            ?>
                             <div class="table-responsive">
                                 <table class="table table-sm">
                                     <thead class="table-light">
                                         <tr>
-                                            <th style="width: 35%;">Kategorie</th>
-                                            <th style="width: 50%;">Gericht</th>
-                                            <th style="width: 15%;">Anzahl</th>
+                                            <th style="width: 30%;">Kategorie</th>
+                                            <th style="width: 35%;">Gericht</th>
+                                            <th style="width: 10%;">Anzahl</th>
+                                            <th style="width: 12%;">Einzelpreis</th>
+                                            <th style="width: 13%;">Gesamtpreis</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         <?php foreach ($kitchen_data as $row): ?>
+                                            <?php
+                                                $price = $row['price'] ?? 0;
+                                                $quantity = (int)$row['quantity'];
+                                                $total = $price * $quantity;
+                                            ?>
                                             <tr>
                                                 <td><?php echo htmlspecialchars($row['category']); ?></td>
                                                 <td><?php echo htmlspecialchars($row['dish']); ?></td>
-                                                <td class="text-center"><?php echo (int)$row['quantity']; ?></td>
+                                                <td class="text-center"><?php echo $quantity; ?></td>
+                                                <td class="text-end"><?php echo number_format($price, 2, ',', '.'); ?> €</td>
+                                                <td class="text-end"><?php echo number_format($total, 2, ',', '.'); ?> €</td>
                                             </tr>
                                         <?php endforeach; ?>
                                     </tbody>
+                                    <tfoot class="table-light">
+                                        <tr>
+                                            <th colspan="4" class="text-end">Gesamtsumme:</th>
+                                            <th class="text-end"><?php echo number_format($grand_total, 2, ',', '.'); ?> €</th>
+                                        </tr>
+                                    </tfoot>
                                 </table>
                             </div>
                         <?php endif; ?>
@@ -759,6 +822,14 @@ $projects = $pdo->query("SELECT * FROM {$prefix}projects WHERE is_active = 1 ORD
             </div>
             <div class="modal-body">
                 <p>Wie möchten Sie mit dem PDF Report verfahren?</p>
+                <?php if (isset($_GET['view']) && $_GET['view'] === 'kitchen'): ?>
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="pdfPricesCheckbox">
+                        <label class="form-check-label" for="pdfPricesCheckbox">
+                            Preise im PDF anzeigen
+                        </label>
+                    </div>
+                <?php endif; ?>
             </div>
             <div class="modal-footer gap-2">
                 <button type="button" class="btn btn-primary" onclick="closePdfModal('view')">
@@ -782,8 +853,18 @@ function closePdfModal(action) {
         modal.hide();
     }
     
+    // Prüfe ob Preise angezeigt werden sollen (nur für Kitchen-View)
+    let pricesParam = '';
+    const view = '<?php echo isset($_GET['view']) ? $_GET['view'] : 'orders'; ?>';
+    if (view === 'kitchen') {
+        const pricesCheckbox = document.getElementById('pdfPricesCheckbox');
+        if (pricesCheckbox && pricesCheckbox.checked) {
+            pricesParam = '&prices=yes';
+        }
+    }
+    
     // Navigiere zur PDF (aktuelle Ansicht mitgeben)
-    const url = '?project=<?php echo $project_id; ?>&view=<?php echo isset($_GET['view']) ? $_GET['view'] : 'orders'; ?>&download=pdf&action=' + action;
+    const url = '?project=<?php echo $project_id; ?>&view=' + view + '&download=pdf&action=' + action + pricesParam;
     if (action === 'view') {
         window.open(url, '_blank');
     } else {
