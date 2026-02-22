@@ -238,8 +238,17 @@ function getMenuSelectionInitData($prefix) {
          (3, 'menus_read', 1),
          (3, 'guests_read', 1),
          (3, 'orders_read', 1),
-         (3, 'reporting', 1)"
+         (3, 'reporting', 1)",
 
+        // Admin-Features (nur für Systemadmin - nicht initial eingefügt, da Rolle 1 alle Features hat)
+        // Diese Features werden in roles.php verwendet für Admin-Only-Seiten:
+        // - 'users': Benutzerverwaltung (users.php)
+        // - 'roles': Rollenverwaltung (roles.php)
+        // - 'settings_mail': SMTP-Einstellungen (settings_mail.php, test_mail.php, send_test_mail.php)
+        // - 'update': System-Updates durchführen (migrate.php)
+        // - 'backup_create': Backup erstellen (backup_process.php)
+        // - 'backup_import': Backup importieren (restore.php, restore_process.php)
+        
         // Hinweis: Menükategorien werden nicht mehr initial eingefügt, da sie projektspezifisch sind.
         // Kategorien werden beim Anlegen eines Projekts erstellt oder vom Admin in menu_categories.php angelegt.
     ];

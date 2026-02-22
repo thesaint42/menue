@@ -8,6 +8,9 @@ checkAdmin();
 
 $prefix = $config['database']['prefix'] ?? 'menu_';
 
+// Access-Check: Mail-Setup-Berechtigung erforderlich
+requireMenuAccess($pdo, 'settings_mail', 'read', $prefix);
+
 $recipient = trim($_POST['recipient'] ?? '');
 $mode = $_POST['mode'] ?? 'test';
 $project_id = isset($_POST['project_id']) ? (int)$_POST['project_id'] : null;

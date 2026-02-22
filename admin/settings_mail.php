@@ -11,6 +11,9 @@ checkLogin();
 checkAdmin();
 
 $prefix = $config['database']['prefix'] ?? 'menu_';
+
+// Access-Check: Mail-Setup-Berechtigung erforderlich
+requireMenuAccess($pdo, 'settings_mail', 'read', $prefix);
 $message = "";
 $messageType = "info";
 

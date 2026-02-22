@@ -12,6 +12,12 @@ ini_set('display_errors', 1);
 
 require_once 'db.php';
 require_once 'script/auth.php';
+
+// Access-Check: Update-Berechtigung erforderlich
+checkLogin();
+checkAdmin();
+$prefix = $config['database']['prefix'] ?? 'menu_';
+requireMenuAccess($pdo, 'update', 'read', $prefix);
 // Lade phone helper robust (falls auf dem Server noch nicht vorhanden)
 $phone_helper = __DIR__ . '/script/phone.php';
 if (file_exists($phone_helper)) {
@@ -31,14 +37,6 @@ if (file_exists($phone_helper)) {
         return is_string($number) && preg_match('/^\+\d{7,15}$/', $number);
     }
 }
-
-// Nur Admins erlauben
-if (!isset($_SESSION['user_id'])) {
-    die("Sie müssen angemeldet sein, um Migrationen durchzuführen.");
-}
-
-checkLogin();
-checkAdmin();
 
 $prefix = $config['database']['prefix'] ?? 'menu_';
 $message = "";

@@ -7,6 +7,9 @@ checkAdmin();
 
 $prefix = $config['database']['prefix'] ?? 'menu_';
 
+// Access-Check: Mail-Setup-Berechtigung erforderlich
+requireMenuAccess($pdo, 'settings_mail', 'read', $prefix);
+
 $projects = $pdo->query("SELECT id, name FROM {$prefix}projects ORDER BY created_at DESC")->fetchAll();
 ?>
 <!DOCTYPE html>

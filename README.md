@@ -580,9 +580,12 @@ Das System verwendet ein feature-basiertes Berechtigungssystem mit Read- und Wri
 
 ### Feature-zu-Seite Mapping
 
-| Feature in roles.php | Checkbox-Label | Admin-Seite | Access-Check | Typ |
-|---------------------|----------------|-------------|--------------|-----|
+| Feature | Checkbox-Label | Admin-Seite | Access-Check | Typ |
+|---------|----------------|-------------|--------------|-----|
+| **Projekt-Features** | | | | |
 | `dashboard` | Dashboard | admin/admin.php | requireMenuAccess | Read |
+| `menu_categories_read` | Menükategorien lesen | admin/menu_categories.php | requireMenuAccess | Read |
+| `menu_categories_write` | Menükategorien schreiben | admin/menu_categories.php | Edit/Delete | Write |
 | `projects_read` | Projekte lesen | admin/projects.php | requireMenuAccess | Read |
 | `projects_write` | Projekte schreiben | admin/projects.php | POST-Operationen | Write |
 | `menus_read` | Menüs lesen | admin/dishes.php | requireMenuAccess | Read |
@@ -591,16 +594,29 @@ Das System verwendet ein feature-basiertes Berechtigungssystem mit Read- und Wri
 | `guests_write` | Gästeübersicht schreiben | admin/guests.php | Edit/Delete | Write |
 | `orders_read` | Bestellübersicht lesen | admin/orders.php | requireMenuAccess | Read |
 | `orders_write` | Bestellübersicht schreiben | admin/orders.php | Edit/Delete | Write |
-| `reporting` | Reporting | admin/reports.php | requireMenuAccess | Read |
+| `reporting` | Reporting | admin/reports.php, export_pdf.php | requireMenuAccess | Read |
+| **Admin-Features** | | | | |
+| `users` | Benutzer verwalten | admin/users.php | requireMenuAccess | Admin |
+| `roles` | Rollen verwalten | admin/roles.php | requireMenuAccess | Admin |
+| `settings_mail` | Mail Setup | admin/settings_mail.php, test_mail.php | requireMenuAccess | Admin |
+| `update` | Update durchführen | migrate.php | requireMenuAccess | Admin |
+| `backup_create` | Backup erstellen | admin/backup_process.php | requireMenuAccess | Admin |
+| `backup_import` | Backup importieren | admin/backup.php, restore.php | requireMenuAccess | Admin |
 
 **Standardrollen:**
-- **Systemadmin (Rolle 1)**: Alle Features inkl. Benutzerverwaltung, Backup/Restore
-- **Projektadmin (Rolle 2)**: Alle Read/Write-Features für zugewiesene Projekte
-- **Reporter (Rolle 3)**: Alle Read-Features (dashboard, projects_read, menus_read, guests_read, orders_read, reporting)
+- **Systemadmin (Rolle 1)**: Alle Features inkl. Benutzerverwaltung, Backup/Restore, System-Updates
+- **Projektadmin (Rolle 2)**: Alle Read/Write-Features für zugewiesene Projekte (kein Admin-Zugriff)
+- **Reporter (Rolle 3)**: Alle Read-Features (dashboard, projects_read, menu_categories_read, menus_read, guests_read, orders_read, reporting)
+
+**Benutzerdefinierte Rollen:**
+- Können beliebige Feature-Kombinationen aus der obigen Liste haben
+- Features werden in `roles.php` per Checkbox ausgewählt und in `role_menu_access` gespeichert
+- Jede Admin-Seite prüft automatisch mit `requireMenuAccess()` auf das entsprechende Feature
+- Admin-Features (users, roles, settings_mail, update, backup_*) sind nur für Systemadmins vorgesehen
 
 **Zugriffskontrolle:**
 - Jede Admin-Seite prüft beim Aufruf mit `requireMenuAccess()` auf das entsprechende Feature
-- Write-Operationen (POST, DELETE) prüfen zusätzlich auf `*_write` Features
+- Write-Operationen (POST, DELETE) prüfen zusätzlich auf `*_write` Features mit `$has_write_access`
 - Read-only User sehen keine Edit/Delete-Buttons
 
 ---

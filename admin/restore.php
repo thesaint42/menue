@@ -11,14 +11,13 @@ checkLogin();
 $prefix = $config['database']['prefix'] ?? 'menu_';
 $user_role_id = $_SESSION['role_id'] ?? null;
 
-// Zugriff: Admin (role 1) oder Projekt Admin (role mit projects_write) oder Reporting User (projects_read)
+// Access-Check: Backup-Import-Berechtigung erforderlich
+requireMenuAccess($pdo, 'backup_import', 'read', $prefix);
+
+// Rolle bestimmen für Projektfilterung
 $is_admin = ($user_role_id === 1);
 $is_project_admin = hasMenuAccess($pdo, 'projects_write', $prefix);
 $is_reporting_user = hasMenuAccess($pdo, 'projects_read', $prefix);
-
-if (!$is_admin && !$is_project_admin && !$is_reporting_user) {
-    die("Zugriff verweigert: Sie haben keine Berechtigung für Wiederherstellungen.");
-}
 
 // Für Projekt Admin oder Reporting User: Nur die eigenen Projekte abrufen
 $user_projects = [];

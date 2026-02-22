@@ -10,6 +10,9 @@ checkLogin();
 checkAdmin();
 
 $prefix = $config['database']['prefix'] ?? 'menu_';
+
+// Access-Check: Benutzerverwaltung-Berechtigung erforderlich
+requireMenuAccess($pdo, 'users', 'read', $prefix);
 $message = "";
 $messageType = "info";
 

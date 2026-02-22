@@ -17,6 +17,9 @@ $tcpdf_available = file_exists('../script/tcpdf/tcpdf.php');
 checkLogin();
 
 $prefix = $config['database']['prefix'] ?? 'menu_';
+
+// Access-Check: Reporting-Berechtigung erforderlich
+requireMenuAccess($pdo, 'reporting', 'read', $prefix);
 $project_id = isset($_GET['project']) ? (int)$_GET['project'] : null;
 $message = "";
 $messageType = "info";

@@ -10,6 +10,9 @@ checkLogin();
 checkAdmin();
 
 $prefix = $config['database']['prefix'] ?? 'menu_';
+
+// Access-Check: Rollenverwaltung-Berechtigung erforderlich
+requireMenuAccess($pdo, 'roles', 'read', $prefix);
 $message = "";
 $messageType = "info";
 
