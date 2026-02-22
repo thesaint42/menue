@@ -199,20 +199,15 @@ try {
     $roles_with_projects_write = [2, 3];
 }
 
-// Lade für jeden User die zugewiesenen Projekte (nur wenn Rolle 'projects_write' Berechtigung hat)
+// Lade für jeden User die zugewiesenen Projekte (nur wenn Rolle Projekt-Zuweisungen braucht)
 $user_projects = [];
 try {
-    // Finde alle Rollen mit 'projects_write' Berechtigung
-    $stmt = $pdo->prepare("SELECT DISTINCT role_id FROM {$prefix}role_menu_access 
-                         WHERE menu_key = 'projects_write' AND visible = 1");
-    $stmt->execute();
-    $project_admin_roles = $stmt->fetchAll(PDO::FETCH_COLUMN, 0);
-    
-    if (!empty($project_admin_roles)) {
-        $placeholders = implode(',', array_fill(0, count($project_admin_roles), '?'));
+    // Nutze die bereits geladenen $roles_with_projects_write (inkl. Fallback für IDs 2 und 3)
+    if (!empty($roles_with_projects_write)) {
+        $placeholders = implode(',', array_fill(0, count($roles_with_projects_write), '?'));
         $stmt = $pdo->prepare("SELECT user_id, project_id FROM {$prefix}user_projects 
                              WHERE user_id IN (SELECT id FROM {$prefix}users WHERE role_id IN ($placeholders))");
-        $stmt->execute($project_admin_roles);
+        $stmt->execute($roles_with_projects_write);
         foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
             if (!isset($user_projects[$row['user_id']])) {
                 $user_projects[$row['user_id']] = [];
