@@ -333,6 +333,34 @@ $migrations = [
                 throw new Exception("Fehler beim Hinzufügen von person_type zu guests Tabelle: " . $e->getMessage());
             }
         }
+    ],
+    'add_user_projects_table' => [
+        'name' => 'User-Project Mapping Tabelle hinzufügen',
+        'description' => 'Erstellt die user_projects Tabelle für die Projektverwaltungs-Rollen',
+        'version' => '2.2.0',
+        'up' => function($pdo, $prefix) {
+            try {
+                // Prüfe ob Tabelle schon existiert
+                $stmt = $pdo->prepare("SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?");
+                $stmt->execute(["{$prefix}user_projects"]);
+                if ($stmt->rowCount() > 0) {
+                    return true; // Tabelle existiert bereits
+                }
+                
+                $pdo->exec("CREATE TABLE IF NOT EXISTS `{$prefix}user_projects` (
+                    `id` INT AUTO_INCREMENT PRIMARY KEY,
+                    `user_id` INT NOT NULL,
+                    `project_id` INT NOT NULL,
+                    `assigned_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE KEY `unique_user_project` (`user_id`, `project_id`),
+                    FOREIGN KEY (`user_id`) REFERENCES `{$prefix}users`(`id`) ON DELETE CASCADE,
+                    FOREIGN KEY (`project_id`) REFERENCES `{$prefix}projects`(`id`) ON DELETE CASCADE
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+                return true;
+            } catch (Exception $e) {
+                throw new Exception("Fehler beim Erstellen der user_projects Tabelle: " . $e->getMessage());
+            }
+        }
     ]
 ];
 
