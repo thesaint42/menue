@@ -225,8 +225,10 @@ function hasProjectAccess($pdo, $project_id, $prefix = null) {
         return true;
     }
     
-    // Check if user has 'project_admin' feature with assigned project
-    if (hasRoleFeature($pdo, 'project_admin', $prefix)) {
+    // Check if user has project access via projects_write, projects_read, or legacy project_admin
+    if (hasRoleFeature($pdo, 'project_admin', $prefix) || 
+        hasMenuAccess($pdo, 'projects_write', $prefix) || 
+        hasMenuAccess($pdo, 'projects_read', $prefix)) {
         $stmt = $pdo->prepare("SELECT COUNT(*) FROM {$prefix}user_projects 
                              WHERE user_id = ? AND project_id = ?");
         $stmt->execute([$user_id, $project_id]);
