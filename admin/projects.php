@@ -373,6 +373,17 @@ $projects = $pdo->query("SELECT * FROM {$prefix}projects ORDER BY created_at DES
             max-width: 380px;
         }
         
+        /* PIN Display - responsive font size to fit in one line */
+        .pin-display {
+            letter-spacing: 0.4em;
+            font-family: monospace;
+            font-size: clamp(1.5rem, 8vw, 3.5rem);
+            word-break: keep-all;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
         /* Mobile: Symbol only for action buttons */
         @media (max-width: 576px) {
             .project-btn {
@@ -647,7 +658,7 @@ $projects = $pdo->query("SELECT * FROM {$prefix}projects ORDER BY created_at DES
                 <!-- PIN ANZEIGE -->
                 <div class="card bg-primary border-primary mb-4 p-5">
                     <h6 class="text-light mb-3">Zugangs-PIN zum Weitergeben:</h6>
-                    <div class="fs-1 fw-bold text-white" style="letter-spacing: 0.5em; font-family: monospace; font-size: 3rem !important;" id="pinDisplay"></div>
+                    <div class="pin-display fw-bold text-white" id="pinDisplay"></div>
                     <small class="text-light d-block mt-2">Kopieren oder verbal weitergeben</small>
                 </div>
                 
