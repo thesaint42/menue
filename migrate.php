@@ -426,6 +426,43 @@ $migrations = [
                 throw new Exception("Fehler beim Erstellen der role_menu_access Tabelle: " . $e->getMessage());
             }
         }
+    ],
+    'make_menu_categories_project_specific' => [
+        'name' => 'Kategorien projektspezifisch machen',
+        'description' => 'Fügt project_id Spalte zu menu_categories hinzu und ordnet bestehende Kategorien Projekt 4 zu',
+        'version' => '2.4.0',
+        'up' => function($pdo, $prefix) {
+            try {
+                // Prüfe ob project_id Spalte existiert
+                $stmt = $pdo->prepare("SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = 'project_id'");
+                $stmt->execute(["{$prefix}menu_categories"]);
+                
+                if ($stmt->rowCount() > 0) {
+                    return true; // Spalte existiert bereits
+                }
+                
+                // Füge project_id Spalte hinzu
+                $pdo->exec("ALTER TABLE `{$prefix}menu_categories` ADD COLUMN `project_id` INT NOT NULL DEFAULT 4 AFTER `id`");
+                
+                // Ordne alle bestehenden Kategorien Projekt 4 zu
+                $pdo->exec("UPDATE `{$prefix}menu_categories` SET project_id = 4 WHERE project_id = 4 OR project_id IS NULL");
+                
+                // Ändere Unique Key von nur name zu (project_id, name)
+                $pdo->exec("ALTER TABLE `{$prefix}menu_categories` DROP KEY `unique_name`");
+                $pdo->exec("ALTER TABLE `{$prefix}menu_categories` ADD UNIQUE KEY `unique_name_project` (`project_id`, `name`)");
+                
+                // Füge Foreign Key hinzu
+                try {
+                    $pdo->exec("ALTER TABLE `{$prefix}menu_categories` ADD CONSTRAINT `fk_categories_project` FOREIGN KEY (`project_id`) REFERENCES `{$prefix}projects`(`id`) ON DELETE CASCADE");
+                } catch (Exception $e) {
+                    // Foreign Key existiert möglicherweise bereits, ignoriere den Fehler
+                }
+                
+                return true;
+            } catch (Exception $e) {
+                throw new Exception("Fehler bei menu_categories Migration: " . $e->getMessage());
+            }
+        }
     ]
 ];
 
