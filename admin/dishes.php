@@ -85,51 +85,53 @@ if (!$project_id) {
     }
 }
 
-// Projekt laden
-if (!hasProjectAccess($pdo, $project_id, $prefix)) {
-    die("Zugriff verweigert: Sie haben keine Berechtigung für dieses Projekt.");
-}
+// Projekt laden (nur wenn project_id gesetzt ist - entweder von URL oder automatisch bei 1 Projekt)
+if ($project_id > 0) {
+    if (!hasProjectAccess($pdo, $project_id, $prefix)) {
+        die("Zugriff verweigert: Sie haben keine Berechtigung für dieses Projekt.");
+    }
 
-$stmt = $pdo->prepare("SELECT * FROM {$prefix}projects WHERE id = ?");
-$stmt->execute([$project_id]);
-$project = $stmt->fetch();
+    $stmt = $pdo->prepare("SELECT * FROM {$prefix}projects WHERE id = ?");
+    $stmt->execute([$project_id]);
+    $project = $stmt->fetch();
 
-if (!$project) {
-    // Projekt nicht gefunden – saubere Fehlerseite
-    ?>
-    <!DOCTYPE html>
-    <html lang="de" data-bs-theme="dark">
-    <head>
-        <meta charset="UTF-8">
-        <title>Projekt nicht gefunden - EMOS</title>
-        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-        <link href="../assets/css/style.css" rel="stylesheet">
-    </head>
-    <body>
-    <?php include '../nav/top_nav.php'; ?>
-    <div class="container py-5">
-        <div class="row justify-content-center">
-            <div class="col-12 col-md-8">
-                <div class="card border-0 shadow">
-                    <div class="card-body text-center py-5">
-                        <h3 class="mb-3">Projekt nicht gefunden</h3>
-                        <p class="text-muted">Das ausgewählte Projekt existiert nicht oder wurde gelöscht.</p>
-                        <a href="projects.php" class="btn btn-primary mt-3">Zur Projektübersicht</a>
+    if (!$project) {
+        // Projekt nicht gefunden – saubere Fehlerseite
+        ?>
+        <!DOCTYPE html>
+        <html lang="de" data-bs-theme="dark">
+        <head>
+            <meta charset="UTF-8">
+            <title>Projekt nicht gefunden - EMOS</title>
+            <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+            <link href="../assets/css/style.css" rel="stylesheet">
+        </head>
+        <body>
+        <?php include '../nav/top_nav.php'; ?>
+        <div class="container py-5">
+            <div class="row justify-content-center">
+                <div class="col-12 col-md-8">
+                    <div class="card border-0 shadow">
+                        <div class="card-body text-center py-5">
+                            <h3 class="mb-3">Projekt nicht gefunden</h3>
+                            <p class="text-muted">Das ausgewählte Projekt existiert nicht oder wurde gelöscht.</p>
+                            <a href="projects.php" class="btn btn-primary mt-3">Zur Projektübersicht</a>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
-    <?php include '../nav/footer.php'; ?>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    </body>
-    </html>
-    <?php
-    exit;
-}
+        <?php include '../nav/footer.php'; ?>
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+        </body>
+        </html>
+        <?php
+        exit;
+    }
+} // Ende if $project_id > 0
 
-// Gericht erstellen
-if (isset($_POST['create_dish'])) {
+// Gericht erstellen (nur wenn Projekt gewählt)
+if ($project_id > 0 && isset($_POST['create_dish'])) {
     $name = trim($_POST['name']);
     $description = trim($_POST['description']);
     $category_id = (int)$_POST['category_id'];
@@ -158,7 +160,7 @@ if (isset($_POST['create_dish'])) {
 }
 
 // Drag-and-Drop Sortierung verarbeiten (AJAX)
-if (isset($_POST['update_sort_order'])) {
+if ($project_id > 0 && isset($_POST['update_sort_order'])) {
     header('Content-Type: application/json');
     
     $order = isset($_POST['order']) ? json_decode($_POST['order'], true) : [];
@@ -182,7 +184,7 @@ if (isset($_POST['update_sort_order'])) {
 }
 
 // Gericht löschen
-if (isset($_GET['delete'])) {
+if ($project_id > 0 && isset($_GET['delete'])) {
     $dish_id = (int)$_GET['delete'];
     $stmt = $pdo->prepare("DELETE FROM {$prefix}dishes WHERE id = ? AND project_id = ?");
     $stmt->execute([$dish_id, $project_id]);
@@ -191,7 +193,7 @@ if (isset($_GET['delete'])) {
 }
 
 // Gericht aktualisieren
-if (isset($_POST['update_dish'])) {
+if ($project_id > 0 && isset($_POST['update_dish'])) {
     $dish_id = (int)$_POST['id'];
     $name = trim($_POST['name']);
     $description = trim($_POST['description']);
