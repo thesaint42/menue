@@ -239,24 +239,35 @@ $available_menu_items = [
                 padding: 0.35rem;
             }
         }
-        .alert { display: flex; align-items: center; justify-content: space-between; padding-right: 20px; }
+        .alert { 
+            display: flex; 
+            align-items: center; 
+            justify-content: space-between; 
+            padding-right: 3rem;
+            position: relative;
+        }
+        .system-role-alert {
+            padding-right: 3rem;
+        }
         .system-role-close-btn {
             display: flex;
             align-items: center;
             justify-content: center;
-            width: 28px;
-            height: 28px;
+            width: 22px;
+            height: 22px;
             background-color: #dc3545;
-            border-radius: 4px;
+            border-radius: 3px;
             cursor: pointer;
             flex-shrink: 0;
             padding: 0;
             border: none;
-            font-size: 1.2rem;
+            font-size: 0.9rem;
             font-weight: bold;
             color: white;
-            margin-left: 1rem;
             line-height: 1;
+            position: absolute;
+            top: 0.75rem;
+            right: 0.75rem;
         }
         .system-role-close-btn:hover { 
             background-color: #bb2d3b;
@@ -503,11 +514,10 @@ document.addEventListener('DOMContentLoaded', function() {
         }, dismissTime);
     }
 
-    // Initial: Alle sichtbaren System-Role-Alerts mit Timer versehen
+    // Initial: Timer für bereits sichtbare System-Role-Alerts starten
     document.querySelectorAll('.system-role-alert').forEach(alert => {
-        // Alert initial ausblenden (wird beim Öffnen des Collapse angezeigt)
-        alert.classList.remove('show');
-        alert.style.display = 'none';
+        // Nur Timer starten, nicht ausblenden
+        initSystemRoleAlert(alert);
     });
 
     // Zeige Alert jedes Mal wenn Features-Collapse geöffnet wird
