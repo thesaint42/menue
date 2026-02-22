@@ -186,14 +186,16 @@ function addDirToZip(&$zip, $dir, $base_path) {
 
         <!-- HAUPT-BUTTONS NEBENEINANDER -->
         <div class="row g-3 mb-4">
-            <div class="col-md-6">
-                <div class="d-grid gap-2">
-                    <button type="button" class="btn btn-success btn-lg fw-bold py-3" data-bs-toggle="collapse" data-bs-target="#backupCreateSection" aria-expanded="false">
-                        📦 Neues Backup erstellen
-                    </button>
+            <?php if ($is_admin): ?>
+                <div class="col-md-6">
+                    <div class="d-grid gap-2">
+                        <button type="button" class="btn btn-success btn-lg fw-bold py-3" data-bs-toggle="collapse" data-bs-target="#backupCreateSection" aria-expanded="false">
+                            📦 Neues Backup erstellen
+                        </button>
+                    </div>
                 </div>
-            </div>
-            <div class="col-md-6">
+            <?php endif; ?>
+            <div class="col-md-<?php echo $is_admin ? '6' : '12'; ?>">
                 <div class="d-grid gap-2">
                     <a href="restore.php" class="btn btn-warning btn-lg fw-bold py-3">
                         📥 Backup wiederherstellen
@@ -210,7 +212,8 @@ function addDirToZip(&$zip, $dir, $base_path) {
         </div>
     <?php endif; ?>
 
-    <!-- BACKUP ERSTELLEN (Collapsible) -->
+    <!-- BACKUP ERSTELLEN (Collapsible) - NUR FÜR ADMIN -->
+    <?php if ($is_admin): ?>
     <div class="collapse mb-4" id="backupCreateSection">
         <div class="card border-0 shadow">
             <div class="card-header bg-primary text-white py-3">
@@ -276,6 +279,11 @@ function addDirToZip(&$zip, $dir, $base_path) {
             </div>
         </div>
     </div>
+    <?php elseif ($is_project_admin): ?>
+        <div class="alert alert-info mb-4">
+            <strong>ℹ️ Hinweis:</strong> Projekt-Backups können Sie direkt in den Projekt-Bearbeitungsmodi (Gäste, Gerichte, etc.) erstellen.
+        </div>
+    <?php endif; ?>
 </div>
 
     <!-- BACKUP LISTE -->
