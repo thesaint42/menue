@@ -466,7 +466,9 @@ if (!$can_read_projects) {
         /* Mobile: Symbol only for action buttons */
         @media (max-width: 576px) {
             .project-btn {
+                width: auto;
                 min-width: auto;
+                flex: 0 0 auto;
                 padding-left: 0.5rem;
                 padding-right: 0.5rem;
             }
