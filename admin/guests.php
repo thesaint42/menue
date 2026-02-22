@@ -308,9 +308,28 @@ if ($project_id) {
 <html lang="de" data-bs-theme="dark">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gästeübersicht - Event Menue Order System (EMOS)</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="../assets/css/style.css" rel="stylesheet">
+    <style>
+        /* Guest action buttons - uniform size */
+        .guest-btn {
+            min-width: 100px;
+            white-space: nowrap;
+        }
+        
+        /* Mobile: Symbol only for action buttons */
+        @media (max-width: 576px) {
+            .guest-btn {
+                min-width: auto;
+                padding-left: 0.5rem;
+                padding-right: 0.5rem;
+            }
+            .guest-btn .btn-text { display: none; }
+            .guest-btn .btn-icon { margin-right: 0; }
+        }
+    </style>
 </head>
 <body>
 
@@ -345,7 +364,7 @@ if ($project_id) {
             <h5 class="mb-0"><?php echo htmlspecialchars($project['name']); ?> - <?php echo count($orders_with_people); ?> Bestellung(en)</h5>
         </div>
         <div class="table-responsive">
-            <table class="table table-hover mb-0">
+            <table class="table table-hover mb-0 guests-table">
                 <thead class="table-dark">
                     <tr>
                         <th colspan="2">Bestell-Nr. / Person</th>
@@ -354,7 +373,7 @@ if ($project_id) {
                         <th>Typ</th>
                         <th>Alter</th>
                         <th class="text-center">Bestellung</th>
-                        <th>Aktionen</th>
+                        <th></th>
                     </tr>
                 </thead>
                 <tbody>
@@ -382,7 +401,9 @@ if ($project_id) {
                                 <td>
                                     <form method="post" style="display: inline;" onsubmit="return confirm('Bestellung und alle Personen/Gerichte wirklich löschen?');">
                                         <input type="hidden" name="delete_order_id" value="<?php echo htmlspecialchars($order_data['order_id']); ?>">
-                                        <button type="submit" class="btn btn-sm btn-danger">Alles löschen</button>
+                                        <button type="submit" class="btn btn-sm btn-danger guest-btn">
+                                            <span class="btn-icon">🗑️</span><span class="btn-text">Alles löschen</span>
+                                        </button>
                                     </form>
                                 </td>
                             </tr>
@@ -419,7 +440,9 @@ if ($project_id) {
                                         <form method="post" style="display: inline;" onsubmit="return confirm('Person und zugehörige Gerichte löschen?');">
                                             <input type="hidden" name="delete_person_order_id" value="<?php echo htmlspecialchars($order_data['order_id']); ?>">
                                             <input type="hidden" name="delete_person_index" value="<?php echo (int)$person['person_index']; ?>">
-                                            <button type="submit" class="btn btn-sm btn-warning">Löschen</button>
+                                            <button type="submit" class="btn btn-sm btn-warning guest-btn">
+                                                <span class="btn-icon">🗑️</span><span class="btn-text">Löschen</span>
+                                            </button>
                                         </form>
                                     </td>
                                 </tr>
