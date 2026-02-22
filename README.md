@@ -2,7 +2,7 @@
 
 Ein vollständiges PHP-basiertes System zur Verwaltung von Menüauswahl für Gäste mit Admin-Dashboard, PDF-Export und E-Mail-Integration.
 
-**Aktuelle Version:** 2.1.0
+**Aktuelle Version:** 2.2.0 (22. Februar 2026)
 
 ## Features
 
@@ -32,6 +32,8 @@ Ein vollständiges PHP-basiertes System zur Verwaltung von Menüauswahl für Gä
 - Menüverwaltung (5 Kategorien: Vorspeise, Hauptspeise, Beilage, Salat, Nachspeise)
 - Gästeübersicht mit Statistiken
 - Bestellungshistorie
+- **NEU v2.2.0:** Rollenbasierte Statistiken auf Dashboard (Systemadmin sieht alle, andere nur zugewiesene Projekte)
+- **NEU v2.2.0:** Gästezähler in Projektliste mit order_people-Abfrage
 - **NEU v1.7.1:** Optimierter PDF-Report mit Bestellübersicht
   - Hierarchische Darstellung: Bestellung → Person → Gerichte
   - Hochstuhl-Übersicht (HS-Angabe)
@@ -228,10 +230,11 @@ id, order_id (UUID), person_id, dish_id, category_id, created_at
 order_id, project_id, email, firstname, lastname, phone, phone_raw, guest_type, person_type, child_age, highchair_needed
 ```
 
-**`menu_order_people`** - Personen pro Order (optional)
+**`menu_order_people`** - Personen pro Order (NEU v2.2.0 - Primary Guest Source)
 ```sql
-order_id, person_index, name, person_type, child_age, highchair_needed
+order_id (UUID), person_index, name, person_type, child_age, highchair_needed
 ```
+*NEU v2.2.0: Wird für Gästezähler in Dashboard und Projektlisten verwendet (COUNT = primäre Quelle)*
 
 **`menu_smtp_config`** - SMTP Server-Konfiguration
 ```sql
@@ -503,6 +506,47 @@ setLanguage('en');
 ---
 
 ## Changelog
+
+### Version 2.2.0 (22. Februar 2026)
+
+**Dashboard & Statistics - Rollenbasierte Berechtigungen:**
+- ✅ **Rollenbasierte Dashboard-Statistiken:** Systemadmin sieht alle Projekte, andere nur zugewiesene
+- ✅ **Bestellstatistiken-Queries:** Optimiert mit ORDER BY für Zuverlässigkeit
+- ✅ **Gästecount mit `order_people`:** Neue Abfrage nutzt `order_people` + `order_sessions` JOIN
+- ✅ **Bestellcount mit `orders`:** COUNT(*) von orders-Tabelle mit Project-Filterung
+- ✅ **Permission-aware Recent Projects:** Zeigt nur Projekte, auf die der User Zugriff hat
+- ✅ **Per-Project Guest Count:** Individuelle Gästezahlen pro Projekt in Projektliste
+
+**Navigation & UI Updates:**
+- ✅ **Button "Neue Menükategorie":** Umbenennung von "Mail-Einstellungen" (führt zu menu_categories.php)
+- ✅ **Button "Reporting":** Umbenennung von "PDF exportieren" (führt zu reports.php)
+- ✅ **Neue Icons:** + Symbol für "Neue Menükategorie", 📊 für "Reporting"
+- ✅ **Button-Reihenfolge:** Projekt > Kategorie > Menü in "Neue Aktion"; Projekte > Gäste > Reporting in "Verwaltung"
+- ✅ **Konsistente Spacing:** Einheitliche Abstände und Layouting
+
+**Code Quality:**
+- ✅ **Debug Output removed:** Keine debug_info / debug_queries-Arrays mehr
+- ✅ **Error Handling:** Try-catch Blöcke für sichere Fehlerbehandlung
+- ✅ **Try-catch für fetch():** Schutz vor Array-Access auf false
+- ✅ **Clean SQL Queries:** Vereinfachte, produktionsreife Queries
+- ✅ **Safe NULL-Checks:** Alle Fetch-Ergebnisse mit isset() geprüft
+
+**Database Query Updates:**
+- ✅ **Guest Count Query:**
+  ```sql
+  SELECT COUNT(*) FROM menu_order_people op 
+  INNER JOIN menu_order_sessions os ON op.order_id = os.order_id 
+  WHERE os.project_id IN (?, ?, ...)
+  ```
+- ✅ **Order Count Query:**
+  ```sql
+  SELECT COUNT(*) FROM menu_orders 
+  WHERE order_id IN (
+    SELECT order_id FROM menu_order_sessions WHERE project_id IN (?, ?, ...)
+  )
+  ```
+
+---
 
 ### Version 2.1.0 (22. Februar 2026)
 
