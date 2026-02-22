@@ -408,7 +408,7 @@ $available_menu_items = [
                                                     <div>
                                                         🔒 <strong><?php echo ($role['id'] === 1 ? 'Systemadmin' : 'Projektadmin'); ?>-Rolle (Systemrolle)</strong> - Diese Rolle hat standardmäßig ihre Features und kann nicht verändert werden. Für weitere Anpassungen weitere Rollen anlegen.
                                                     </div>
-                                                    <button type="button" class="system-role-close-btn" data-bs-dismiss="alert" aria-label="Schließen">✕</button>
+                                                    <button type="button" class="system-role-close-btn" aria-label="Schließen">✕</button>
                                                 </div>
                                                 <?php endif; ?>
                                                 
@@ -484,18 +484,30 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 3000);
     });
 
-    // System Role Alert Auto-Dismiss nach 7 Sekunden
+    // System Role Alert Auto-Dismiss nach 7 Sekunden (nur ausblenden, nicht entfernen)
     function initSystemRoleAlert(alert) {
         const dismissTime = parseInt(alert.getAttribute('data-auto-dismiss')) || 7000;
-        setTimeout(() => {
-            const bsAlert = bootstrap.Alert.getOrCreateInstance(alert);
-            bsAlert.close();
+        
+        // Bestehenden Timer löschen falls vorhanden
+        if (alert.dismissTimer) {
+            clearTimeout(alert.dismissTimer);
+        }
+        
+        // Neuer Timer
+        alert.dismissTimer = setTimeout(() => {
+            // Nur ausblenden, nicht entfernen
+            alert.classList.remove('show');
+            setTimeout(() => {
+                alert.style.display = 'none';
+            }, 150); // Bootstrap fade animation duration
         }, dismissTime);
     }
 
     // Initial: Alle sichtbaren System-Role-Alerts mit Timer versehen
     document.querySelectorAll('.system-role-alert').forEach(alert => {
-        initSystemRoleAlert(alert);
+        // Alert initial ausblenden (wird beim Öffnen des Collapse angezeigt)
+        alert.classList.remove('show');
+        alert.style.display = 'none';
     });
 
     // Zeige Alert jedes Mal wenn Features-Collapse geöffnet wird
@@ -511,16 +523,35 @@ document.addEventListener('DOMContentLoaded', function() {
                         // Prüfe ob Collapse gerade geöffnet wurde
                         const collapseElement = document.querySelector(targetId);
                         if (collapseElement && collapseElement.classList.contains('show')) {
-                            // Alert wieder anzeigen falls versteckt
-                            if (!alertElement.classList.contains('show')) {
+                            // Alert wieder anzeigen
+                            alertElement.style.display = 'block';
+                            // Kleine Verzögerung für Fade-In Animation
+                            setTimeout(() => {
                                 alertElement.classList.add('show');
-                                alertElement.style.display = 'block';
-                            }
+                            }, 10);
                             // Timer neu starten
                             initSystemRoleAlert(alertElement);
                         }
                     }
                 }, 50);
+            }
+        });
+    });
+
+    // Manuelle Schließen-Buttons für System-Role-Alerts
+    document.querySelectorAll('.system-role-close-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const alert = this.closest('.system-role-alert');
+            if (alert) {
+                // Timer löschen
+                if (alert.dismissTimer) {
+                    clearTimeout(alert.dismissTimer);
+                }
+                // Ausblenden
+                alert.classList.remove('show');
+                setTimeout(() => {
+                    alert.style.display = 'none';
+                }, 150);
             }
         });
     });
