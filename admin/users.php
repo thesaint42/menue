@@ -433,8 +433,17 @@ function toggleProjectsSection(roleSelect, userId) {
     const selectedOption = roleSelect.options[roleSelect.selectedIndex];
     const hasProjectAdmin = selectedOption && selectedOption.dataset.hasProjectAdmin === '1';
     
+    // Prüfe ob wir im Bearbeitungsmodus sind (andere Felder sind nicht disabled)
+    const row = roleSelect.closest('tr');
+    const otherInputs = row.querySelectorAll('input[type=text], input[type=email]');
+    const isEditMode = otherInputs.length > 0 && !otherInputs[0].disabled;
+    
     if (hasProjectAdmin) {
         projectsSection.style.display = 'block';
+        // Aktiviere Checkboxen nur wenn im Bearbeitungsmodus
+        projectsSection.querySelectorAll('input[type=checkbox]').forEach(cb => {
+            cb.disabled = !isEditMode;
+        });
     } else {
         projectsSection.style.display = 'none';
         // Alle Checkboxes deselektieren und deaktivieren
