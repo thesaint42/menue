@@ -300,7 +300,6 @@ if ($projektverwaltung_role_id) {
                                                 </div>
                                             </div>
                                             <?php endif; ?>
-                                    </td>
                                     <td class="text-center">
                                             <input type="checkbox" name="is_active" class="form-check-input" <?php echo $user['is_active'] ? 'checked' : ''; ?> disabled>
                                     </td>
@@ -342,9 +341,15 @@ function toggleEdit(btn, id) {
     const form = document.getElementById('form_' + id);
     if (!form) return;
     const row = form.closest('tr');
-    const inputs = row.querySelectorAll('input[type=text], input[type=email], input[type=checkbox], select');
+    const inputs = row.querySelectorAll('input[type=text], input[type=email], select');
     inputs.forEach(input => {
         input.toggleAttribute('disabled');
+    });
+
+    // Auch Projekt-Checkboxen aktivieren
+    const projectCheckboxes = row.querySelectorAll('input[name="assigned_projects[]"]');
+    projectCheckboxes.forEach(checkbox => {
+        checkbox.toggleAttribute('disabled');
     });
 
     const editBtn = btn;
@@ -361,15 +366,19 @@ function toggleProjectsSection(roleSelect, userId) {
     
     // Check if the selected role is "Projektverwaltung" by checking the option name
     const selectedOption = roleSelect.options[roleSelect.selectedIndex];
-    if (selectedOption && selectedOption.textContent.includes('Projektverwaltung')) {
+    const isProjektVerwaltung = selectedOption && selectedOption.textContent.includes('Projektverwaltung');
+    
+    if (isProjektVerwaltung) {
         projectsSection.style.display = 'block';
-        // Enable checkboxes
+        // Checkboxen mitnehmen aktuellem Edit-Status
         projectsSection.querySelectorAll('input[type=checkbox]').forEach(cb => {
-            if (!cb.disabled) cb.disabled = false;
+            // Wenn Parent disabled ist, dann Checkboxes auch. Sonst wie Rolle-Select
+            const isEditMode = !roleSelect.disabled;
+            cb.disabled = !isEditMode;
         });
     } else {
         projectsSection.style.display = 'none';
-        // Uncheck and disable checkboxes
+        // Alle Checkboxes deselektieren und deaktivieren
         projectsSection.querySelectorAll('input[type=checkbox]').forEach(cb => {
             cb.checked = false;
             cb.disabled = true;
