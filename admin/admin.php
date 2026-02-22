@@ -49,9 +49,9 @@ $debug_queries = [];
 // Nur Statistiken laden wenn Projekte vorhanden
 if ($project_count > 0) {
     try {
-        // Gäste zählen - PERSONEN für die bestellt wurde (DISTINCT person_id aus orders)
+        // Gäste zählen - ALLE Bestelleinträge (jede Zeile = Person × Gericht)
         $placeholders = implode(',', array_fill(0, count($accessible_project_ids), '?'));
-        $guest_query = "SELECT COUNT(DISTINCT o.person_id) as count FROM {$prefix}orders o INNER JOIN {$prefix}order_sessions os ON o.order_id = os.order_id WHERE os.project_id IN ($placeholders)";
+        $guest_query = "SELECT COUNT(*) as count FROM {$prefix}orders o INNER JOIN {$prefix}order_sessions os ON o.order_id = os.order_id WHERE os.project_id IN ($placeholders)";
         $debug_queries['guest_query'] = $guest_query;
         $debug_queries['guest_params'] = $accessible_project_ids;
         
