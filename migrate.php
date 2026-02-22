@@ -1,6 +1,6 @@
 <?php
 /**
- * migrate.php - Datenbankmigrationen für bestehende Installationen
+ * migrate.php - System-Updates für bestehende Installationen
  * Führt strukturelle Änderungen durch ohne Daten zu löschen
  */
 
@@ -694,7 +694,7 @@ if (isset($_POST['run_migration']) && isset($_POST['migration_key'])) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Datenbankmigrationen - Event Menue Order System (EMOS)</title>
+    <title>System-Updates - Event Menue Order System (EMOS)</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="assets/css/style.css" rel="stylesheet">
 </head>
@@ -706,7 +706,7 @@ if (isset($_POST['run_migration']) && isset($_POST['migration_key'])) {
     <div class="row justify-content-center">
         <div class="col-lg-8">
 
-            <h2 class="mb-4">Datenbankmigrationen</h2>
+            <h2 class="mb-4">System-Updates</h2>
 
             <?php if ($message): ?>
                 <div class="alert alert-<?php echo $messageType; ?> alert-dismissible fade show" role="alert">
@@ -746,7 +746,7 @@ if (isset($_POST['run_migration']) && isset($_POST['migration_key'])) {
                                     <div class="col-auto">
                                         <?php if (in_array($key, $executed_migrations)): ?>
                                             <div class="d-flex gap-2 align-items-center">
-                                                <span class="badge rounded-pill bg-success fs-6 px-3 py-2">✓ Ausgeführt</span>
+                                                <span class="badge bg-success">✓ Ausgeführt</span>
                                                 <form method="post" style="display: inline;">
                                                     <input type="hidden" name="migration_key" value="<?php echo $key; ?>">
                                                     <button type="submit" name="reset_single_migration" class="btn btn-sm btn-warning" onclick="return confirm('Migration zurücksetzen? Sie können sie danach erneut ausführen.')">
