@@ -182,7 +182,7 @@ if ($project_count > 0) {
                     <div class="d-grid gap-2">
                         <a href="projects.php" class="btn btn-outline-info">📋 Projekte verwalten</a>
                         <a href="guests.php" class="btn btn-outline-info">👥 Gäste anzeigen</a>
-                        <a href="export_pdf.php" class="btn btn-outline-info">📄 PDF exportieren</a>
+                        <a href="reports.php" class="btn btn-outline-info">📊 Reporting</a>
                     </div>
                 </div>
             </div>
