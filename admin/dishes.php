@@ -220,6 +220,12 @@ if ($project_id) {
             min-width: 110px;
         }
         
+        .dish-card .action-buttons {
+            display: flex;
+            justify-content: flex-end;
+            gap: 0.5rem;
+        }
+        
         /* Mobile: Buttons nebeneinander, Löschen links, Bearbeiten rechts */
         @media (max-width: 767.98px) {
             .dish-card .btn {
@@ -234,12 +240,6 @@ if ($project_id) {
             
             .dish-card .btn .btn-text {
                 display: none;
-            }
-            
-            .dish-card .action-buttons {
-                display: flex;
-                justify-content: space-between;
-                gap: 0.5rem;
             }
             
             .price-field-mobile {
