@@ -226,7 +226,12 @@ $stmt->execute([$project_id]);
 $dishes = $stmt->fetchAll();
 
 // Kategorien laden
-$categories = $pdo->query("SELECT * FROM {$prefix}menu_categories ORDER BY sort_order")->fetchAll();
+$categories = [];
+if ($project_id) {
+    $stmt = $pdo->prepare("SELECT * FROM {$prefix}menu_categories WHERE project_id = ? ORDER BY sort_order");
+    $stmt->execute([$project_id]);
+    $categories = $stmt->fetchAll();
+}
 
 // Projekte für Dropdown (nur berechtigte Projekte)
 $user_role_id = $_SESSION['role_id'] ?? null;

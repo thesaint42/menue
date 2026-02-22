@@ -17,6 +17,36 @@ $prefix = $config['database']['prefix'] ?? 'menu_';
 $can_read_categories = hasMenuAccess($pdo, 'menu_categories_read', $prefix);
 $can_write_categories = hasMenuAccess($pdo, 'menu_categories_write', $prefix);
 
+// Projekte laden (nur zugängliche für project_admin Users)
+$user_role_id = $_SESSION['role_id'] ?? null;
+
+if ($user_role_id === 1) {
+    // Admin: alle Projekte
+    $projects = $pdo->query("SELECT * FROM {$prefix}projects WHERE is_active = 1 ORDER BY name")->fetchAll();
+} else if (hasMenuAccess($pdo, 'projects_write', $prefix)) {
+    // Project Admin: nur zugewiesene Projekte
+    $assigned = getUserProjects($pdo, $prefix);
+    if (!empty($assigned)) {
+        $project_ids = array_column($assigned, 'id');
+        $placeholders = implode(',', array_fill(0, count($project_ids), '?'));
+        $stmt = $pdo->prepare("SELECT * FROM {$prefix}projects WHERE is_active = 1 AND id IN ($placeholders) ORDER BY name");
+        $stmt->execute($project_ids);
+        $projects = $stmt->fetchAll();
+    } else {
+        $projects = [];
+    }
+} else {
+    $projects = [];
+}
+
+// Projekt aus GET oder POST holen
+$project_id = isset($_GET['project']) ? (int)$_GET['project'] : (isset($_POST['project_id']) ? (int)$_POST['project_id'] : null);
+
+// Wenn nur ein Projekt vorhanden, automatisch vorauswählen
+if (!$project_id && count($projects) === 1) {
+    $project_id = $projects[0]['id'];
+}
+
 $message = "";
 $messageType = "info";
 
@@ -24,6 +54,9 @@ $messageType = "info";
 if (isset($_POST['create_category'])) {
     if (!$can_write_categories) {
         $message = "⚠️ Keine Berechtigung zum Erstellen von Menükategorien.";
+        $messageType = "danger";
+    } elseif (!$project_id) {
+        $message = "Bitte wählen Sie zuerst ein Projekt.";
         $messageType = "danger";
     } else {
         $name = trim($_POST['name']);
@@ -34,8 +67,8 @@ if (isset($_POST['create_category'])) {
             $messageType = "danger";
         } else {
             try {
-                $stmt = $pdo->prepare("INSERT INTO {$prefix}menu_categories (name, sort_order) VALUES (?, ?)");
-                $stmt->execute([$name, $sort_order]);
+                $stmt = $pdo->prepare("INSERT INTO {$prefix}menu_categories (project_id, name, sort_order) VALUES (?, ?, ?)");
+                $stmt->execute([$project_id, $name, $sort_order]);
                 $message = "Kategorie erstellt.";
                 $messageType = "success";
             } catch (Exception $e) {
@@ -61,8 +94,8 @@ if (isset($_POST['update_category'])) {
             $messageType = "danger";
         } else {
             try {
-                $stmt = $pdo->prepare("UPDATE {$prefix}menu_categories SET name = ?, sort_order = ? WHERE id = ?");
-                $stmt->execute([$name, $sort_order, $id]);
+                $stmt = $pdo->prepare("UPDATE {$prefix}menu_categories SET name = ?, sort_order = ? WHERE id = ? AND project_id = ?");
+                $stmt->execute([$name, $sort_order, $id, $project_id]);
                 $message = "Kategorie aktualisiert.";
                 $messageType = "success";
             } catch (Exception $e) {
@@ -88,8 +121,8 @@ if (isset($_POST['delete_category'])) {
         $stmt->execute([$id]);
         
         // Lösche Kategorie
-        $stmt = $pdo->prepare("DELETE FROM {$prefix}menu_categories WHERE id = ?");
-        $stmt->execute([$id]);
+        $stmt = $pdo->prepare("DELETE FROM {$prefix}menu_categories WHERE id = ? AND project_id = ?");
+        $stmt->execute([$id, $project_id]);
         
         $pdo->commit();
         $message = "Kategorie gelöscht.";
@@ -102,9 +135,13 @@ if (isset($_POST['delete_category'])) {
     }
 }
 
-// Kategorien laden
-$stmt = $pdo->query("SELECT * FROM {$prefix}menu_categories ORDER BY sort_order ASC, name ASC");
-$categories = $stmt->fetchAll(PDO::FETCH_ASSOC);
+// Kategorien laden (für aktuelles Projekt)
+$categories = [];
+if ($project_id) {
+    $stmt = $pdo->prepare("SELECT * FROM {$prefix}menu_categories WHERE project_id = ? ORDER BY sort_order ASC, name ASC");
+    $stmt->execute([$project_id]);
+    $categories = $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
 ?>
 <!DOCTYPE html>
 <html lang="de">
@@ -168,7 +205,28 @@ $categories = $stmt->fetchAll(PDO::FETCH_ASSOC);
         </div>
     <?php endif; ?>
 
-    <!-- Form -->
+    <!-- Projektauswahl -->
+    <div class="card mb-4">
+        <div class="card-header bg-info">
+            <h5 class="mb-0">Projekt auswählen</h5>
+        </div>
+        <div class="card-body">
+            <form method="get" class="row g-2">
+                <div class="col-12">
+                    <select name="project" class="form-select" onchange="this.form.submit()" required>
+                        <option value="">-- Bitte wählen --</option>
+                        <?php foreach ($projects as $proj): ?>
+                            <option value="<?php echo $proj['id']; ?>" <?php echo $project_id == $proj['id'] ? 'selected' : ''; ?>>
+                                <?php echo htmlspecialchars($proj['name']); ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <?php if ($project_id): ?>
     <div class="card mb-4">
         <div class="card-header bg-primary">
             <h5 class="mb-0">Neue Kategorie</h5>
@@ -180,6 +238,7 @@ $categories = $stmt->fetchAll(PDO::FETCH_ASSOC);
             </div>
             <?php endif; ?>
             <form method="post" class="row g-2">
+                <input type="hidden" name="project_id" value="<?php echo $project_id; ?>">
                 <div class="col-12 col-md-6">
                     <input type="text" name="name" class="form-control" placeholder="Kategoriename" required <?php echo !$can_write_categories ? 'disabled' : ''; ?>>
                 </div>
@@ -240,6 +299,11 @@ $categories = $stmt->fetchAll(PDO::FETCH_ASSOC);
             </table>
         </div>
     </div>
+    <?php else: ?>
+    <div class="alert alert-info">
+        <strong>ℹ️ Hinweis:</strong> Bitte wählen Sie ein Projekt aus, um die Kategorien zu verwalten.
+    </div>
+    <?php endif; ?>
 </div>
 
 <!-- Delete Modal -->
