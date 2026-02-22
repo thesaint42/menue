@@ -200,6 +200,74 @@ if ($project_id) {
         .btn-close-white:hover {
             background-color: #bb2d3b;
         }
+        
+        /* Beschreibung initial gleich hoch wie andere Felder */
+        textarea[name="description"]:disabled {
+            height: 38px;
+            resize: none;
+            overflow: hidden;
+        }
+        
+        /* Mobile Ansicht */
+        @media (max-width: 767.98px) {
+            /* Tabellen-Header verstecken */
+            .table thead {
+                display: none;
+            }
+            
+            /* Tabellenzeilen als Block-Elemente */
+            .table tbody tr {
+                display: block;
+                margin-bottom: 1.5rem;
+                padding: 1rem;
+                background-color: #2a2a2a;
+                border-radius: 8px;
+            }
+            
+            .table tbody td {
+                display: block;
+                width: 100% !important;
+                padding: 0.5rem 0;
+                border: none;
+            }
+            
+            /* Labels für Mobile hinzufügen */
+            .table tbody td::before {
+                content: attr(data-label);
+                font-weight: bold;
+                display: block;
+                margin-bottom: 0.25rem;
+                color: #aaa;
+                font-size: 0.85rem;
+            }
+            
+            /* Buttons: quadratisch, nur Icons */
+            .table .btn {
+                width: 45px !important;
+                height: 45px !important;
+                min-width: 45px !important;
+                padding: 0 !important;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+            }
+            
+            .table .btn .btn-text {
+                display: none;
+            }
+            
+            /* Aktions-Spalte: Buttons nebeneinander */
+            .table tbody td:last-child {
+                display: flex;
+                gap: 0.5rem;
+                padding-top: 1rem;
+            }
+            
+            /* Textarea auf Mobile größer */
+            textarea[name="description"] {
+                min-height: 60px !important;
+            }
+        }
     </style>
 </head>
 <body>
@@ -264,10 +332,10 @@ if ($project_id) {
                 <div class="col-12 col-md-1">
                     <input type="number" name="sort_order" class="form-control" placeholder="Sort" min="0" value="0" <?php echo !$can_write_menus ? 'disabled' : ''; ?>>
                 </div>
-                <div class="col-12 col-md-2">
+                <div class="col-12 order-md-5 col-md-2">
                     <button type="submit" name="create_dish" class="btn btn-primary w-100" <?php echo !$can_write_menus ? 'disabled' : ''; ?>>Erstellen</button>
                 </div>
-                <div class="col-12">
+                <div class="col-12 order-md-4">
                     <textarea name="description" class="form-control" placeholder="Beschreibung (optional)" rows="2" <?php echo !$can_write_menus ? 'disabled' : ''; ?>></textarea>
                 </div>
             </form>
@@ -298,7 +366,7 @@ if ($project_id) {
                     <?php else: ?>
                         <?php foreach ($dishes as $dish): ?>
                             <tr>
-                                <td>
+                                <td data-label="Kategorie">
                                     <form method="post" id="form_<?php echo $dish['id']; ?>" style="display: inline;">
                                         <input type="hidden" name="id" value="<?php echo $dish['id']; ?>">
                                         <input type="hidden" name="sort_order" value="<?php echo $dish['sort_order']; ?>">
@@ -310,20 +378,26 @@ if ($project_id) {
                                             <?php endforeach; ?>
                                         </select>
                                 </td>
-                                <td>
+                                <td data-label="Gericht">
                                     <input type="text" name="name" value="<?php echo htmlspecialchars($dish['name']); ?>" class="form-control form-control-sm" required disabled>
                                 </td>
-                                <td>
-                                    <textarea name="description" class="form-control form-control-sm" rows="2" disabled><?php echo htmlspecialchars($dish['description']); ?></textarea>
+                                <td data-label="Beschreibung">
+                                    <textarea name="description" class="form-control form-control-sm" rows="1" disabled><?php echo htmlspecialchars($dish['description']); ?></textarea>
                                 </td>
-                                <td>
+                                <td data-label="Preis">
                                     <input type="text" name="price" value="<?php echo is_null($dish['price']) ? '' : number_format((float)$dish['price'], 2, ',', '.'); ?>" class="form-control form-control-sm" disabled>
                                 </td>
-                                <td class="text-nowrap">
+                                <td data-label="Aktionen">
                                     <?php if ($can_write_menus): ?>
-                                    <button type="button" class="btn btn-sm btn-success edit-btn" onclick="toggleEdit(this, <?php echo $dish['id']; ?>)" data-id="<?php echo $dish['id']; ?>">Bearbeiten</button>
-                                    <button type="submit" name="update_dish" form="form_<?php echo $dish['id']; ?>" class="btn btn-sm btn-warning d-none" data-id="<?php echo $dish['id']; ?>">Speichern</button>
-                                    <button type="button" class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#deleteModal" onclick="document.getElementById('deleteForm').innerHTML = '<input type=hidden name=id value=<?php echo $dish['id']; ?>><input type=hidden name=delete_dish value=1>'">Löschen</button>
+                                    <button type="button" class="btn btn-sm btn-success edit-btn" onclick="toggleEdit(this, <?php echo $dish['id']; ?>)" data-id="<?php echo $dish['id']; ?>">
+                                        ✏️ <span class="btn-text">Bearbeiten</span>
+                                    </button>
+                                    <button type="submit" name="update_dish" form="form_<?php echo $dish['id']; ?>" class="btn btn-sm btn-warning d-none" data-id="<?php echo $dish['id']; ?>">
+                                        💾 <span class="btn-text">Speichern</span>
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#deleteModal" onclick="document.getElementById('deleteForm').innerHTML = '<input type=hidden name=id value=<?php echo $dish['id']; ?>><input type=hidden name=delete_dish value=1>'">
+                                        🗑️ <span class="btn-text">Löschen</span>
+                                    </button>
                                     <?php else: ?>
                                     <span class="badge bg-secondary">Nur Lesezugriff</span>
                                     <?php endif; ?>
