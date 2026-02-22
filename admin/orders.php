@@ -381,9 +381,9 @@ if ($project_id > 0) {
 
             <!-- Export-Buttons -->
             <div class="mt-4 d-flex flex-column flex-sm-row gap-2">
-                <a href="../admin/export_pdf.php?project=<?php echo $project_id; ?>&download=1" class="btn btn-primary" target="_blank">
-                    🖨️ PDF Download
-                </a>
+                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#pdfModal">
+                    🖨️ PDF Export
+                </button>
             </div>
         <?php endif; ?>
     <?php else: ?>
@@ -391,7 +391,49 @@ if ($project_id > 0) {
     <?php endif; ?>
 </div>
 
+<!-- PDF Export Modal -->
+<div class="modal fade" id="pdfModal" tabindex="-1" aria-labelledby="pdfModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="pdfModalLabel">📄 PDF Export</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Wie möchten Sie die Bestellungen exportieren?</p>
+            </div>
+            <div class="modal-footer gap-2">
+                <button type="button" class="btn btn-primary" onclick="openPdfModal('view')">
+                    <i class="bi bi-printer"></i> Anzeigen & Drucken
+                </button>
+                <button type="button" class="btn btn-success" onclick="openPdfModal('download')">
+                    <i class="bi bi-download"></i> Herunterladen
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+function openPdfModal(action) {
+    // Modal schließen
+    const modal = bootstrap.Modal.getInstance(document.getElementById('pdfModal'));
+    if (modal) {
+        modal.hide();
+    }
+    
+    // Zu export_pdf.php navigieren
+    const projectId = <?php echo $project_id; ?>;
+    const url = '../admin/export_pdf.php?project=' + projectId + '&download=1';
+    
+    if (action === 'view') {
+        window.open(url, '_blank');
+    } else {
+        window.location.href = url;
+    }
+}
+</script>
 <?php include '../nav/footer.php'; ?>
 </body>
 </html>
