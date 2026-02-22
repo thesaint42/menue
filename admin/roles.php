@@ -121,6 +121,43 @@ if (isset($_POST['toggle_menu_access'])) {
     }
 }
 
+// Features und Menü speichern (neue Batch-Methode)
+if (isset($_POST['save_features'])) {
+    $role_id = (int)$_POST['save_features'];
+    $errors = [];
+    
+    try {
+        // Speichere alle Features
+        if (isset($_POST['features']) && is_array($_POST['features'])) {
+            foreach ($_POST['features'] as $feature_key => $value) {
+                $enabled = $value == '1' ? 1 : 0;
+                $stmt = $pdo->prepare("INSERT INTO {$prefix}role_features (role_id, feature_name, enabled) 
+                                     VALUES (?, ?, ?) 
+                                     ON DUPLICATE KEY UPDATE enabled = ?");
+                $stmt->execute([$role_id, $feature_key, $enabled, $enabled]);
+            }
+        }
+        
+        // Speichere alle Menü-Items
+        if (isset($_POST['menu_items']) && is_array($_POST['menu_items'])) {
+            foreach ($_POST['menu_items'] as $menu_key => $value) {
+                $visible = $value == '1' ? 1 : 0;
+                $stmt = $pdo->prepare("INSERT INTO {$prefix}role_menu_access (role_id, menu_key, visible) 
+                                     VALUES (?, ?, ?) 
+                                     ON DUPLICATE KEY UPDATE visible = ?");
+                $stmt->execute([$role_id, $menu_key, $visible, $visible]);
+            }
+        }
+        
+        $message = "✅ Features und Menü-Punkte gespeichert!";
+        $messageType = "success";
+    } catch (Exception $e) {
+        error_log("Could not save features: " . $e->getMessage());
+        $message = "Fehler beim Speichern: " . $e->getMessage();
+        $messageType = "danger";
+    }
+}
+
 // Rollen laden
 $stmt = $pdo->query("SELECT r.*, COUNT(u.id) as user_count FROM {$prefix}roles r LEFT JOIN {$prefix}users u ON u.role_id = r.id GROUP BY r.id ORDER BY r.name");
 $roles = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -293,49 +330,49 @@ $available_menu_items = [
                                     <td colspan="4">
                                         <div class="collapse" id="features_<?php echo $role['id']; ?>">
                                             <div class="card card-body bg-dark border-secondary p-3 features-section">
-                                                <h6 class="mb-3 text-white">📋 Verfügbare Features:</h6>
-                                                <?php foreach ($available_features as $feature_key => $feature_label): 
-                                                    $is_enabled = isset($role_features[$role['id']][$feature_key]) && $role_features[$role['id']][$feature_key];
-                                                ?>
-                                                <form method="post" class="mb-3">
-                                                    <div class="form-check">
-                                                        <input type="hidden" name="role_id" value="<?php echo $role['id']; ?>">
-                                                        <input type="hidden" name="feature_name" value="<?php echo $feature_key; ?>">
-                                                        <input type="hidden" name="toggle_feature" value="1">
-                                                        <input type="checkbox" name="enabled" value="1" id="feature_<?php echo $role['id']; ?>_<?php echo $feature_key; ?>" class="form-check-input" <?php echo $is_enabled ? 'checked' : ''; ?> onchange="this.form.submit()">
+                                                <form method="post" id="features_form_<?php echo $role['id']; ?>">
+                                                    <h6 class="mb-3 text-white">📋 Verfügbare Features:</h6>
+                                                    <input type="hidden" name="role_id" value="<?php echo $role['id']; ?>">
+                                                    
+                                                    <?php foreach ($available_features as $feature_key => $feature_label): 
+                                                        $is_enabled = isset($role_features[$role['id']][$feature_key]) && $role_features[$role['id']][$feature_key];
+                                                    ?>
+                                                    <div class="form-check mb-3">
+                                                        <input type="checkbox" name="features[<?php echo $feature_key; ?>]" value="1" id="feature_<?php echo $role['id']; ?>_<?php echo $feature_key; ?>" class="form-check-input" <?php echo $is_enabled ? 'checked' : ''; ?>>
                                                         <label class="form-check-label" for="feature_<?php echo $role['id']; ?>_<?php echo $feature_key; ?>">
                                                             <strong><?php echo htmlspecialchars(explode(' - ', $feature_label)[0]); ?></strong><br>
                                                             <small><?php echo htmlspecialchars(isset($feature_label) ? explode(' - ', $feature_label)[1] : ''); ?></small>
                                                         </label>
                                                     </div>
-                                                </form>
-                                                <?php endforeach; ?>
-                                                
-                                                <hr class="bg-secondary">
-                                                <h6 class="mb-3 text-white">🍔 Burger-Menü Punkte:</h6>
-                                                <?php foreach ($available_menu_items as $menu_key => $menu_label): 
-                                                    // Lade Menü-Zugriff für diese Rolle
-                                                    try {
-                                                        $stmt = $pdo->prepare("SELECT visible FROM {$prefix}role_menu_access WHERE role_id = ? AND menu_key = ?");
-                                                        $stmt->execute([$role['id'], $menu_key]);
-                                                        $menu_access = $stmt->fetch(PDO::FETCH_ASSOC);
-                                                        $is_visible = $menu_access && $menu_access['visible'];
-                                                    } catch (Exception $e) {
-                                                        $is_visible = true; // Standard: sichtbar wenn Tabelle nicht existiert
-                                                    }
-                                                ?>
-                                                <form method="post" class="mb-2">
-                                                    <div class="form-check">
-                                                        <input type="hidden" name="role_id" value="<?php echo $role['id']; ?>">
-                                                        <input type="hidden" name="menu_key" value="<?php echo $menu_key; ?>">
-                                                        <input type="hidden" name="toggle_menu_access" value="1">
-                                                        <input type="checkbox" name="visible" value="1" id="menu_<?php echo $role['id']; ?>_<?php echo $menu_key; ?>" class="form-check-input" <?php echo $is_visible ? 'checked' : ''; ?> onchange="this.form.submit()">
+                                                    <?php endforeach; ?>
+                                                    
+                                                    <hr class="bg-secondary">
+                                                    <h6 class="mb-3 text-white">🍔 Burger-Menü Punkte:</h6>
+                                                    <?php foreach ($available_menu_items as $menu_key => $menu_label): 
+                                                        // Lade Menü-Zugriff für diese Rolle
+                                                        try {
+                                                            $stmt = $pdo->prepare("SELECT visible FROM {$prefix}role_menu_access WHERE role_id = ? AND menu_key = ?");
+                                                            $stmt->execute([$role['id'], $menu_key]);
+                                                            $menu_access = $stmt->fetch(PDO::FETCH_ASSOC);
+                                                            $is_visible = $menu_access && $menu_access['visible'];
+                                                        } catch (Exception $e) {
+                                                            $is_visible = true;
+                                                        }
+                                                    ?>
+                                                    <div class="form-check mb-2">
+                                                        <input type="checkbox" name="menu_items[<?php echo $menu_key; ?>]" value="1" id="menu_<?php echo $role['id']; ?>_<?php echo $menu_key; ?>" class="form-check-input" <?php echo $is_visible ? 'checked' : ''; ?>>
                                                         <label class="form-check-label" for="menu_<?php echo $role['id']; ?>_<?php echo $menu_key; ?>">
                                                             <?php echo htmlspecialchars($menu_label); ?>
                                                         </label>
                                                     </div>
+                                                    <?php endforeach; ?>
+                                                    
+                                                    <hr class="bg-secondary">
+                                                    <div class="d-flex gap-2 mt-3">
+                                                        <button type="submit" name="save_features" value="<?php echo $role['id']; ?>" class="btn btn-sm btn-success">💾 Speichern</button>
+                                                        <button type="button" class="btn btn-sm btn-secondary" data-bs-toggle="collapse" data-bs-target="#features_<?php echo $role['id']; ?>">✕ Schließen</button>
+                                                    </div>
                                                 </form>
-                                                <?php endforeach; ?>
                                             </div>
                                         </div>
                                     </td>
