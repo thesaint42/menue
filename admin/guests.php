@@ -379,26 +379,54 @@ if ($project_id) {
         <?php foreach ($orders_with_people as $order_data): ?>
         <div class="card border-0 shadow mb-4">
             <div class="card-header bg-success text-white">
-                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
-                    <div class="d-flex flex-wrap align-items-center gap-2">
-                        <strong>📦 #<?php echo htmlspecialchars($order_data['order_id']); ?></strong>
-                        <span>|</span>
-                        <small><?php echo htmlspecialchars($order_data['email']); ?></small>
-                        <span>|</span>
-                        <small><?php echo date('d.m.Y H:i', strtotime($order_data['created_at'])); ?></small>
-                        <span>|</span>
-                        <small>👥 <span class="d-none d-md-inline"><?php echo count($order_data['people']); ?> Person(en)</span><span class="d-md-none"><?php echo count($order_data['people']); ?></span></small>
-                        <?php if ($order_data['highchair_count'] > 0): ?>
+                <div class="row g-2">
+                    <div class="col-12 d-md-none">
+                        <div class="d-flex justify-content-between align-items-flex-start gap-2">
+                            <div>
+                                <div><strong>📦 #<?php echo htmlspecialchars($order_data['order_id']); ?></strong></div>
+                            </div>
+                            <form method="post" onsubmit="return confirm('Bestellung und alle Personen/Gerichte wirklich löschen?');">
+                                <input type="hidden" name="delete_order_id" value="<?php echo htmlspecialchars($order_data['order_id']); ?>">
+                                <button type="submit" class="btn btn-sm btn-danger guest-btn">
+                                    <span class="btn-icon">🗑️</span><span class="btn-text">Alles löschen</span>
+                                </button>
+                            </form>
+                        </div>
+                        <div class="d-flex flex-wrap align-items-center gap-2 mt-2">
+                            <small><?php echo htmlspecialchars($order_data['email']); ?></small>
                             <span>|</span>
-                            <small>🪑 <span class="d-none d-md-inline"><?php echo $order_data['highchair_count']; ?> Hochstühl(e)</span><span class="d-md-none"><?php echo $order_data['highchair_count']; ?></span></small>
-                        <?php endif; ?>
+                            <small><?php echo date('d.m.Y H:i', strtotime($order_data['created_at'])); ?></small>
+                            <span>|</span>
+                            <small>👥 <?php echo count($order_data['people']); ?></small>
+                            <?php if ($order_data['highchair_count'] > 0): ?>
+                                <span>|</span>
+                                <small>🪑 <?php echo $order_data['highchair_count']; ?></small>
+                            <?php endif; ?>
+                        </div>
                     </div>
-                    <form method="post" onsubmit="return confirm('Bestellung und alle Personen/Gerichte wirklich löschen?');">
-                        <input type="hidden" name="delete_order_id" value="<?php echo htmlspecialchars($order_data['order_id']); ?>">
-                        <button type="submit" class="btn btn-sm btn-danger guest-btn">
-                            <span class="btn-icon">🗑️</span><span class="btn-text">Alles löschen</span>
-                        </button>
-                    </form>
+                    <div class="col-12 d-none d-md-block">
+                        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+                            <div class="d-flex flex-wrap align-items-center gap-2">
+                                <strong>📦 #<?php echo htmlspecialchars($order_data['order_id']); ?></strong>
+                                <span>|</span>
+                                <small><?php echo htmlspecialchars($order_data['email']); ?></small>
+                                <span>|</span>
+                                <small><?php echo date('d.m.Y H:i', strtotime($order_data['created_at'])); ?></small>
+                                <span>|</span>
+                                <small>👥 <?php echo count($order_data['people']); ?> Person(en)</small>
+                                <?php if ($order_data['highchair_count'] > 0): ?>
+                                    <span>|</span>
+                                    <small>🪑 <?php echo $order_data['highchair_count']; ?> Hochstuhl(e)</small>
+                                <?php endif; ?>
+                            </div>
+                            <form method="post" onsubmit="return confirm('Bestellung und alle Personen/Gerichte wirklich löschen?');">
+                                <input type="hidden" name="delete_order_id" value="<?php echo htmlspecialchars($order_data['order_id']); ?>">
+                                <button type="submit" class="btn btn-sm btn-danger guest-btn">
+                                    <span class="btn-icon">🗑️</span><span class="btn-text">Alles löschen</span>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
                 </div>
             </div>
             <div class="card-body">
@@ -416,7 +444,7 @@ if ($project_id) {
                                 $type = strtolower($person['person_type'] ?? 'adult');
                                 if ($type === 'child'): ?>
                                 <?php if (isset($person['highchair_needed']) && $person['highchair_needed']): ?>
-                                    <span class="badge bg-warning text-dark guest-highchair-badge"><span class="hs-icon">🪑</span><span class="hs-text d-none d-md-inline"> Hochstühl</span></span>
+                                    <span class="badge bg-warning text-dark guest-highchair-badge"><span class="hs-icon">🪑</span><span class="hs-text d-none d-md-inline"> Hochstuhl</span></span>
                                 <?php endif; ?>
                                 <span class="badge bg-info guest-type-badge">Kind <span class="d-none d-md-inline">(<?php echo htmlspecialchars($person['child_age'] ?? '?'); ?> Jahre)</span><span class="d-md-none">(<?php echo htmlspecialchars($person['child_age'] ?? '?'); ?>)</span></span>
                             <?php else: ?>

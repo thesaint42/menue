@@ -178,6 +178,23 @@ main.container {
     font-weight: 500;
 }
 
+.badge.guest-type-badge {
+    min-width: 140px;
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.badge.guest-highchair-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.4rem 0.6rem;
+}
+
+.badge.guest-highchair-badge .hs-icon {
+    margin-right: 0.3rem;
+}
+
 /* Modals */
 [data-bs-theme="dark"] .modal-content {
     background-color: #2b2d31;
