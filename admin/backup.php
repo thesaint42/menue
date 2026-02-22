@@ -300,14 +300,14 @@ function addDirToZip(&$zip, $dir, $base_path) {
             <?php else: ?>
                 <!-- Massenbearbeitung Buttons -->
                 <div class="p-3 bg-light border-bottom d-flex gap-2" id="bulkActions" style="display: none;">
-                    <button class="btn btn-sm btn-info" onclick="bulkDownload()">
-                        ⬇️ Ausgewählte herunterladen
+                    <button class="btn btn-sm btn-info" onclick="bulkDownload()" style="min-width: 110px;">
+                        ⬇️ <span class="d-none d-sm-inline">Herunterladen</span>
                     </button>
-                    <button class="btn btn-sm btn-danger" onclick="bulkDelete()">
-                        🗑️ Ausgewählte löschen
+                    <button class="btn btn-sm btn-danger" onclick="bulkDelete()" style="min-width: 110px;">
+                        🗑️ <span class="d-none d-sm-inline">Löschen</span>
                     </button>
-                    <button class="btn btn-sm btn-secondary" onclick="clearSelection()">
-                        Abbrechen
+                    <button class="btn btn-sm btn-secondary" onclick="clearSelection()" style="min-width: 110px;">
+                        ✖️ <span class="d-none d-sm-inline">Abbrechen</span>
                     </button>
                     <small class="ms-auto align-self-center text-muted">
                         <span id="selectionCount">0</span> ausgewählt
