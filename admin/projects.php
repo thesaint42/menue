@@ -432,6 +432,7 @@ if (!$can_read_projects) {
         
         /* Project action buttons - uniform size */
         .project-btn {
+            display: inline-block;
             min-width: 110px;
             white-space: nowrap;
         }
