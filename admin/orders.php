@@ -245,7 +245,7 @@ if ($project_id > 0) {
             margin-right: 0.5rem;
         }
         
-        /* Mobile: nur Icons für Buttons */
+        /* Mobile: nur Icons für Buttons, Telefon-Block */
         @media (max-width: 576px) {
             .btn-with-icon .btn-text { display: none; }
             .btn-with-icon .btn-icon { margin-right: 0; }
@@ -253,6 +253,11 @@ if ($project_id > 0) {
                 min-width: auto;
                 padding-left: 0.5rem;
                 padding-right: 0.5rem;
+            }
+            
+            /* Telefonnummer unter E-Mail auf Mobile */
+            small.d-block.d-md-inline {
+                display: block !important;
             }
         }
     </style>
@@ -346,31 +351,31 @@ if ($project_id > 0) {
             <?php foreach ($grouped_orders as $order_id => $order_data): ?>
             <div class="card border-0 shadow mb-4">
                 <div class="card-header bg-primary text-white">
-                    <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-2">
-                        <div class="d-flex flex-column flex-md-row gap-2 align-items-start">
-                            <div>
-                                <h5 class="mb-0">
-                                    <?php echo htmlspecialchars($order_data['firstname'] . ' ' . $order_data['lastname']); ?>
-                                </h5>
-                                <small>
-                                    <?php echo htmlspecialchars($order_data['email']); ?>
-                                    <?php if ($order_data['phone']): ?>
-                                        | Tel: <?php echo htmlspecialchars($order_data['phone']); ?>
-                                    <?php endif; ?>
+                    <div class="d-flex justify-content-between align-items-start gap-2">
+                        <div>
+                            <h5 class="mb-0">
+                                <?php echo htmlspecialchars($order_data['firstname'] . ' ' . $order_data['lastname']); ?>
+                            </h5>
+                            <small>
+                                <?php echo htmlspecialchars($order_data['email']); ?>
+                            </small>
+                            <?php if ($order_data['phone']): ?>
+                                <small class="d-block d-md-inline">
+                                    <?php echo ' | Tel: ' . htmlspecialchars($order_data['phone']); ?>
                                 </small>
-                            </div>
-                            <div class="d-flex gap-2 flex-md-column flex-lg-row">
-                                <a class="btn btn-sm btn-outline-light btn-with-icon" href="../index.php?pin=<?php echo urlencode($project['access_pin']); ?>&action=edit&order_id=<?php echo urlencode($order_id); ?>"><span class="btn-icon">✏️</span><span class="btn-text">Bearbeiten</span></a>
-                                <form method="post" onsubmit="return confirm('Diese Bestellung wirklich löschen?');">
-                                    <input type="hidden" name="delete_order_id" value="<?php echo htmlspecialchars($order_id); ?>">
-                                    <button type="submit" class="btn btn-sm btn-danger btn-with-icon"><span class="btn-icon">🗑️</span><span class="btn-text">Löschen</span></button>
-                                </form>
-                            </div>
+                            <?php endif; ?>
                         </div>
-                        <div class="order-header-meta">
-                            <small class="d-block">Order-ID: <code><?php echo htmlspecialchars($order_id); ?></code></small>
-                            <small><?php echo date('d.m.Y H:i', strtotime($order_data['order_date'])); ?></small>
+                        <div class="d-flex gap-2 flex-shrink-0">
+                            <a class="btn btn-sm btn-outline-light btn-with-icon" href="../index.php?pin=<?php echo urlencode($project['access_pin']); ?>&action=edit&order_id=<?php echo urlencode($order_id); ?>"><span class="btn-icon">✏️</span><span class="btn-text">Bearbeiten</span></a>
+                            <form method="post" onsubmit="return confirm('Diese Bestellung wirklich löschen?');">
+                                <input type="hidden" name="delete_order_id" value="<?php echo htmlspecialchars($order_id); ?>">
+                                <button type="submit" class="btn btn-sm btn-danger btn-with-icon"><span class="btn-icon">🗑️</span><span class="btn-text">Löschen</span></button>
+                            </form>
                         </div>
+                    </div>
+                    <div class="order-header-meta mt-2">
+                        <small class="d-block">Order-ID: <code><?php echo htmlspecialchars($order_id); ?></code></small>
+                        <small><?php echo date('d.m.Y H:i', strtotime($order_data['order_date'])); ?></small>
                     </div>
                 </div>
                 <div class="card-body">
