@@ -238,6 +238,39 @@ if ($project_id > 0) {
         .page-container { max-width: 900px; }
         @media (max-width: 576px) {
             .order-header-meta { text-align: left !important; }
+            
+            /* Mobile: Buttons und Badges rechtsbündig */
+            @media (max-width: 768px) {
+                .card-header .d-flex {
+                    flex-direction: column-reverse !important;
+                }
+                .card-header .d-flex > div:first-child {
+                    order: 3 !important;
+                }
+                .card-header .d-flex > div:nth-child(2) {
+                    order: 1 !important;
+                    align-self: flex-end !important;
+                    text-align: right;
+                    margin-bottom: 0.5rem;
+                }
+                .card-header .d-flex > div:nth-child(3) {
+                    order: 2 !important;
+                    align-self: flex-end !important;
+                }
+                
+                /* In card-body: Badges und Buttons auch rechtsbündig */
+                .card-body .border-bottom.mb-3 .d-flex {
+                    flex-direction: column-reverse !important;
+                }
+                .card-body .border-bottom.mb-3 .d-flex > h6 {
+                    order: 2 !important;
+                }
+                .card-body .border-bottom.mb-3 .d-flex > div:last-child {
+                    order: 1 !important;
+                    align-self: flex-end !important;
+                    margin-bottom: 0.5rem;
+                }
+            }
         }
     </style>
 </head>
@@ -248,7 +281,7 @@ if ($project_id > 0) {
 <div class="container py-4 page-container">
     <div class="row mb-4">
         <div class="col">
-            <h1>Bestell­übersicht</h1>
+            <h1>Bestellungen</h1>
         </div>
     </div>
 
