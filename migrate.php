@@ -593,8 +593,15 @@ if (isset($_POST['reset_single_migration']) && isset($_POST['migration_key'])) {
         $stmt = $pdo->prepare("DELETE FROM `{$prefix}migrations` WHERE migration = ?");
         $stmt->execute([$migration_key]);
         
-        // Entferne aus executed_migrations Array
-        $executed_migrations = array_diff($executed_migrations, [$migration_key]);
+        // Lade executed_migrations neu aus Datenbank
+        try {
+            $stmt = $pdo->query("SELECT migration FROM `{$prefix}migrations`");
+            if ($stmt) {
+                $executed_migrations = $stmt->fetchAll(PDO::FETCH_COLUMN, 0);
+            }
+        } catch (Exception $e) {
+            $executed_migrations = [];
+        }
         
         $message = "✓ Migration '{$migration_key}' zurückgesetzt. Sie können sie jetzt erneut ausführen.";
         $messageType = "success";
@@ -612,7 +619,7 @@ if (isset($_POST['run_migration']) && isset($_POST['migration_key'])) {
         $message = "❌ Migration nicht gefunden!";
         $messageType = "danger";
     } elseif (in_array($migration_key, $executed_migrations)) {
-        $message = "⚠️ Diese Migration wurde bereits ausgeführt.";
+        $message = "⚠️ Dieses Update wurde bereits ausgeführt.";
         $messageType = "warning";
     } else {
         try {
@@ -715,9 +722,9 @@ if (isset($_POST['run_migration']) && isset($_POST['migration_key'])) {
                     <!-- Debug Info -->
                     <div class="alert alert-secondary mb-4">
                         <strong>📋 Status:</strong> 
-                        <br>Anzahl ausgeführter Migrationen: <strong><?php echo count($executed_migrations); ?></strong>
+                        <br>Anzahl ausgeführter Updates: <strong><?php echo count($executed_migrations); ?></strong>
                         <?php if (!empty($executed_migrations)): ?>
-                            <br>Ausgeführte Migrationen: <code><?php echo implode(', ', $executed_migrations); ?></code>
+                            <br>Ausgeführte Updates: <code><?php echo implode(', ', $executed_migrations); ?></code>
                         <?php endif; ?>
                     </div>
 
