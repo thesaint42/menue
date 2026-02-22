@@ -499,12 +499,19 @@ $migrations = [
             }
         }
     ],
-    [
-        'name' => 'reporting_user_gäste_bestellungen',
-        'description' => 'Reporting User: Zugriff auf Gästeübersicht und Bestellübersicht',
+    'reporting_user_guests_orders_access' => [
+        'name' => 'Reporting User: Gäste- und Bestellübersicht freischalten',
+        'description' => 'Ermöglicht Reporting Usern Zugriff auf Gästeübersicht und Bestellübersicht',
         'version' => '2.4.1',
-        'execute' => function($pdo, $prefix) {
+        'up' => function($pdo, $prefix) {
             try {
+                // Prüfe ob Reporting User (Role 3) existiert
+                $stmt = $pdo->prepare("SELECT id FROM `{$prefix}roles` WHERE id = 3");
+                $stmt->execute();
+                if ($stmt->rowCount() === 0) {
+                    return true; // Role 3 existiert nicht, skip
+                }
+                
                 // Prüfe ob guests_read für Role 3 bereits existiert
                 $stmt = $pdo->prepare("SELECT COUNT(*) FROM `{$prefix}role_menu_access` WHERE role_id = 3 AND menu_key = 'guests_read'");
                 $stmt->execute();
@@ -523,7 +530,7 @@ $migrations = [
                 
                 return true;
             } catch (Exception $e) {
-                throw new Exception("Fehler bei Reporting User Gäste-/Bestellübersicht Migration: " . $e->getMessage());
+                throw new Exception("Fehler bei Reporting User Zugriffs-Migration: " . $e->getMessage());
             }
         }
     ]
