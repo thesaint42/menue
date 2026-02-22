@@ -164,8 +164,19 @@ try {
     $stmt = $pdo->prepare("SELECT DISTINCT role_id FROM {$prefix}role_menu_access WHERE menu_key = 'projects_write' AND visible = 1");
     $stmt->execute();
     $roles_with_projects_write = $stmt->fetchAll(PDO::FETCH_COLUMN, 0);
+    
+    // Fallback: Systemadmin (ID 1) und Projektadmin (ID 2) haben immer projects_write
+    // Falls noch nicht in Datenbank (vor Migration/Update)
+    if (!in_array(1, $roles_with_projects_write)) {
+        $roles_with_projects_write[] = 1;
+    }
+    if (!in_array(2, $roles_with_projects_write)) {
+        $roles_with_projects_write[] = 2;
+    }
 } catch (Exception $e) {
     error_log("Could not load roles with projects_write: " . $e->getMessage());
+    // Fallback bei Fehler: Systemrollen haben projects_write
+    $roles_with_projects_write = [1, 2];
 }
 
 // Lade für jeden User die zugewiesenen Projekte (nur wenn Rolle 'projects_write' Berechtigung hat)
