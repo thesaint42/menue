@@ -24,8 +24,9 @@ echo -e "${BLUE}🧹 EMOS FTP Cleanup${NC}"
 echo -e "${BLUE}═══════════════════════════════════════════${NC}"
 echo ""
 
-# Ordner/Dateien die gelöscht werden sollen
+# Ordner/Dateien die gelösch werden sollen
 TO_DELETE=(
+    ".git"
     ".github"
     "composer.json"
     "composer.lock"

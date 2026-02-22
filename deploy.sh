@@ -74,6 +74,7 @@ EXCLUDED_FILES=(
     "storage/*"
     ".deploy.env"
     "deploy.sh"
+    ".git"
     ".github"
     ".git*"
     "*.md"
