@@ -243,8 +243,6 @@ if ($project_id > 0) {
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="../assets/css/style.css">
     <style>
-        .page-container { max-width: 900px; }
-        
         /* Order Header Meta - linksbündig */
         .order-header-meta { text-align: left; }
         
@@ -292,7 +290,7 @@ if ($project_id > 0) {
 
 <?php include '../nav/top_nav.php'; ?>
 
-<div class="container py-4 page-container">
+<div class="container py-4">
     <div class="row mb-4">
         <div class="col">
             <h1>Bestellungen</h1>
