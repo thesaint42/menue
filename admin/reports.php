@@ -418,10 +418,10 @@ if (isset($_GET['download']) && $_GET['download'] === 'pdf') {
     foreach ($orders_by_id as $order_data) {
         $total_highchairs += $order_data['highchair_count'];
     }
+    $pdf->Cell(0, 5, 'Anzahl Hochstühle (HS): ' . $total_highchairs, 0, 1);
     
-    // Zeige Projekt-Info nur wenn nicht Statistiken-View
+    // Zeige Rest der Projekt-Info nur wenn nicht Statistiken-View
     if ($requested_view !== 'statistics') {
-        $pdf->Cell(0, 5, 'Anzahl Hochstühle (HS): ' . $total_highchairs, 0, 1);
         $pdf->Ln(5);
     }
     
