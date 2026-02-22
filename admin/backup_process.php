@@ -412,8 +412,26 @@ function exportProjectToSQL($pdo, $prefix, $project_id) {
     $sql .= "-- Generated: " . date('Y-m-d H:i:s') . "\n";
     $sql .= "SET FOREIGN_KEY_CHECKS=0;\n\n";
 
+    // IDs vorbereiten (für abhängige Tabellen)
+    $guestIds = [];
+    $orderIds = [];
+    try {
+        $g = $pdo->prepare("SELECT id FROM `{$prefix}guests` WHERE project_id = ?");
+        $g->execute([$project_id]);
+        $guestIds = $g->fetchAll(PDO::FETCH_COLUMN);
+    } catch (Exception $e) {
+        $guestIds = [];
+    }
+    try {
+        $o = $pdo->prepare("SELECT order_id FROM `{$prefix}order_sessions` WHERE project_id = ?");
+        $o->execute([$project_id]);
+        $orderIds = $o->fetchAll(PDO::FETCH_COLUMN);
+    } catch (Exception $e) {
+        $orderIds = [];
+    }
+
     // Tabellen, die projektbezogene Daten enthalten
-    $tables = ['projects', 'dishes', 'guests', 'family_members', 'orders'];
+    $tables = ['projects', 'dishes', 'guests', 'family_members', 'order_sessions', 'order_guest_data', 'order_people', 'orders'];
 
     foreach ($tables as $tshort) {
         $table = $prefix . $tshort;
@@ -445,9 +463,6 @@ function exportProjectToSQL($pdo, $prefix, $project_id) {
             $data = $rows->fetchAll(PDO::FETCH_ASSOC);
         } elseif ($tshort === 'family_members') {
             // family_members for guests of this project
-            $g = $pdo->prepare("SELECT id FROM `{$prefix}guests` WHERE project_id = ?");
-            $g->execute([$project_id]);
-            $guestIds = $g->fetchAll(PDO::FETCH_COLUMN);
             $data = [];
             if (!empty($guestIds)) {
                 $in = implode(',', array_fill(0, count($guestIds), '?'));
@@ -455,15 +470,16 @@ function exportProjectToSQL($pdo, $prefix, $project_id) {
                 $stmt->execute($guestIds);
                 $data = $stmt->fetchAll(PDO::FETCH_ASSOC);
             }
-        } elseif ($tshort === 'orders') {
-            $g = $pdo->prepare("SELECT id FROM `{$prefix}guests` WHERE project_id = ?");
-            $g->execute([$project_id]);
-            $guestIds = $g->fetchAll(PDO::FETCH_COLUMN);
+        } elseif ($tshort === 'order_sessions') {
+            $rows = $pdo->prepare("SELECT * FROM `$table` WHERE project_id = ?");
+            $rows->execute([$project_id]);
+            $data = $rows->fetchAll(PDO::FETCH_ASSOC);
+        } elseif (in_array($tshort, ['order_guest_data', 'order_people', 'orders'], true)) {
             $data = [];
-            if (!empty($guestIds)) {
-                $in = implode(',', array_fill(0, count($guestIds), '?'));
-                $stmt = $pdo->prepare("SELECT * FROM `$table` WHERE guest_id IN ($in)");
-                $stmt->execute($guestIds);
+            if (!empty($orderIds)) {
+                $in = implode(',', array_fill(0, count($orderIds), '?'));
+                $stmt = $pdo->prepare("SELECT * FROM `$table` WHERE order_id IN ($in)");
+                $stmt->execute($orderIds);
                 $data = $stmt->fetchAll(PDO::FETCH_ASSOC);
             }
         } else {
