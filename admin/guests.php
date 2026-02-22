@@ -373,66 +373,54 @@ if ($project_id) {
         <?php foreach ($orders_with_people as $order_data): ?>
         <div class="card border-0 shadow mb-4">
             <div class="card-header bg-success text-white">
-                <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-2">
-                    <div>
-                        <h5 class="mb-0">
-                            📦 Bestellung #<?php echo htmlspecialchars($order_data['order_id']); ?>
-                        </h5>
-                        <small>
-                            <?php echo htmlspecialchars($order_data['email']); ?>
-                            | <?php echo date('d.m.Y H:i', strtotime($order_data['created_at'])); ?>
-                        </small>
-                    </div>
-                    <div class="text-md-end">
-                        <small class="d-block"><?php echo count($order_data['people']); ?> Person(en)</small>
+                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+                    <div class="d-flex flex-wrap align-items-center gap-2">
+                        <strong>📦 #<?php echo htmlspecialchars($order_data['order_id']); ?></strong>
+                        <span>|</span>
+                        <small><?php echo htmlspecialchars($order_data['email']); ?></small>
+                        <span>|</span>
+                        <small><?php echo date('d.m.Y H:i', strtotime($order_data['created_at'])); ?></small>
+                        <span>|</span>
+                        <small>👥 <?php echo count($order_data['people']); ?> Person(en)</small>
                         <?php if ($order_data['highchair_count'] > 0): ?>
-                            <small><?php echo $order_data['highchair_count']; ?> x 🪑 Hochstuhl</small>
+                            <span>|</span>
+                            <small>🪑 <?php echo $order_data['highchair_count']; ?> Hochstuhl(e)</small>
                         <?php endif; ?>
                     </div>
-                    <div class="d-flex gap-2">
-                        <form method="post" onsubmit="return confirm('Bestellung und alle Personen/Gerichte wirklich löschen?');">
-                            <input type="hidden" name="delete_order_id" value="<?php echo htmlspecialchars($order_data['order_id']); ?>">
-                            <button type="submit" class="btn btn-sm btn-danger guest-btn">
-                                <span class="btn-icon">🗑️</span><span class="btn-text">Alles löschen</span>
-                            </button>
-                        </form>
-                    </div>
+                    <form method="post" onsubmit="return confirm('Bestellung und alle Personen/Gerichte wirklich löschen?');">
+                        <input type="hidden" name="delete_order_id" value="<?php echo htmlspecialchars($order_data['order_id']); ?>">
+                        <button type="submit" class="btn btn-sm btn-danger guest-btn">
+                            <span class="btn-icon">🗑️</span><span class="btn-text">Alles löschen</span>
+                        </button>
+                    </form>
                 </div>
             </div>
             <div class="card-body">
                 <?php foreach ($order_data['people'] as $person): ?>
-                <div class="mb-3 pb-3 border-bottom">
-                    <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-2">
-                        <div>
-                            <h6 class="fw-bold mb-1">
-                                👤 <?php echo htmlspecialchars($person['name'] ?? 'N/A'); ?>
-                            </h6>
-                            <div class="d-flex flex-wrap gap-2 align-items-center">
-                                <?php 
-                                    $type = strtolower($person['person_type'] ?? 'adult');
-                                    if ($type === 'child'): ?>
-                                    <span class="badge bg-info">Kind (<?php echo htmlspecialchars($person['child_age'] ?? '?'); ?> Jahre)</span>
-                                    <?php if (isset($person['highchair_needed']) && $person['highchair_needed']): ?>
-                                        <span class="badge bg-warning text-dark">🪑 Hochstuhl</span>
-                                    <?php endif; ?>
-                                <?php else: ?>
-                                    <span class="badge bg-secondary">Erwachsener</span>
-                                <?php endif; ?>
-                                <?php if ($person['email'] && $person['email'] !== $order_data['email']): ?>
-                                    <small class="text-muted"><?php echo htmlspecialchars($person['email']); ?></small>
-                                <?php endif; ?>
-                            </div>
-                        </div>
-                        <div class="d-flex gap-2">
-                            <form method="post" onsubmit="return confirm('Person und zugehörige Gerichte löschen?');">
-                                <input type="hidden" name="delete_person_order_id" value="<?php echo htmlspecialchars($order_data['order_id']); ?>">
-                                <input type="hidden" name="delete_person_index" value="<?php echo (int)$person['person_index']; ?>">
-                                <button type="submit" class="btn btn-sm btn-outline-danger guest-btn">
-                                    <span class="btn-icon">🗑️</span><span class="btn-text">Löschen</span>
-                                </button>
-                            </form>
-                        </div>
+                <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom">
+                    <div class="d-flex flex-wrap align-items-center gap-2">
+                        <span class="fw-bold">👤 <?php echo htmlspecialchars($person['name'] ?? 'N/A'); ?></span>
+                        <?php 
+                            $type = strtolower($person['person_type'] ?? 'adult');
+                            if ($type === 'child'): ?>
+                            <span class="badge bg-info">Kind (<?php echo htmlspecialchars($person['child_age'] ?? '?'); ?> Jahre)</span>
+                            <?php if (isset($person['highchair_needed']) && $person['highchair_needed']): ?>
+                                <span class="badge bg-warning text-dark">🪑 Hochstuhl</span>
+                            <?php endif; ?>
+                        <?php else: ?>
+                            <span class="badge bg-secondary">Erwachsener</span>
+                        <?php endif; ?>
+                        <?php if ($person['email'] && $person['email'] !== $order_data['email']): ?>
+                            <small class="text-muted">| <?php echo htmlspecialchars($person['email']); ?></small>
+                        <?php endif; ?>
                     </div>
+                    <form method="post" onsubmit="return confirm('Person und zugehörige Gerichte löschen?');">
+                        <input type="hidden" name="delete_person_order_id" value="<?php echo htmlspecialchars($order_data['order_id']); ?>">
+                        <input type="hidden" name="delete_person_index" value="<?php echo (int)$person['person_index']; ?>">
+                        <button type="submit" class="btn btn-sm btn-outline-danger guest-btn">
+                            <span class="btn-icon">🗑️</span><span class="btn-text">Löschen</span>
+                        </button>
+                    </form>
                 </div>
                 <?php endforeach; ?>
             </div>
