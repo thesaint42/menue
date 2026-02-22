@@ -2,7 +2,7 @@
 
 Ein vollständiges PHP-basiertes System zur Verwaltung von Menüauswahl für Gäste mit Admin-Dashboard, PDF-Export und E-Mail-Integration.
 
-**Aktuelle Version:** 2.0.0
+**Aktuelle Version:** 2.1.0
 
 ## Features
 
@@ -504,6 +504,25 @@ setLanguage('en');
 
 ## Changelog
 
+### Version 2.1.0 (22. Februar 2026)
+
+**UI/UX Optimierungen - Guests/Orders Pages:**
+- ✅ **guests.php & orders.php:** Responsive Design für Mobile und Desktop
+- ✅ Konvertierung von Tabellen-Layout zu Card-Layout
+- ✅ **Kopfzeile (Mobile):** Zweizeilig mit Bestellnummer • Besteller-Name | Delete-Button (Zeile 1) + Email | Datum | Personenanzahl | Hochstühle (Zeile 2)
+- ✅ **Kopfzeile (Desktop):** Einzeilig mit allen Informationen
+- ✅ **Badges:** Einheitliche Breite (mobile: 95px, desktop: 140px) für Kind/Erwachsener
+- ✅ **Responsive Text:** "Kind (11 Jahre)" auf Desktop, "Kind (11)" auf Mobile
+- ✅ **Hochstühle:** Dynamisch Singular/Plural - "1 Hochstuhl" / "2+ Hochstühle"
+- ✅ **Mobile Kopfzeile:** Nur Symbol + Zahl für Hochstühle, kein Text
+- ✅ **Buttons:** Einheitliche Größe (min-width 110px) mit Symbol-only auf Mobile (≤576px)
+- ✅ **Navigation:** Menü-Labels "Gäste" → "Gästeübersicht", "Bestellungen" → "Bestellübersicht"
+- ✅ **Überschriften:** Konsistente `<h1>` für beide "Gästeübersicht" und "Bestellübersicht"
+- ✅ **Responsive Breakpoints:** 576px (Mobile), 768px (Tablet), 1024px (Desktop)
+- ✅ Non-Breaking Space (`&nbsp;`) für zuverlässige Spacing zwischen Kind und Altersangabe
+
+---
+
 ### Version 2.0.0 (22. Februar 2026)
 
 **Dokumentation:**
@@ -571,6 +590,6 @@ Die Anwendung wird unterstützt von:
 
 ---
 
-**Version:** 2.0.0
+**Version:** 2.1.0
 **Lizenz:** Proprietary  
 **Datum:** 22. Februar 2026
