@@ -13,8 +13,28 @@ $project_id = isset($_GET['project']) ? (int)$_GET['project'] : null;
 $message = "";
 $messageType = "info";
 
-// Projekte IMMER laden für Dropdown
-$projects = $pdo->query("SELECT * FROM {$prefix}projects WHERE is_active = 1 ORDER BY name")->fetchAll();
+// Projekte laden (nur zugängliche für project_admin Users)
+$user_role_id = $_SESSION['role_id'] ?? null;
+
+if ($user_role_id === 1) {
+    // Admin: alle Projekte
+    $projects = $pdo->query("SELECT * FROM {$prefix}projects WHERE is_active = 1 ORDER BY name")->fetchAll();
+} else if (hasRoleFeature($pdo, 'project_admin', $prefix)) {
+    // Project Admin: nur zugewiesene Projekte
+    $assigned = getUserProjects($pdo, $prefix);
+    if (!empty($assigned)) {
+        $project_ids = array_column($assigned, 'id');
+        $placeholders = implode(',', array_fill(0, count($project_ids), '?'));
+        $stmt = $pdo->prepare("SELECT * FROM {$prefix}projects WHERE is_active = 1 AND id IN ($placeholders) ORDER BY name");
+        $stmt->execute($project_ids);
+        $projects = $stmt->fetchAll();
+    } else {
+        $projects = [];
+    }
+} else {
+    // Andere Rollen: keine Projekte
+    $projects = [];
+}
 
 if (!$project_id) {
     if (empty($projects)) {
@@ -55,6 +75,11 @@ if (!$project_id) {
 // Projekt laden - nur wenn project_id gesetzt ist
 $project = null;
 if ($project_id) {
+    // Prüfe ob User Zugriff auf dieses Projekt hat
+    if (!hasProjectAccess($pdo, $project_id, $prefix)) {
+        die("Zugriff verweigert: Sie haben keine Berechtigung für dieses Projekt.");
+    }
+    
     $stmt = $pdo->prepare("SELECT * FROM {$prefix}projects WHERE id = ?");
     $stmt->execute([$project_id]);
     $project = $stmt->fetch();

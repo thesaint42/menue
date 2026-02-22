@@ -352,8 +352,27 @@ if (isset($_POST['send_invite'])) {
     }
 }
 
-// Alle Projekte laden
-$projects = $pdo->query("SELECT * FROM {$prefix}projects ORDER BY created_at DESC")->fetchAll();
+// Alle Projekte laden (nur zugängliche für project_admin Users)
+$user_role_id = $_SESSION['role_id'] ?? null;
+$projects = [];
+
+if ($user_role_id === 1) {
+    // Admin: alle Projekte
+    $projects = $pdo->query("SELECT * FROM {$prefix}projects ORDER BY created_at DESC")->fetchAll();
+} else if (hasRoleFeature($pdo, 'project_admin', $prefix)) {
+    // Project Admin: nur zugewiesene Projekte
+    $assigned = getUserProjects($pdo, $prefix);
+    if (!empty($assigned)) {
+        $project_ids = array_column($assigned, 'id');
+        $placeholders = implode(',', array_fill(0, count($project_ids), '?'));
+        $stmt = $pdo->prepare("SELECT * FROM {$prefix}projects WHERE id IN ($placeholders) ORDER BY created_at DESC");
+        $stmt->execute($project_ids);
+        $projects = $stmt->fetchAll();
+    }
+} else {
+    // Andere Rollen: keine Projekte
+    $projects = [];
+}
 ?>
 <!DOCTYPE html>
 <html lang="de" data-bs-theme="dark">

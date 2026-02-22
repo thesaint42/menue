@@ -12,16 +12,41 @@ checkLogin();
 // Projekt auswählen
 $project_id = isset($_GET['project']) ? (int)$_GET['project'] : 0;
 
-// Projekte abrufen
-$stmt = $pdo->query("SELECT id, name FROM `{$config['database']['prefix']}projects` WHERE is_active = 1 ORDER BY name");
+// Projekte abrufen (nur zugängliche für project_admin Users)
+$prefix = $config['database']['prefix'];
+$user_role_id = $_SESSION['role_id'] ?? null;
+
+if ($user_role_id === 1) {
+    // Admin: alle Projekte
+    $stmt = $pdo->query("SELECT id, name FROM `{$prefix}projects` WHERE is_active = 1 ORDER BY name");
+} else if (hasRoleFeature($pdo, 'project_admin', $prefix)) {
+    // Project Admin: nur zugewiesene Projekte
+    $assigned = getUserProjects($pdo, $prefix);
+    if (!empty($assigned)) {
+        $project_ids = array_column($assigned, 'id');
+        $placeholders = implode(',', array_fill(0, count($project_ids), '?'));
+        $stmt = $pdo->prepare("SELECT id, name FROM `{$prefix}projects` WHERE is_active = 1 AND id IN ($placeholders) ORDER BY name");
+        $stmt->execute($project_ids);
+    } else {
+        $stmt = $pdo->prepare("SELECT id, name FROM `{$prefix}projects` WHERE id = 0"); // keine Projekte
+    }
+} else {
+    // Andere Rollen: keine Projekte
+    $stmt = $pdo->prepare("SELECT id, name FROM `{$prefix}projects` WHERE id = 0");
+}
 $projects = $stmt->fetchAll();
 
 // Bestellungen abrufen
 $orders = [];
 $project = null;
 if ($project_id > 0) {
+    // Prüfe ob User Zugriff auf dieses Projekt hat
+    if (!hasProjectAccess($pdo, $project_id, $prefix)) {
+        die("Zugriff verweigert: Sie haben keine Berechtigung für dieses Projekt.");
+    }
+    
     try {
-        $stmt = $pdo->prepare("SELECT id, name, access_pin FROM `{$config['database']['prefix']}projects` WHERE id = ?");
+        $stmt = $pdo->prepare("SELECT id, name, access_pin FROM `{$prefix}projects` WHERE id = ?");
         $stmt->execute([$project_id]);
         $project = $stmt->fetch();
 
