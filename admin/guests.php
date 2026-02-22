@@ -36,6 +36,11 @@ if ($user_role_id === 1) {
     $projects = [];
 }
 
+// Wenn nur ein Projekt vorhanden ist, automatisch vorauswählen
+if (empty($project_id) && count($projects) === 1) {
+    $project_id = $projects[0]['id'];
+}
+
 if (!$project_id) {
     if (empty($projects)) {
         // Saubere Fehlerseite anzeigen: kein Projekt angelegt

@@ -38,6 +38,11 @@ if ($user_role_id === 1) {
 }
 $projects = $stmt->fetchAll();
 
+// Wenn nur ein Projekt vorhanden ist, automatisch vorauswählen
+if (empty($project_id) && count($projects) === 1) {
+    $project_id = $projects[0]['id'];
+}
+
 // Bestellungen abrufen
 $orders = [];
 $project = null;

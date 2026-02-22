@@ -42,7 +42,8 @@ if (empty($projects)) {
     $no_projects = true;
 }
 
-if (!$project_id && !$no_projects) {
+// Wenn nur ein Projekt vorhanden ist und keines aus GET gewählt, dieses automatisch vorauswählen
+if (!$project_id && !$no_projects && count($projects) === 1) {
     $project_id = $projects[0]['id'];
 }
 

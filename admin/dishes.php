@@ -45,6 +45,11 @@ if (!$project_id) {
         $projects = [];
     }
     
+    // Wenn nur ein Projekt vorhanden ist, automatisch vorauswählen
+    if (count($projects) === 1) {
+        $project_id = $projects[0]['id'];
+    }
+    
     if (empty($projects)) {
         // Saubere Fehlerseite: kein Projekt angelegt
         ?>
