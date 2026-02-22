@@ -3,6 +3,7 @@
  * nav/top_nav.php - Hauptnavigation für Admin-Bereich
  */
 
+
 $is_admin_dir = (strpos($_SERVER['PHP_SELF'], '/admin/') !== false);
 $root = $is_admin_dir ? '../' : './';
 $current_page = basename($_SERVER['PHP_SELF'], ".php");
@@ -18,34 +19,28 @@ $page_names = [
     'settings_mail' => 'Mail Einstellungen',
     'profile' => 'Mein Profil',
     'users' => 'Benutzerverwaltung',
-    'roles' => 'Rollenverwaltung'
-    , 'vvt' => 'VVT'
-    , 'migrate' => 'Update'
-    , 'backup' => 'Backup'
+    'roles' => 'Rollenverwaltung',
+    'vvt' => 'VVT',
+    'migrate' => 'Update',
+    'backup' => 'Backup'
 ];
 
 $display_name = $page_names[$current_page] ?? ucfirst($current_page);
+
+// DB-Verbindung und Auth laden (db.php lädt auch auth.php und initialisiert Session)
+require_once __DIR__ . '/../db.php';
+$is_logged_in = isLoggedIn();
+$home_href = (function() use ($root, $is_logged_in) {
+    if ($is_logged_in && isAdmin()) {
+        return $root . 'admin/admin.php';
+    }
+    return $root . 'index.php';
+})();
 ?>
 
 <!-- Single EMOS-branded top navigation -->
 <nav class="navbar navbar-dark bg-dark border-bottom border-secondary mb-4">
             <div class="container-fluid px-4">
-                <?php
-                // DB-Verbindung und Auth für Feature-Checks
-                if (!isset($pdo)) {
-                    require_once __DIR__ . '/../db.php';
-                }
-                if (!function_exists('isLoggedIn')) {
-                    require_once __DIR__ . '/../script/auth.php';
-                }
-                $is_logged_in = isLoggedIn();
-                $home_href = (function() use ($root, $is_logged_in) {
-                    if ($is_logged_in && isAdmin()) {
-                        return $root . 'admin/admin.php';
-                    }
-                    return $root . 'index.php';
-                })();
-                ?>
 
                 <div class="navbar-brand fw-bold d-flex align-items-center">
                     <a class="nav-home-link d-flex align-items-center text-decoration-none text-light" href="<?php echo $home_href; ?>" aria-label="Zur Startseite">
