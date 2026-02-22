@@ -78,35 +78,93 @@ $display_name = $page_names[$current_page] ?? ucfirst($current_page);
                 <div class="collapse navbar-collapse" id="navbarNav">
                 <div class="container-fluid px-4">
                     <ul class="navbar-nav ms-auto mt-2 mb-2">
-                        <?php if ($is_logged_in && function_exists('isAdmin') && isAdmin()): ?>
+                        <?php if ($is_logged_in): ?>
                             <li class="nav-item"><a class="nav-link text-end" href="<?php echo $root; ?>index.php">Zur Startseite</a></li>
+                            
+                            <?php
+                            // Feature-basierte Navigation
+                            require_once __DIR__ . '/../db.php';
+                            $show_project_section = function_exists('hasMenuAccess') && (
+                                hasMenuAccess($pdo, 'dashboard', $prefix) ||
+                                hasMenuAccess($pdo, 'menu_categories_read', $prefix) ||
+                                hasMenuAccess($pdo, 'projects_read', $prefix) ||
+                                hasMenuAccess($pdo, 'menus_read', $prefix) ||
+                                hasMenuAccess($pdo, 'guests_read', $prefix) ||
+                                hasMenuAccess($pdo, 'orders_read', $prefix) ||
+                                hasMenuAccess($pdo, 'reporting', $prefix)
+                            );
+                            
+                            $show_user_section = function_exists('hasMenuAccess') && (
+                                hasMenuAccess($pdo, 'users', $prefix) ||
+                                hasMenuAccess($pdo, 'roles', $prefix)
+                            );
+                            
+                            $show_system_section = function_exists('hasMenuAccess') && (
+                                hasMenuAccess($pdo, 'settings_mail', $prefix) ||
+                                hasMenuAccess($pdo, 'update', $prefix) ||
+                                hasMenuAccess($pdo, 'backup_create', $prefix)
+                            );
+                            ?>
+                            
+                            <?php if ($show_project_section): ?>
                             <li class="nav-item">
                                 <div class="nav-separator my-2"></div>
                             </li>
                             <li class="nav-item"><span class="nav-link text-end project-header small">Projektverwaltung</span></li>
-                            <li class="nav-item"><a class="nav-link text-end" href="<?php echo $root; ?>admin/menu_categories.php">Menükategorien</a></li>
-                            <li class="nav-item"><a class="nav-link text-end" href="<?php echo $root; ?>admin/projects.php">Projekte</a></li>
-                            <li class="nav-item"><a class="nav-link text-end" href="<?php echo $root; ?>admin/dishes.php">Menüs</a></li>
-                            <li class="nav-item"><a class="nav-link text-end" href="<?php echo $root; ?>admin/guests.php">Gästeübersicht</a></li>
-                            <li class="nav-item"><a class="nav-link text-end" href="<?php echo $root; ?>admin/orders.php">Bestellübersicht</a></li>
-                            <li class="nav-item"><a class="nav-link text-end" href="<?php echo $root; ?>admin/reports.php">Reporting</a></li>
+                            <?php if (hasMenuAccess($pdo, 'dashboard', $prefix)): ?>
+                                <li class="nav-item"><a class="nav-link text-end" href="<?php echo $root; ?>admin/admin.php">Dashboard</a></li>
+                            <?php endif; ?>
+                            <?php if (hasMenuAccess($pdo, 'menu_categories_read', $prefix)): ?>
+                                <li class="nav-item"><a class="nav-link text-end" href="<?php echo $root; ?>admin/menu_categories.php">Menükategorien</a></li>
+                            <?php endif; ?>
+                            <?php if (hasMenuAccess($pdo, 'projects_read', $prefix)): ?>
+                                <li class="nav-item"><a class="nav-link text-end" href="<?php echo $root; ?>admin/projects.php">Projekte</a></li>
+                            <?php endif; ?>
+                            <?php if (hasMenuAccess($pdo, 'menus_read', $prefix)): ?>
+                                <li class="nav-item"><a class="nav-link text-end" href="<?php echo $root; ?>admin/dishes.php">Menüs</a></li>
+                            <?php endif; ?>
+                            <?php if (hasMenuAccess($pdo, 'guests_read', $prefix)): ?>
+                                <li class="nav-item"><a class="nav-link text-end" href="<?php echo $root; ?>admin/guests.php">Gästeübersicht</a></li>
+                            <?php endif; ?>
+                            <?php if (hasMenuAccess($pdo, 'orders_read', $prefix)): ?>
+                                <li class="nav-item"><a class="nav-link text-end" href="<?php echo $root; ?>admin/orders.php">Bestellübersicht</a></li>
+                            <?php endif; ?>
+                            <?php if (hasMenuAccess($pdo, 'reporting', $prefix)): ?>
+                                <li class="nav-item"><a class="nav-link text-end" href="<?php echo $root; ?>admin/reports.php">Reporting</a></li>
+                            <?php endif; ?>
+                            <?php endif; ?>
 
+                            <?php if ($show_user_section): ?>
                             <li class="nav-item">
                                 <div class="nav-separator my-2"></div>
                             </li>
                             <li class="nav-item"><span class="nav-link text-end usermgmt-header small">Benutzerverwaltung</span></li>
-                            <li class="nav-item"><a class="nav-link text-end" href="<?php echo $root; ?>admin/users.php">Benutzer</a></li>
-                            <li class="nav-item"><a class="nav-link text-end" href="<?php echo $root; ?>admin/roles.php">Rollen</a></li>
+                            <?php if (hasMenuAccess($pdo, 'users', $prefix)): ?>
+                                <li class="nav-item"><a class="nav-link text-end" href="<?php echo $root; ?>admin/users.php">Benutzer</a></li>
+                            <?php endif; ?>
+                            <?php if (hasMenuAccess($pdo, 'roles', $prefix)): ?>
+                                <li class="nav-item"><a class="nav-link text-end" href="<?php echo $root; ?>admin/roles.php">Rollen</a></li>
+                            <?php endif; ?>
+                            <?php endif; ?>
+                            
+                            <?php if ($show_system_section): ?>
                             <li class="nav-item">
                                 <div class="nav-separator my-2"></div>
                             </li>
                             <li class="nav-item"><span class="nav-link text-end system-header small">System</span></li>
-                            <li class="nav-item"><a class="nav-link text-end" href="<?php echo $root; ?>admin/settings_mail.php">Mail</a></li>
-                            <li class="nav-item"><a class="nav-link text-end" href="<?php echo $root; ?>migrate.php">Update</a></li>
-                            <li class="nav-item"><a class="nav-link text-end" href="<?php echo $root; ?>admin/backup.php">Backup</a></li>
+                            <?php if (hasMenuAccess($pdo, 'settings_mail', $prefix)): ?>
+                                <li class="nav-item"><a class="nav-link text-end" href="<?php echo $root; ?>admin/settings_mail.php">Mail</a></li>
+                            <?php endif; ?>
+                            <?php if (hasMenuAccess($pdo, 'update', $prefix)): ?>
+                                <li class="nav-item"><a class="nav-link text-end" href="<?php echo $root; ?>migrate.php">Update</a></li>
+                            <?php endif; ?>
+                            <?php if (hasMenuAccess($pdo, 'backup_create', $prefix)): ?>
+                                <li class="nav-item"><a class="nav-link text-end" href="<?php echo $root; ?>admin/backup.php">Backup</a></li>
+                            <?php endif; ?>
+                            <?php endif; ?>
                         <?php else: ?>
                             <li class="nav-item"><a class="nav-link text-end" href="<?php echo $root; ?>index.php">Startseite</a></li>
-                            <li class="nav-item"><a class="nav-link text-end" href="<?php echo $root; ?>admin/login.php">Admin Login</a></li>
+                            <li class="nav-item"><a class="nav-link text-end" href="<?php echo $root; ?>admin/login.php">Login</a></li>
                         <?php endif; ?>
                     </ul>
                 </div>
