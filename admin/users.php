@@ -50,10 +50,18 @@ if (isset($_POST['create_user'])) {
             $new_user_id = $pdo->lastInsertId();
             
             // Wenn die Rolle "Projekte schreiben" Berechtigung hat, speichere die zugewiesenen Projekte
-            $stmt_check = $pdo->prepare("SELECT visible FROM {$prefix}role_menu_access WHERE role_id = ? AND menu_key = 'projects_write'");
-            $stmt_check->execute([$role_id]);
-            $has_projects_write = $stmt_check->fetch(PDO::FETCH_ASSOC);
-            if ($has_projects_write && $has_projects_write['visible']) {
+            $has_projects_write = false;
+            // Fallback: Systemadmin (ID 1) und Projektadmin (ID 2) haben immer projects_write
+            if ($role_id === 1 || $role_id === 2) {
+                $has_projects_write = true;
+            } else {
+                $stmt_check = $pdo->prepare("SELECT visible FROM {$prefix}role_menu_access WHERE role_id = ? AND menu_key = 'projects_write'");
+                $stmt_check->execute([$role_id]);
+                $result = $stmt_check->fetch(PDO::FETCH_ASSOC);
+                $has_projects_write = $result && $result['visible'];
+            }
+            
+            if ($has_projects_write) {
                 try {
                     if (isset($_POST['assigned_projects']) && is_array($_POST['assigned_projects'])) {
                         $stmt = $pdo->prepare("INSERT INTO {$prefix}user_projects (user_id, project_id) VALUES (?, ?)");
@@ -96,10 +104,18 @@ if (isset($_POST['update_user'])) {
             $stmt->execute([$firstname, $lastname, $email, $role_id, $is_active, $id]);
             
             // Wenn die neue Rolle "Projekte schreiben" Berechtigung hat, speichere die zugewiesenen Projekte
-            $stmt_check = $pdo->prepare("SELECT visible FROM {$prefix}role_menu_access WHERE role_id = ? AND menu_key = 'projects_write'");
-            $stmt_check->execute([$role_id]);
-            $has_projects_write = $stmt_check->fetch(PDO::FETCH_ASSOC);
-            if ($has_projects_write && $has_projects_write['visible']) {
+            $has_projects_write = false;
+            // Fallback: Systemadmin (ID 1) und Projektadmin (ID 2) haben immer projects_write
+            if ($role_id === 1 || $role_id === 2) {
+                $has_projects_write = true;
+            } else {
+                $stmt_check = $pdo->prepare("SELECT visible FROM {$prefix}role_menu_access WHERE role_id = ? AND menu_key = 'projects_write'");
+                $stmt_check->execute([$role_id]);
+                $result = $stmt_check->fetch(PDO::FETCH_ASSOC);
+                $has_projects_write = $result && $result['visible'];
+            }
+            
+            if ($has_projects_write) {
                 try {
                     // Erst alte Zuordnungen löschen
                     $stmt = $pdo->prepare("DELETE FROM {$prefix}user_projects WHERE user_id = ?");
