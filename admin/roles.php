@@ -399,10 +399,8 @@ $available_menu_items = [
                                                 </div>
                                                 <?php endforeach; ?>
                                                 
-                                                <?php if (!$is_system_admin): ?>
                                                 <hr class="bg-secondary">
                                                 <h6 class="mb-3 text-white">🍔 Burger-Menü Punkte:</h6>
-                                                <?php endif; ?>
                                                 <?php foreach ($available_menu_items as $menu_key => $menu_label): 
                                                     try {
                                                         $stmt = $pdo->prepare("SELECT visible FROM {$prefix}role_menu_access WHERE role_id = ? AND menu_key = ?");
@@ -413,10 +411,11 @@ $available_menu_items = [
                                                         $is_visible = true;
                                                     }
                                                 ?>
-                                                <div class="form-check mb-2"<?php echo $is_protected ? ' style="display: none;"' : ''; ?>>
+                                                <div class="form-check mb-2">
                                                     <input type="checkbox" id="menu_<?php echo $role['id']; ?>_<?php echo $menu_key; ?>" class="form-check-input menu-checkbox" 
                                                            data-role-id="<?php echo $role['id']; ?>" data-menu-key="<?php echo $menu_key; ?>" 
-                                                           <?php echo $is_visible ? 'checked' : ''; ?>>
+                                                           <?php echo $is_visible ? 'checked' : ''; ?>
+                                                           <?php echo $is_protected ? 'disabled' : ''; ?>>
                                                     <label class="form-check-label" for="menu_<?php echo $role['id']; ?>_<?php echo $menu_key; ?>">
                                                         <?php echo htmlspecialchars($menu_label); ?>
                                                     </label>
