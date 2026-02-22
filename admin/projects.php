@@ -362,6 +362,17 @@ $projects = $pdo->query("SELECT * FROM {$prefix}projects ORDER BY created_at DES
         
         .project-btn .btn-icon { margin-right: 0.35rem; }
         
+        /* Limit actions column width to fit max 3 buttons per row */
+        .projects-table tbody td:last-child,
+        .projects-table thead th:last-child {
+            max-width: 380px;
+            width: 380px;
+        }
+        
+        .projects-table tbody td:last-child > div {
+            max-width: 380px;
+        }
+        
         /* Mobile: Symbol only for action buttons */
         @media (max-width: 576px) {
             .project-btn {
@@ -404,7 +415,7 @@ $projects = $pdo->query("SELECT * FROM {$prefix}projects ORDER BY created_at DES
                         <th>Max</th>
                         <th>PIN</th>
                         <th>Admin Email</th>
-                        <th>Aktion</th>
+                        <th></th>
                     </tr>
                 </thead>
                 <tbody>
