@@ -49,20 +49,16 @@ $debug_queries = [];
 // Nur Statistiken laden wenn Projekte vorhanden
 if ($project_count > 0) {
     try {
-        // Gäste zählen - Hauptgäste + Familienmitglieder
+        // Gäste zählen - nur aus family_members (enthält ALLE Personen inkl. Hauptperson)
         $placeholders = implode(',', array_fill(0, count($accessible_project_ids), '?'));
-        // Zähle Hauptgäste
-        $guest_query = "SELECT 
-            (SELECT COUNT(*) FROM {$prefix}guests WHERE project_id IN ($placeholders)) + 
-            (SELECT COUNT(*) FROM {$prefix}family_members fm 
-             INNER JOIN {$prefix}guests g ON fm.guest_id = g.id 
-             WHERE g.project_id IN ($placeholders)) as count";
+        $guest_query = "SELECT COUNT(*) as count FROM {$prefix}family_members fm 
+                        INNER JOIN {$prefix}guests g ON fm.guest_id = g.id 
+                        WHERE g.project_id IN ($placeholders)";
         $debug_queries['guest_query'] = $guest_query;
-        $params = array_merge($accessible_project_ids, $accessible_project_ids);
-        $debug_queries['guest_params'] = $params;
+        $debug_queries['guest_params'] = $accessible_project_ids;
         
         $stmt = $pdo->prepare($guest_query);
-        $stmt->execute($params);
+        $stmt->execute($accessible_project_ids);
         $result = $stmt->fetch(PDO::FETCH_ASSOC);
         $debug_queries['guest_result'] = $result;
         $guest_count = ($result && isset($result['count'])) ? intval($result['count']) : 0;
