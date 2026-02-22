@@ -361,7 +361,7 @@ if ($project_id > 0) {
                             </small>
                             <?php if ($order_data['phone']): ?>
                                 <small class="d-block d-md-inline">
-                                    <?php echo ' | Tel: ' . htmlspecialchars($order_data['phone']); ?>
+                                    <span class="d-none d-md-inline"> | </span><?php echo 'Tel: ' . htmlspecialchars($order_data['phone']); ?>
                                 </small>
                             <?php endif; ?>
                         </div>
