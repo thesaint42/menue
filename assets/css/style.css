@@ -255,7 +255,15 @@ a:hover {
 .project-actions .btn {
     width: 100%;
     font-size: 0.85rem;
-    padding: 0.32rem 0.5rem;
+    padding: 0.4rem 0.6rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Button text - visible on desktop */
+.project-actions .btn .btn-text {
+    margin-left: 0.25rem;
 }
 
 /* Ensure delete button below actions takes full width and remains small */
@@ -264,13 +272,87 @@ a:hover {
     padding: 0.32rem 0.5rem;
 }
 
-@media (max-width: 576px) {
+/* Mobile: Convert table to card layout & symbol-only buttons */
+@media (max-width: 768px) {
+    /* Hide table header on mobile */
+    .projects-table thead {
+        display: none;
+    }
+    
+    /* Convert table rows to cards */
+    .projects-table tbody {
+        display: block;
+    }
+    
+    .projects-table tbody tr {
+        display: block;
+        margin-bottom: 1rem;
+        border: 1px solid rgba(255,255,255,0.1);
+        border-radius: 0.5rem;
+        background: #2b2d31;
+        padding: 1rem;
+    }
+    
+    /* Stack table cells as rows */
+    .projects-table tbody td {
+        display: block;
+        text-align: left !important;
+        border: none;
+        padding: 0.4rem 0;
+    }
+    
+    /* Add labels before content on mobile */
+    .projects-table tbody td:nth-child(1)::before { content: 'ID: '; font-weight: bold; }
+    .projects-table tbody td:nth-child(2)::before { content: 'Name: '; font-weight: bold; }
+    .projects-table tbody td:nth-child(3)::before { content: 'Ort: '; font-weight: bold; }
+    .projects-table tbody td:nth-child(4)::before { content: 'Gäste: '; font-weight: bold; }
+    .projects-table tbody td:nth-child(5)::before { content: 'Max: '; font-weight: bold; }
+    .projects-table tbody td:nth-child(6)::before { content: 'PIN: '; font-weight: bold; }
+    .projects-table tbody td:nth-child(7)::before { content: 'Email: '; font-weight: bold; }
+    .projects-table tbody td:nth-child(8)::before { content: 'Aktionen: '; font-weight: bold; display: block; margin-top: 0.5rem; margin-bottom: 0.5rem; }
+    
+    /* Actions column full width on mobile */
+    .projects-table tbody td:nth-child(8) {
+        padding-top: 0.75rem;
+    }
+    
+    /* Symbol-only buttons on mobile */
+    .project-actions .btn .btn-text {
+        display: none;
+    }
+    
     .project-actions {
         grid-template-columns: repeat(3, 1fr);
-        gap: 0.25rem;
+        gap: 0.4rem;
     }
+    
+    .project-actions .btn {
+        font-size: 1.1rem;
+        padding: 0.5rem 0.3rem;
+        min-height: 38px;
+    }
+}
+
+/* Tablet: Reduce button text, keep full layout */
+@media (min-width: 769px) and (max-width: 1024px) {
     .project-actions .btn {
         font-size: 0.8rem;
-        padding: 0.28rem 0.4rem;
+        padding: 0.35rem 0.5rem;
+    }
+    
+    .project-actions .btn .btn-text {
+        font-size: 0.75rem;
+    }
+}
+
+/* Desktop: Full button layout with text + symbols */
+@media (min-width: 1025px) {
+    .project-actions {
+        gap: 0.4rem;
+    }
+    
+    .project-actions .btn {
+        font-size: 0.875rem;
+        padding: 0.4rem 0.65rem;
     }
 }
