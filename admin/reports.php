@@ -443,6 +443,9 @@ if (isset($_GET['download']) && $_GET['download'] === 'pdf') {
         
         $total_all_persons = $total_individual_persons + $total_family_persons;
         
+        // Mehr Abstand vor den Statistiken
+        $pdf->Ln(10);
+        
         // Statistik-Boxen
         $pdf->SetFillColor(230, 230, 230);
         $pdf->SetFont('helvetica', 'B', 10);
