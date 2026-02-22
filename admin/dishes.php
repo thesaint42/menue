@@ -83,9 +83,6 @@ if (!$project_id) {
         <?php
         exit;
     }
-
-    // Erstes aktives Projekt nehmen
-    $project_id = $projects[0]['id'];
 }
 
 // Projekt laden
