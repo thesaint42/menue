@@ -44,34 +44,42 @@ $project_count = count($accessible_project_ids);
 $guest_count = 0;
 $order_count = 0;
 $recent_projects = [];
+$debug_queries = [];
 
 // Nur Statistiken laden wenn Projekte vorhanden
 if ($project_count > 0) {
     try {
         // Gäste aus Bestellungen zählen - ALLE Personen aus allen Bestellungen
         $placeholders = implode(',', array_fill(0, count($accessible_project_ids), '?'));
-        $stmt = $pdo->prepare("
-            SELECT COUNT(*) as count 
-            FROM {$prefix}guests g
-            INNER JOIN {$prefix}orders o ON g.order_id = o.id
-            WHERE o.project_id IN ($placeholders)
-        ");
+        $guest_query = "SELECT COUNT(*) as count FROM {$prefix}guests g INNER JOIN {$prefix}orders o ON g.order_id = o.id WHERE o.project_id IN ($placeholders)";
+        $debug_queries['guest_query'] = $guest_query;
+        $debug_queries['guest_params'] = $accessible_project_ids;
+        
+        $stmt = $pdo->prepare($guest_query);
         $stmt->execute($accessible_project_ids);
         $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        $debug_queries['guest_result'] = $result;
         $guest_count = ($result && isset($result['count'])) ? intval($result['count']) : 0;
     } catch (Exception $e) {
         error_log("Dashboard: Fehler beim Zählen der Gäste - " . $e->getMessage());
+        $debug_queries['guest_error'] = $e->getMessage();
     }
 
     try {
         // Bestellungen zählen
         $placeholders = implode(',', array_fill(0, count($accessible_project_ids), '?'));
-        $stmt = $pdo->prepare("SELECT COUNT(*) as count FROM {$prefix}orders WHERE project_id IN ($placeholders)");
+        $order_query = "SELECT COUNT(*) as count FROM {$prefix}orders WHERE project_id IN ($placeholders)";
+        $debug_queries['order_query'] = $order_query;
+        $debug_queries['order_params'] = $accessible_project_ids;
+        
+        $stmt = $pdo->prepare($order_query);
         $stmt->execute($accessible_project_ids);
         $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        $debug_queries['order_result'] = $result;
         $order_count = ($result && isset($result['count'])) ? intval($result['count']) : 0;
     } catch (Exception $e) {
         error_log("Dashboard: Fehler beim Zählen der Bestellungen - " . $e->getMessage());
+        $debug_queries['order_error'] = $e->getMessage();
     }
 
     try {
@@ -107,7 +115,10 @@ if ($project_count > 0) {
         Count: <?php echo $debug_info['count']; ?><br>
         Accessible IDs: <?php echo json_encode($debug_info['accessible_ids']); ?><br>
         Role ID: <?php echo $_SESSION['role_id'] ?? 'NONE'; ?><br>
-        User ID: <?php echo $_SESSION['user_id'] ?? 'NONE'; ?>
+        User ID: <?php echo $_SESSION['user_id'] ?? 'NONE'; ?><br>
+        <hr>
+        <strong>SQL QUERIES:</strong><br>
+        <pre><?php echo json_encode($debug_queries, JSON_PRETTY_PRINT); ?></pre>
     </div>
     
     <?php if (!$v220_ready): ?>
