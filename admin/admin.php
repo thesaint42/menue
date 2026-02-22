@@ -53,10 +53,10 @@ $recent_projects = [];
 // Nur Statistiken laden wenn Projekte vorhanden
 if ($project_count > 0) {
     try {
-        // Gäste aus Bestellungen zählen
+        // Gäste aus Bestellungen zählen - ALLE Personen aus allen Bestellungen
         $placeholders = implode(',', array_fill(0, count($accessible_project_ids), '?'));
         $stmt = $pdo->prepare("
-            SELECT COUNT(DISTINCT g.id) as count 
+            SELECT COUNT(*) as count 
             FROM {$prefix}guests g
             INNER JOIN {$prefix}orders o ON g.order_id = o.id
             WHERE o.project_id IN ($placeholders)
