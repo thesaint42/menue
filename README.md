@@ -2,7 +2,7 @@
 
 Ein vollständiges PHP-basiertes System zur Verwaltung von Menüauswahl für Gäste mit Admin-Dashboard, PDF-Export und E-Mail-Integration.
 
-**Aktuelle Version:** 1.7.1
+**Aktuelle Version:** 1.8.0
 
 ## Features
 
@@ -26,6 +26,7 @@ Ein vollständiges PHP-basiertes System zur Verwaltung von Menüauswahl für Gä
   - PIN-basierter Zugang
   - **NEU v1.7:** WYSIWYG-Editor (Quill.js) für Projektbeschreibungen
   - **NEU v1.7:** Rich-Text-Formatierung: Überschriften, Farben, Größen, Ausrichtung, Listen
+  - **NEU v1.8:** Projekt-Backup (nur projektspezifische Daten) mit Dateiname `project_backup_<projectID>_<projectName>_yyyymmdd_hhmmss.sql`
   - QR-Code Generator und Download
   - E-Mail Einladung versenden
 - Menüverwaltung (5 Kategorien: Vorspeise, Hauptspeise, Beilage, Salat, Nachspeise)
