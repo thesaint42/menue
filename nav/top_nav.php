@@ -31,6 +31,10 @@ $display_name = $page_names[$current_page] ?? ucfirst($current_page);
 <nav class="navbar navbar-dark bg-dark border-bottom border-secondary mb-4">
             <div class="container-fluid px-4">
                 <?php
+                // DB-Verbindung für Feature-Checks
+                if (!isset($pdo)) {
+                    require_once __DIR__ . '/../db.php';
+                }
                 @include_once __DIR__ . '/../script/auth.php';
                 $is_logged_in = function_exists('isLoggedIn') && isLoggedIn();
                 $home_href = (function() use ($root, $is_logged_in) {
@@ -83,7 +87,6 @@ $display_name = $page_names[$current_page] ?? ucfirst($current_page);
                             
                             <?php
                             // Feature-basierte Navigation
-                            require_once __DIR__ . '/../db.php';
                             $show_project_section = function_exists('hasMenuAccess') && (
                                 hasMenuAccess($pdo, 'dashboard', $prefix) ||
                                 hasMenuAccess($pdo, 'menu_categories_read', $prefix) ||
