@@ -68,6 +68,12 @@ $home_href = (function() use ($root, $is_logged_in) {
                             <span class="d-none d-sm-inline text-light small"><?php echo htmlspecialchars($_SESSION['user_name'] ?? 'User'); ?></span>
                         </button>
                         <ul class="dropdown-menu dropdown-menu-end bg-dark border-secondary">
+                            <li class="d-sm-none">
+                                <div class="dropdown-item-text text-light fw-bold px-3 py-2">
+                                    <?php echo htmlspecialchars($_SESSION['user_name'] ?? 'User'); ?>
+                                </div>
+                            </li>
+                            <li class="d-sm-none"><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item" href="<?php echo $root; ?>admin/profile.php">Profil bearbeiten</a></li>
                             <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item text-danger" href="<?php echo $root; ?>admin/logout.php">Logout</a></li>
