@@ -574,6 +574,37 @@ setLanguage('en');
 
 ---
 
+## Berechtigungssystem (v2.2.0+)
+
+Das System verwendet ein feature-basiertes Berechtigungssystem mit Read- und Write-Zugriff:
+
+### Feature-zu-Seite Mapping
+
+| Feature in roles.php | Checkbox-Label | Admin-Seite | Access-Check | Typ |
+|---------------------|----------------|-------------|--------------|-----|
+| `dashboard` | Dashboard | admin/admin.php | requireMenuAccess | Read |
+| `projects_read` | Projekte lesen | admin/projects.php | requireMenuAccess | Read |
+| `projects_write` | Projekte schreiben | admin/projects.php | POST-Operationen | Write |
+| `menus_read` | Menüs lesen | admin/dishes.php | requireMenuAccess | Read |
+| `menus_write` | Menüs schreiben | admin/dishes.php | Edit/Delete | Write |
+| `guests_read` | Gästeübersicht lesen | admin/guests.php | requireMenuAccess | Read |
+| `guests_write` | Gästeübersicht schreiben | admin/guests.php | Edit/Delete | Write |
+| `orders_read` | Bestellübersicht lesen | admin/orders.php | requireMenuAccess | Read |
+| `orders_write` | Bestellübersicht schreiben | admin/orders.php | Edit/Delete | Write |
+| `reporting` | Reporting | admin/reports.php | requireMenuAccess | Read |
+
+**Standardrollen:**
+- **Systemadmin (Rolle 1)**: Alle Features inkl. Benutzerverwaltung, Backup/Restore
+- **Projektadmin (Rolle 2)**: Alle Read/Write-Features für zugewiesene Projekte
+- **Reporter (Rolle 3)**: Alle Read-Features (dashboard, projects_read, menus_read, guests_read, orders_read, reporting)
+
+**Zugriffskontrolle:**
+- Jede Admin-Seite prüft beim Aufruf mit `requireMenuAccess()` auf das entsprechende Feature
+- Write-Operationen (POST, DELETE) prüfen zusätzlich auf `*_write` Features
+- Read-only User sehen keine Edit/Delete-Buttons
+
+---
+
 ## Support & Dokumentation
 
 Die Anwendung wird unterstützt von:

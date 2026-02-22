@@ -9,6 +9,9 @@ require_once '../script/auth.php';
 checkLogin();
 
 $prefix = $config['database']['prefix'] ?? 'menu_';
+
+// Access-Check: Gästeübersicht-Berechtigung erforderlich
+requireMenuAccess($pdo, ['guests_read', 'guests_write'], 'read', $prefix);
 $project_id = isset($_GET['project']) ? (int)$_GET['project'] : null;
 $message = "";
 $messageType = "info";
@@ -16,8 +19,8 @@ $messageType = "info";
 // Projekte laden (nur zugängliche für project_admin oder reporting Users)
 $user_role_id = $_SESSION['role_id'] ?? null;
 
-// Prüfe ob User Schreibrechte hat (Admin oder projects_write)
-$has_write_access = ($user_role_id === 1) || hasMenuAccess($pdo, 'projects_write', $prefix);
+// Prüfe ob User Schreibrechte hat (Admin oder guests_write)
+$has_write_access = ($user_role_id === 1) || hasMenuAccess($pdo, 'guests_write', $prefix);
 
 if ($user_role_id === 1) {
     // Admin: alle Projekte

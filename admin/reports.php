@@ -10,6 +10,9 @@ require_once '../script/order_system.php';
 checkLogin();
 
 $prefix = $config['database']['prefix'] ?? 'menu_';
+
+// Access-Check: Reporting-Berechtigung erforderlich
+requireMenuAccess($pdo, 'reporting', 'read', $prefix);
 $project_id = isset($_GET['project']) ? (int)$_GET['project'] : null;
 $current_view = isset($_GET['view']) ? $_GET['view'] : null;
 $no_projects = false;

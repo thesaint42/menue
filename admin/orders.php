@@ -12,14 +12,17 @@ checkLogin();
 // Prefix definieren
 $prefix = $config['database']['prefix'] ?? 'menu_';
 
+// Access-Check: Bestellübersicht-Berechtigung erforderlich
+requireMenuAccess($pdo, ['orders_read', 'orders_write'], 'read', $prefix);
+
 // Projekt auswählen
 $project_id = isset($_GET['project']) ? (int)$_GET['project'] : 0;
 
 // Projekte abrufen (nur zugängliche für Benutzer mit projects_write oder projects_read Berechtigung)
 $user_role_id = $_SESSION['role_id'] ?? null;
 
-// Prüfe ob User Schreibrechte hat (Admin oder projects_write)
-$has_write_access = ($user_role_id === 1) || hasMenuAccess($pdo, 'projects_write', $prefix);
+// Prüfe ob User Schreibrechte hat (Admin oder orders_write)
+$has_write_access = ($user_role_id === 1) || hasMenuAccess($pdo, 'orders_write', $prefix);
 
 if ($user_role_id === 1) {
     // Admin: alle Projekte

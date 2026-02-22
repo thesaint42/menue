@@ -9,6 +9,9 @@ require_once '../script/auth.php';
 checkLogin();
 $prefix = $config['database']['prefix'] ?? 'menu_';
 
+// Access-Check: Dashboard-Berechtigung erforderlich
+requireMenuAccess($pdo, 'dashboard', 'read', $prefix);
+
 // Check v2.2.0 tables
 $tables_check = checkV220Tables($pdo, $prefix);
 $v220_ready = !in_array(false, $tables_check, true);
