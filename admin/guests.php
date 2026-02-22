@@ -395,8 +395,15 @@ if ($project_id) {
 
     <!-- GÄSTE KARTEN - Nur wenn Projekt ausgewählt -->
     <?php if ($project_id): ?>
-    <div class="mb-3">
-        <h5><?php echo htmlspecialchars($project['name']); ?> - <?php echo count($orders_with_people); ?> Bestellung(en)</h5>
+    <div class="mb-4 d-flex justify-content-between align-items-center">
+        <div>
+            <h5><?php echo htmlspecialchars($project['name']); ?> - <?php echo count($orders_with_people); ?> Bestellung(en)</h5>
+        </div>
+        <div>
+            <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#pdfModal">
+                📄 PDF Export
+            </button>
+        </div>
     </div>
     
     <?php if (empty($orders_with_people)): ?>
@@ -495,5 +502,48 @@ if ($project_id) {
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<!-- PDF Export Modal -->
+<div class="modal fade" id="pdfModal" tabindex="-1" aria-labelledby="pdfModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="pdfModalLabel">📄 PDF Export</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Wie möchten Sie die Bestellungen exportieren?</p>
+            </div>
+            <div class="modal-footer gap-2">
+                <button type="button" class="btn btn-primary" onclick="openPdfModal('view')">
+                    <i class="bi bi-printer"></i> Anzeigen & Drucken
+                </button>
+                <button type="button" class="btn btn-success" onclick="openPdfModal('download')">
+                    <i class="bi bi-download"></i> Herunterladen
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function openPdfModal(action) {
+    // Modal schließen
+    const modal = bootstrap.Modal.getInstance(document.getElementById('pdfModal'));
+    if (modal) {
+        modal.hide();
+    }
+    
+    // Zu reports.php mit view=orders navigieren
+    const projectId = <?php echo $project_id; ?>;
+    const url = 'reports.php?project=' + projectId + '&view=orders&download=pdf&action=' + action;
+    
+    if (action === 'view') {
+        window.open(url, '_blank');
+    } else {
+        window.location.href = url;
+    }
+}
+</script>
 </body>
 </html>
