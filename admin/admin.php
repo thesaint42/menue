@@ -49,22 +49,28 @@ $debug_queries = [];
 // Nur Statistiken laden wenn Projekte vorhanden
 if ($project_count > 0) {
     try {
-        // Gäste zählen - Individual-Gäste (ohne Familie) + alle Familienmitglieder
+        // Gäste zählen - Individual-Gäste + alle Familienmitglieder
         $placeholders = implode(',', array_fill(0, count($accessible_project_ids), '?'));
-        $guest_query = "SELECT 
-            (SELECT COUNT(*) FROM {$prefix}guests WHERE project_id IN ($placeholders) AND guest_type = 'individual') + 
-            (SELECT COUNT(*) FROM {$prefix}family_members fm 
-             INNER JOIN {$prefix}guests g ON fm.guest_id = g.id 
-             WHERE g.project_id IN ($placeholders)) as count";
-        $debug_queries['guest_query'] = $guest_query;
-        $params = array_merge($accessible_project_ids, $accessible_project_ids);
-        $debug_queries['guest_params'] = $params;
         
-        $stmt = $pdo->prepare($guest_query);
-        $stmt->execute($params);
-        $result = $stmt->fetch(PDO::FETCH_ASSOC);
-        $debug_queries['guest_result'] = $result;
-        $guest_count = ($result && isset($result['count'])) ? intval($result['count']) : 0;
+        // Individual-Gäste zählen
+        $stmt = $pdo->prepare("SELECT COUNT(*) as count FROM {$prefix}guests WHERE project_id IN ($placeholders) AND guest_type = 'individual'");
+        $stmt->execute($accessible_project_ids);
+        $individual_result = $stmt->fetch(PDO::FETCH_ASSOC);
+        $individual_count = $individual_result ? intval($individual_result['count']) : 0;
+        
+        // Familienmitglieder zählen
+        $stmt = $pdo->prepare("SELECT COUNT(*) as count FROM {$prefix}family_members fm 
+                               INNER JOIN {$prefix}guests g ON fm.guest_id = g.id 
+                               WHERE g.project_id IN ($placeholders)");
+        $stmt->execute($accessible_project_ids);
+        $family_result = $stmt->fetch(PDO::FETCH_ASSOC);
+        $family_count = $family_result ? intval($family_result['count']) : 0;
+        
+        $guest_count = $individual_count + $family_count;
+        
+        $debug_queries['individual_count'] = $individual_count;
+        $debug_queries['family_count'] = $family_count;
+        $debug_queries['total_guest_count'] = $guest_count;
     } catch (Exception $e) {
         error_log("Dashboard: Fehler beim Zählen der Gäste - " . $e->getMessage());
         $debug_queries['guest_error'] = $e->getMessage();
