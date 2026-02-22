@@ -26,6 +26,17 @@ function getMenuSelectionSchema($prefix) {
             FOREIGN KEY (`role_id`) REFERENCES `{$prefix}roles`(`id`)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4",
 
+        // 2b. USER PROJECT MAPPING (Projektverwaltung users to projects)
+        "CREATE TABLE IF NOT EXISTS `{$prefix}user_projects` (
+            `id` INT AUTO_INCREMENT PRIMARY KEY,
+            `user_id` INT NOT NULL,
+            `project_id` INT NOT NULL,
+            `assigned_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE KEY `unique_user_project` (`user_id`, `project_id`),
+            FOREIGN KEY (`user_id`) REFERENCES `{$prefix}users`(`id`) ON DELETE CASCADE,
+            FOREIGN KEY (`project_id`) REFERENCES `{$prefix}projects`(`id`) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4",
+
         // 3. PASSWORT RESET
         "CREATE TABLE IF NOT EXISTS `{$prefix}password_resets` (
             `id` INT AUTO_INCREMENT PRIMARY KEY,

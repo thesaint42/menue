@@ -60,6 +60,26 @@ if (isset($_POST['update_user'])) {
         try {
             $stmt = $pdo->prepare("UPDATE {$prefix}users SET firstname = ?, lastname = ?, email = ?, role_id = ?, is_active = ? WHERE id = ?");
             $stmt->execute([$firstname, $lastname, $email, $role_id, $is_active, $id]);
+            
+            // Wenn Rolle "Projektverwaltung" ist, speichere die zugewiesenen Projekte
+            if ($projektverwaltung_role_id && $role_id === $projektverwaltung_role_id) {
+                // Erst alte Zuordnungen löschen
+                $stmt = $pdo->prepare("DELETE FROM {$prefix}user_projects WHERE user_id = ?");
+                $stmt->execute([$id]);
+                
+                // Neue Zuordnungen speichern
+                if (isset($_POST['assigned_projects']) && is_array($_POST['assigned_projects'])) {
+                    $stmt = $pdo->prepare("INSERT INTO {$prefix}user_projects (user_id, project_id) VALUES (?, ?)");
+                    foreach ($_POST['assigned_projects'] as $project_id) {
+                        $stmt->execute([$id, (int)$project_id]);
+                    }
+                }
+            } else {
+                // Wenn Rolle wechselt weg von "Projektverwaltung", lösche Zuordnungen
+                $stmt = $pdo->prepare("DELETE FROM {$prefix}user_projects WHERE user_id = ?");
+                $stmt->execute([$id]);
+            }
+            
             $message = "Benutzer aktualisiert.";
             $messageType = "success";
         } catch (Exception $e) {
@@ -90,6 +110,32 @@ $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
 // Rollen laden
 $stmt = $pdo->query("SELECT * FROM {$prefix}roles ORDER BY name");
 $roles = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+// Finde die Rolle "Projektverwaltung"
+$projektverwaltung_role_id = null;
+foreach ($roles as $role) {
+    if (strtolower($role['name']) === strtolower('Projektverwaltung')) {
+        $projektverwaltung_role_id = $role['id'];
+        break;
+    }
+}
+
+// Lade alle Projekte
+$stmt = $pdo->query("SELECT id, name FROM {$prefix}projects ORDER BY name");
+$all_projects = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+// Lade für jeden User die zugewiesenen Projekte
+$user_projects = [];
+if ($projektverwaltung_role_id) {
+    $stmt = $pdo->prepare("SELECT user_id, project_id FROM {$prefix}user_projects WHERE user_id IN (SELECT id FROM {$prefix}users WHERE role_id = ?)");
+    $stmt->execute([$projektverwaltung_role_id]);
+    foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+        if (!isset($user_projects[$row['user_id']])) {
+            $user_projects[$row['user_id']] = [];
+        }
+        $user_projects[$row['user_id']][] = $row['project_id'];
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="de">
@@ -220,12 +266,25 @@ $roles = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                                 <input type="email" name="email" value="<?php echo htmlspecialchars($user['email']); ?>" class="form-control form-control-sm w-100" disabled>
                                             </div>
                                             <div class="mt-2">
-                                                <select name="role_id" class="form-select form-select-sm w-100" disabled>
+                                                <select name="role_id" class="form-select form-select-sm w-100" onchange="toggleProjectsSection(this, <?php echo $user['id']; ?>)" disabled>
                                                     <?php foreach ($roles as $role): ?>
                                                         <option value="<?php echo $role['id']; ?>" <?php echo $user['role_id'] == $role['id'] ? 'selected' : ''; ?>><?php echo htmlspecialchars($role['name']); ?></option>
                                                     <?php endforeach; ?>
                                                 </select>
                                             </div>
+                                            <?php if ($projektverwaltung_role_id && $user['role_id'] == $projektverwaltung_role_id): ?>
+                                            <div class="mt-2 projects-section-<?php echo $user['id']; ?>">
+                                                <label class="form-label small">Verwaltbare Projekte:</label>
+                                                <div class="ps-2">
+                                                    <?php foreach ($all_projects as $project): ?>
+                                                    <div class="form-check">
+                                                        <input type="checkbox" name="assigned_projects[]" value="<?php echo $project['id']; ?>" id="project_<?php echo $user['id']; ?>_<?php echo $project['id']; ?>" class="form-check-input" <?php echo in_array($project['id'], $user_projects[$user['id']] ?? []) ? 'checked' : ''; ?> disabled>
+                                                        <label class="form-check-label" for="project_<?php echo $user['id']; ?>_<?php echo $project['id']; ?>"><?php echo htmlspecialchars($project['name']); ?></label>
+                                                    </div>
+                                                    <?php endforeach; ?>
+                                                </div>
+                                            </div>
+                                            <?php endif; ?>
                                     </td>
                                     <td class="text-center">
                                             <input type="checkbox" name="is_active" class="form-check-input" <?php echo $user['is_active'] ? 'checked' : ''; ?> disabled>
@@ -278,6 +337,28 @@ function toggleEdit(btn, id) {
     if (saveBtn) {
         editBtn.classList.toggle('d-none');
         saveBtn.classList.toggle('d-none');
+    }
+}
+
+function toggleProjectsSection(roleSelect, userId) {
+    const projectsSection = document.querySelector(`.projects-section-${userId}`);
+    if (!projectsSection) return;
+    
+    // Check if the selected role is "Projektverwaltung" by checking the option name
+    const selectedOption = roleSelect.options[roleSelect.selectedIndex];
+    if (selectedOption && selectedOption.textContent.includes('Projektverwaltung')) {
+        projectsSection.style.display = 'block';
+        // Enable checkboxes
+        projectsSection.querySelectorAll('input[type=checkbox]').forEach(cb => {
+            if (!cb.disabled) cb.disabled = false;
+        });
+    } else {
+        projectsSection.style.display = 'none';
+        // Uncheck and disable checkboxes
+        projectsSection.querySelectorAll('input[type=checkbox]').forEach(cb => {
+            cb.checked = false;
+            cb.disabled = true;
+        });
     }
 }
 </script>
