@@ -91,6 +91,7 @@ if (isset($_POST['update_user'])) {
     $firstname = trim($_POST['firstname']);
     $lastname = trim($_POST['lastname']);
     $email = trim($_POST['email']);
+    $password = isset($_POST['password']) ? trim($_POST['password']) : '';
     $role_id = (int)$_POST['role_id'];
     $is_active = isset($_POST['is_active']) ? 1 : 0;
     
@@ -102,8 +103,16 @@ if (isset($_POST['update_user'])) {
         $messageType = "danger";
     } else {
         try {
-            $stmt = $pdo->prepare("UPDATE {$prefix}users SET firstname = ?, lastname = ?, email = ?, role_id = ?, is_active = ? WHERE id = ?");
-            $stmt->execute([$firstname, $lastname, $email, $role_id, $is_active, $id]);
+            // Wenn Passwort gesetzt, mit aktualisieren
+            if (!empty($password)) {
+                $password_hash = password_hash($password, PASSWORD_BCRYPT);
+                $stmt = $pdo->prepare("UPDATE {$prefix}users SET firstname = ?, lastname = ?, email = ?, password_hash = ?, role_id = ?, is_active = ? WHERE id = ?");
+                $stmt->execute([$firstname, $lastname, $email, $password_hash, $role_id, $is_active, $id]);
+            } else {
+                // Ohne Passwort aktualisieren
+                $stmt = $pdo->prepare("UPDATE {$prefix}users SET firstname = ?, lastname = ?, email = ?, role_id = ?, is_active = ? WHERE id = ?");
+                $stmt->execute([$firstname, $lastname, $email, $role_id, $is_active, $id]);
+            }
             
             // Wenn die neue Rolle "Projekte schreiben" Berechtigung hat, speichere die zugewiesenen Projekte
             // Systemadmin (ID 1) braucht keine Projekt-Zuweisungen - hat automatisch alle Zugriffe
@@ -361,6 +370,10 @@ try {
                                             </div>
                                             <div class="mt-2">
                                                 <input type="email" name="email" value="<?php echo htmlspecialchars($user['email']); ?>" class="form-control form-control-sm w-100" disabled>
+                                            </div>
+                                            <div class="mt-2">
+                                                <input type="password" name="password" placeholder="Neues Passwort (optional)" class="form-control form-control-sm w-100" disabled>
+                                                <small class="text-muted d-block mt-1">Leer lassen, um Passwort nicht zu ändern</small>
                                             </div>
                                             <div class="mt-2">
                                                 <select name="role_id" class="form-select form-select-sm w-100 role-select" onchange="toggleProjectsSection(this, <?php echo $user['id']; ?>)" disabled>
