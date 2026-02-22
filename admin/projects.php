@@ -99,6 +99,27 @@ if (isset($_POST['create_project'])) {
             $stmt->execute([
                 $name, $description, $location, $contact_person, $contact_phone, $contact_email, $max_guests, $admin_email, $pin, $_SESSION['user_id'], $show_prices
             ]);
+            
+            $project_id = $pdo->lastInsertId();
+
+            // Wenn der aktuelle User die Rolle "Projektverwaltung" hat, 
+            // weise das neue Projekt automatisch zu
+            try {
+                $user_stmt = $pdo->prepare("SELECT r.id FROM {$prefix}users u 
+                    JOIN {$prefix}roles r ON u.role_id = r.id 
+                    WHERE u.id = ? AND LOWER(r.name) = 'projektverwaltung'");
+                $user_stmt->execute([$_SESSION['user_id']]);
+                
+                if ($user_stmt->rowCount() > 0) {
+                    // User hat Projektverwaltung Rolle - weisen Sie das Projekt zu
+                    $insert_assignment = $pdo->prepare("INSERT IGNORE INTO {$prefix}user_projects 
+                        (user_id, project_id) VALUES (?, ?)");
+                    $insert_assignment->execute([$_SESSION['user_id'], $project_id]);
+                }
+            } catch (Exception $e) {
+                // Fehler beim Zuweisen ignorieren - Projekt wurde trotzdem erstellt
+                error_log("Fehler beim automatischen Zuweisen des Projekts: " . $e->getMessage());
+            }
 
             $message = "✓ Projekt erfolgreich erstellt! PIN: <strong>$pin</strong>";
             $messageType = "success";
