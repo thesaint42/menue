@@ -500,30 +500,30 @@ $migrations = [
         }
     ],
     [
-        'name' => 'add_reporting_user_guests_orders_read',
-        'description' => 'Fügt guests_read und orders_read Features für Reporting User (Role 3) hinzu',
+        'name' => 'reporting_user_gäste_bestellungen',
+        'description' => 'Reporting User: Zugriff auf Gästeübersicht und Bestellübersicht',
         'version' => '2.4.1',
         'execute' => function($pdo, $prefix) {
             try {
                 // Prüfe ob guests_read für Role 3 bereits existiert
-                $stmt = $pdo->prepare("SELECT COUNT(*) FROM {$prefix}role_menu_access WHERE role_id = 3 AND menu_key = 'guests_read'");
+                $stmt = $pdo->prepare("SELECT COUNT(*) FROM `{$prefix}role_menu_access` WHERE role_id = 3 AND menu_key = 'guests_read'");
                 $stmt->execute();
                 if ($stmt->fetchColumn() === 0) {
-                    $ins = $pdo->prepare("INSERT INTO {$prefix}role_menu_access (role_id, menu_key, visible) VALUES (3, 'guests_read', 1)");
+                    $ins = $pdo->prepare("INSERT INTO `{$prefix}role_menu_access` (role_id, menu_key, visible) VALUES (3, 'guests_read', 1)");
                     $ins->execute();
                 }
                 
                 // Prüfe ob orders_read für Role 3 bereits existiert
-                $stmt = $pdo->prepare("SELECT COUNT(*) FROM {$prefix}role_menu_access WHERE role_id = 3 AND menu_key = 'orders_read'");
+                $stmt = $pdo->prepare("SELECT COUNT(*) FROM `{$prefix}role_menu_access` WHERE role_id = 3 AND menu_key = 'orders_read'");
                 $stmt->execute();
                 if ($stmt->fetchColumn() === 0) {
-                    $ins = $pdo->prepare("INSERT INTO {$prefix}role_menu_access (role_id, menu_key, visible) VALUES (3, 'orders_read', 1)");
+                    $ins = $pdo->prepare("INSERT INTO `{$prefix}role_menu_access` (role_id, menu_key, visible) VALUES (3, 'orders_read', 1)");
                     $ins->execute();
                 }
                 
                 return true;
             } catch (Exception $e) {
-                throw new Exception("Fehler bei Reporting User guests_read/orders_read Migration: " . $e->getMessage());
+                throw new Exception("Fehler bei Reporting User Gäste-/Bestellübersicht Migration: " . $e->getMessage());
             }
         }
     ]
