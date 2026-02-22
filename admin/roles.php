@@ -80,9 +80,44 @@ if (isset($_POST['delete_role'])) {
     }
 }
 
+// Feature togglen
+if (isset($_POST['toggle_feature'])) {
+    $role_id = (int)$_POST['role_id'];
+    $feature_name = trim($_POST['feature_name']);
+    $enabled = isset($_POST['enabled']) ? 1 : 0;
+    
+    try {
+        $stmt = $pdo->prepare("INSERT INTO {$prefix}role_features (role_id, feature_name, enabled) 
+                             VALUES (?, ?, ?) 
+                             ON DUPLICATE KEY UPDATE enabled = ?");
+        $stmt->execute([$role_id, $feature_name, $enabled, $enabled]);
+        $message = "Feature aktualisiert.";
+        $messageType = "success";
+    } catch (Exception $e) {
+        error_log("Could not update feature: " . $e->getMessage());
+        $message = "Fehler beim Aktualisieren des Features.";
+        $messageType = "danger";
+    }
+}
+
 // Rollen laden
 $stmt = $pdo->query("SELECT r.*, COUNT(u.id) as user_count FROM {$prefix}roles r LEFT JOIN {$prefix}users u ON u.role_id = r.id GROUP BY r.id ORDER BY r.name");
 $roles = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+// Lade Features für jede Rolle
+$role_features = [];
+try {
+    foreach ($roles as $role) {
+        $role_features[$role['id']] = getRoleFeatures($pdo, $role['id'], $prefix);
+    }
+} catch (Exception $e) {
+    error_log("Could not load role_features: " . $e->getMessage());
+}
+
+// Definiere verfügbare Features
+$available_features = [
+    'project_admin' => 'Projektadmin - Kann Projekte verwalten und zuweisen'
+];
 ?>
 <!DOCTYPE html>
 <html lang="de">
@@ -202,6 +237,7 @@ $roles = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                                 <div class="action-buttons">
                                                     <button type="button" class="btn btn-sm btn-success btn-action edit-btn" onclick="toggleEdit(this, <?php echo $role['id']; ?>)">Bearbeiten</button>
                                                     <button type="submit" name="update_role" form="form_<?php echo $role['id']; ?>" class="btn btn-sm btn-warning btn-action d-none" data-id="<?php echo $role['id']; ?>">Speichern</button>
+                                                    <button type="button" class="btn btn-sm btn-info btn-action" data-bs-toggle="collapse" data-bs-target="#features_<?php echo $role['id']; ?>">Features</button>
                                                 </div>
                                         </form>
                                         <form method="post" class="d-inline" onsubmit="return confirm('Rolle löschen?');">
@@ -209,6 +245,32 @@ $roles = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                             <button type="submit" name="delete_role" class="btn btn-sm btn-danger btn-action" <?php echo $role['user_count'] > 0 ? 'disabled' : ''; ?>>Löschen</button>
                                         </form>
                                             </div>
+                                    </td>
+                                </tr>
+                                <!-- Features Row -->
+                                <tr class="table-secondary">
+                                    <td colspan="4">
+                                        <div class="collapse" id="features_<?php echo $role['id']; ?>">
+                                            <div class="card card-body bg-dark border-secondary p-3">
+                                                <h6 class="mb-3">Verfügbare Features:</h6>
+                                                <?php foreach ($available_features as $feature_key => $feature_label): 
+                                                    $is_enabled = isset($role_features[$role['id']][$feature_key]) && $role_features[$role['id']][$feature_key];
+                                                ?>
+                                                <form method="post" class="mb-2">
+                                                    <div class="form-check">
+                                                        <input type="hidden" name="role_id" value="<?php echo $role['id']; ?>">
+                                                        <input type="hidden" name="feature_name" value="<?php echo $feature_key; ?>">
+                                                        <input type="checkbox" name="enabled" id="feature_<?php echo $role['id']; ?>_<?php echo $feature_key; ?>" class="form-check-input" <?php echo $is_enabled ? 'checked' : ''; ?> onchange="this.form.submit()">
+                                                        <label class="form-check-label" for="feature_<?php echo $role['id']; ?>_<?php echo $feature_key; ?>">
+                                                            <strong><?php echo htmlspecialchars(explode(' - ', $feature_label)[0]); ?></strong><br>
+                                                            <small class="text-muted"><?php echo htmlspecialchars(isset($feature_label) ? explode(' - ', $feature_label)[1] : ''); ?></small>
+                                                        </label>
+                                                        <button type="submit" name="toggle_feature" style="display: none;"></button>
+                                                    </div>
+                                                </form>
+                                                <?php endforeach; ?>
+                                            </div>
+                                        </div>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>

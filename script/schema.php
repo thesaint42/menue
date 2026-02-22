@@ -24,6 +24,17 @@ function getMenuSelectionSchema($prefix) {
             FOREIGN KEY (`role_id`) REFERENCES `{$prefix}roles`(`id`) ON DELETE CASCADE
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4",
 
+        // 1c. ROLLEN-MENÜ-ZUGRIFF (Burger-Menü Sichtrechte pro Rolle)
+        "CREATE TABLE IF NOT EXISTS `{$prefix}role_menu_access` (
+            `id` INT AUTO_INCREMENT PRIMARY KEY,
+            `role_id` INT NOT NULL,
+            `menu_key` VARCHAR(100) NOT NULL,
+            `visible` TINYINT(1) DEFAULT 1,
+            `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE KEY `unique_role_menu` (`role_id`, `menu_key`),
+            FOREIGN KEY (`role_id`) REFERENCES `{$prefix}roles`(`id`) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4",
+
         // 2. BENUTZER (Admins)
         "CREATE TABLE IF NOT EXISTS `{$prefix}users` (
             `id` INT AUTO_INCREMENT PRIMARY KEY,

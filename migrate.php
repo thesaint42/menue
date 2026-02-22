@@ -396,6 +396,36 @@ $migrations = [
                 throw new Exception("Fehler beim Erstellen der role_features Tabelle: " . $e->getMessage());
             }
         }
+    ],
+
+    'add_role_menu_access_table' => [
+        'name' => 'Rollen-Menü-Zugriff Tabelle hinzufügen',
+        'description' => 'Erstellt die role_menu_access Tabelle für Burger-Menü Sichtrechte pro Rolle',
+        'version' => '2.2.0',
+        'up' => function($pdo, $prefix) {
+            try {
+                // Prüfe ob Tabelle schon existiert
+                $stmt = $pdo->prepare("SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?");
+                $stmt->execute(["{$prefix}role_menu_access"]);
+                if ($stmt->rowCount() > 0) {
+                    return true; // Tabelle existiert bereits
+                }
+                
+                $pdo->exec("CREATE TABLE IF NOT EXISTS `{$prefix}role_menu_access` (
+                    `id` INT AUTO_INCREMENT PRIMARY KEY,
+                    `role_id` INT NOT NULL,
+                    `menu_key` VARCHAR(100) NOT NULL,
+                    `visible` TINYINT(1) DEFAULT 1,
+                    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE KEY `unique_role_menu` (`role_id`, `menu_key`),
+                    FOREIGN KEY (`role_id`) REFERENCES `{$prefix}roles`(`id`) ON DELETE CASCADE
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+                
+                return true;
+            } catch (Exception $e) {
+                throw new Exception("Fehler beim Erstellen der role_menu_access Tabelle: " . $e->getMessage());
+            }
+        }
     ]
 ];
 
