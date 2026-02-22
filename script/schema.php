@@ -205,13 +205,14 @@ function getMenuSelectionSchema($prefix) {
 // INSERT Statements für die Initialisierung
 function getMenuSelectionInitData($prefix) {
     return [
-        // Rollen
+        // System-Rollen (ID 1-2 sind reserviert)
         "INSERT IGNORE INTO `{$prefix}roles` (`id`, `name`, `description`) VALUES 
-         (1, 'Admin', 'Vollzugriff auf alle Funktionen'),
-         (2, 'Editor', 'Kann Projekte und Menüs verwalten')",
+         (1, 'Systemadmin', 'Systemrolle mit vollzugriff auf alle Funktionen'),
+         (2, 'Projektadmin', 'Systemrolle - kann Projekte und Menüs verwalten')",
 
-        // Rollen-Features: Editor hat project_admin Feature
+        // Rollen-Features: Projektadmin hat project_admin Feature
         "INSERT IGNORE INTO `{$prefix}role_features` (`role_id`, `feature_name`, `enabled`) VALUES 
+         (1, 'project_admin', 1),
          (2, 'project_admin', 1)",
 
         // Menu Kategorien

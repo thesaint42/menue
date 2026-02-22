@@ -38,9 +38,9 @@ if (isset($_POST['create_role'])) {
 if (isset($_POST['update_role'])) {
     $id = (int)$_POST['id'];
     
-    // Systemadmin-Rolle (ID 1) kann nicht bearbeitet werden
-    if ($id === 1) {
-        $message = "Die Systemadmin-Rolle kann nicht bearbeitet werden.";
+    // System-Rollen (ID 1: Systemadmin, ID 2: Projektadmin) können nicht bearbeitet werden
+    if ($id === 1 || $id === 2) {
+        $message = "Diese Systemrolle kann nicht bearbeitet werden.";
         $messageType = "danger";
     } else {
         $name = trim($_POST['name']);
@@ -67,9 +67,9 @@ if (isset($_POST['update_role'])) {
 if (isset($_POST['delete_role'])) {
     $id = (int)$_POST['id'];
     
-    // Systemadmin-Rolle (ID 1) kann nicht gelöscht werden
-    if ($id === 1) {
-        $message = "Die Systemadmin-Rolle kann nicht gelöscht werden.";
+    // System-Rollen (ID 1: Systemadmin, ID 2: Projektadmin) können nicht gelöscht werden
+    if ($id === 1 || $id === 2) {
+        $message = "Diese Systemrolle kann nicht gelöscht werden.";
         $messageType = "danger";
     } else {
         try {
@@ -134,16 +134,16 @@ if (isset($_POST['toggle_menu_access'])) {
     }
 }
 
-// Rollen laden
-$stmt = $pdo->query("SELECT r.*, COUNT(u.id) as user_count FROM {$prefix}roles r LEFT JOIN {$prefix}users u ON u.role_id = r.id GROUP BY r.id ORDER BY r.name");
+// Rollen laden (sortiert nach ID)
+$stmt = $pdo->query("SELECT r.*, COUNT(u.id) as user_count FROM {$prefix}roles r LEFT JOIN {$prefix}users u ON u.role_id = r.id GROUP BY r.id ORDER BY r.id ASC");
 $roles = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 // Lade Features für jede Rolle
 $role_features = [];
 try {
     foreach ($roles as $role) {
-        // Systemadmin (ID 1) hat immer alle Features
-        if ($role['id'] === 1) {
+        // System-Rollen (ID 1: Systemadmin, ID 2: Projektadmin) haben immer ihre Features
+        if ($role['id'] === 1 || $role['id'] === 2) {
             $role_features[$role['id']] = ['project_admin' => 1];
         } else {
             $role_features[$role['id']] = getRoleFeatures($pdo, $role['id'], $prefix);
@@ -191,10 +191,11 @@ $available_menu_items = [
             background-color: #333;
         }
         .roles-table tbody tr { border-bottom: 12px solid #1a1a1a; }
-        .roles-table th:nth-child(1) { width: 30%; min-width: 200px; }
-        .roles-table th:nth-child(2) { width: 35%; }
-        .roles-table th:nth-child(3) { width: 10%; text-align: center; }
-        .roles-table th:nth-child(4) { width: 25%; }
+        .roles-table th:nth-child(1) { width: 5%; min-width: 50px; text-align: center; }
+        .roles-table th:nth-child(2) { width: 25%; min-width: 180px; }
+        .roles-table th:nth-child(3) { width: 35%; }
+        .roles-table th:nth-child(4) { width: 10%; text-align: center; }
+        .roles-table th:nth-child(5) { width: 25%; }
         .action-buttons { 
             display: flex; 
             gap: 0.25rem; 
@@ -222,10 +223,11 @@ $available_menu_items = [
             display: inline;
         }
         @media (max-width: 768px) {
-            .roles-table th:nth-child(1) { width: 25%; }
-            .roles-table th:nth-child(2) { width: 30%; }
-            .roles-table th:nth-child(3) { width: 15%; }
-            .roles-table th:nth-child(4) { width: 30%; }
+            .roles-table th:nth-child(1) { width: 5%; }
+            .roles-table th:nth-child(2) { width: 20%; }
+            .roles-table th:nth-child(3) { width: 30%; }
+            .roles-table th:nth-child(4) { width: 15%; }
+            .roles-table th:nth-child(5) { width: 30%; }
             .btn-action-text { 
                 display: none;
             }
@@ -313,6 +315,7 @@ $available_menu_items = [
                     <table class="table table-dark table-hover table-sm mb-0 align-middle roles-table">
                         <thead>
                             <tr>
+                                <th class="text-center">ID</th>
                                 <th>Name</th>
                                 <th>Beschreibung</th>
                                 <th class="text-center">Benutzer</th>
@@ -321,14 +324,18 @@ $available_menu_items = [
                         </thead>
                         <tbody>
                             <?php foreach ($roles as $role): 
-                                $is_system_admin = $role['id'] === 1;
-                                $is_protected = $is_system_admin;
+                                $is_protected = ($role['id'] === 1 || $role['id'] === 2);
+                                $role_label = $role['id'] === 1 ? 'Systemadmin' : ($role['id'] === 2 ? 'Projektadmin' : $role['name']);
                             ?>
-                                <tr<?php echo $is_system_admin ? ' style="opacity: 0.9; background-color: #2a3f3a;"' : ''; ?>>
+                                <tr<?php echo $is_protected ? ' style="opacity: 0.9; background-color: #2a3f3a;"' : ''; ?>>
+                                    <td class="text-center">
+                                        <strong><?php echo $role['id']; ?></strong>
+                                        <?php echo $is_protected ? ' 🔒' : ''; ?>
+                                    </td>
                                     <td>
                                         <form method="post" id="form_<?php echo $role['id']; ?>" class="d-inline">
                                             <input type="hidden" name="id" value="<?php echo $role['id']; ?>">
-                                            <input type="text" name="name" value="<?php echo htmlspecialchars($role['name']); ?><?php echo $is_system_admin ? ' 🔒' : ''; ?>" class="form-control form-control-sm w-100" disabled>
+                                            <input type="text" name="name" value="<?php echo htmlspecialchars($role_label); ?>" class="form-control form-control-sm w-100" disabled>
                                     </td>
                                     <td>
                                             <textarea name="description" class="form-control form-control-sm w-100" rows="2" disabled><?php echo htmlspecialchars($role['description']); ?></textarea>
@@ -366,13 +373,13 @@ $available_menu_items = [
                                     </td>
                                 </tr>
                                 <!-- Features Row -->
-                                <tr class="table-secondary"<?php echo $is_system_admin ? ' style="opacity: 0.9; background-color: #1f2f2a;"' : ''; ?>>
-                                    <td colspan="4">
+                                <tr class="table-secondary"<?php echo $is_protected ? ' style="opacity: 0.9; background-color: #1f2f2a;"' : ''; ?>>
+                                    <td colspan="5">
                                         <div class="collapse" id="features_<?php echo $role['id']; ?>">
                                             <div class="card card-body bg-dark border-secondary p-3 features-section">
-                                                <?php if ($is_system_admin): ?>
+                                                <?php if ($is_protected): ?>
                                                 <div class="alert alert-info mb-3">
-                                                    🔒 <strong>Systemadmin-Rolle</strong> - Diese Rolle hat standardmäßig alle verfügbaren Rechte und kann nicht verändert werden.
+                                                    🔒 <strong><?php echo ($role['id'] === 1 ? 'Systemadmin' : 'Projektadmin'); ?>-Rolle (Systemrolle)</strong> - Diese Rolle hat standardmäßig ihre Features und kann nicht verändert werden. Für weitere Anpassungen weitere Rollen anlegen.
                                                 </div>
                                                 <?php else: ?>
                                                 <h6 class="mb-3 text-white">📋 Verfügbare Features:</h6>
@@ -384,7 +391,7 @@ $available_menu_items = [
                                                     <input type="checkbox" id="feature_<?php echo $role['id']; ?>_<?php echo $feature_key; ?>" class="form-check-input feature-checkbox" 
                                                            data-role-id="<?php echo $role['id']; ?>" data-feature-key="<?php echo $feature_key; ?>" 
                                                            <?php echo $is_enabled ? 'checked' : ''; ?>
-                                                           <?php echo $is_system_admin ? 'disabled' : ''; ?>>
+                                                           <?php echo $is_protected ? 'disabled' : ''; ?>>
                                                     <label class="form-check-label" for="feature_<?php echo $role['id']; ?>_<?php echo $feature_key; ?>">
                                                         <strong><?php echo htmlspecialchars(explode(' - ', $feature_label)[0]); ?></strong><br>
                                                         <small><?php echo htmlspecialchars(isset($feature_label) ? explode(' - ', $feature_label)[1] : ''); ?></small>
@@ -406,7 +413,7 @@ $available_menu_items = [
                                                         $is_visible = true;
                                                     }
                                                 ?>
-                                                <div class="form-check mb-2"<?php echo $is_system_admin ? ' style="display: none;"' : ''; ?>>
+                                                <div class="form-check mb-2"<?php echo $is_protected ? ' style="display: none;"' : ''; ?>>
                                                     <input type="checkbox" id="menu_<?php echo $role['id']; ?>_<?php echo $menu_key; ?>" class="form-check-input menu-checkbox" 
                                                            data-role-id="<?php echo $role['id']; ?>" data-menu-key="<?php echo $menu_key; ?>" 
                                                            <?php echo $is_visible ? 'checked' : ''; ?>>
