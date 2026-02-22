@@ -77,6 +77,7 @@ if ($project_id && !$project_not_found) {
                     op.highchair_needed,
                     o.person_id,
                     d.name as dish_name,
+                    d.price as dish_price,
                     mc.name as category_name,
                     mc.sort_order as category_sort
                 FROM `{$prefix}order_sessions` os
@@ -107,6 +108,7 @@ if ($project_id && !$project_not_found) {
                     fm.highchair_needed,
                     o.person_id,
                     d.name as dish_name,
+                    d.price as dish_price,
                     mc.name as category_name,
                     mc.sort_order as category_sort
                 FROM `{$prefix}order_sessions` os
@@ -178,7 +180,8 @@ if ($project_id && !$project_not_found) {
             if ($order['dish_name']) {
                 $orders_by_id[$order_id]['persons'][$person_id]['dishes'][] = [
                     'category' => $order['category_name'],
-                    'dish' => $order['dish_name']
+                    'dish' => $order['dish_name'],
+                    'price' => $order['dish_price'] ?? 0
                 ];
             }
         }
@@ -223,9 +226,119 @@ if ($project_id && !$project_not_found) {
     }
 }
 
-
-
-
+// CSV Download
+if (isset($_GET['download']) && $_GET['download'] === 'csv') {
+    if (!$project_id || $project_not_found) {
+        http_response_code(400);
+        echo 'Projekt nicht gefunden.';
+        exit;
+    }
+    
+    header('Content-Type: text/csv; charset=utf-8');
+    header('Content-Disposition: attachment; filename="bestellungen_' . $project_id . '_' . date('Ymd_Hi') . '.csv"');
+    
+    $output = fopen('php://output', 'w');
+    
+    // UTF-8 BOM für Excel-Kompatibilität
+    fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF));
+    
+    // Kopfzeile
+    fputcsv($output, [
+        'Bestell-ID',
+        'Bestelldatum',
+        'Besteller Vorname',
+        'Besteller Nachname',
+        'Besteller Email',
+        'Besteller Telefon',
+        'Gast-Typ',
+        'Person Name',
+        'Person Typ',
+        'Person Alter',
+        'Hochstuhl',
+        'Kategorie',
+        'Gericht',
+        'Einzelpreis',
+        'Anzahl',
+        'Gesamtpreis'
+    ], ';');
+    
+    // Daten: Eine Zeile pro Gericht
+    foreach ($orders_by_id as $order_id => $order_data) {
+        $order_date = date('d.m.Y H:i', strtotime($order_data['order_date']));
+        $guest_firstname = $order_data['firstname'];
+        $guest_lastname = $order_data['lastname'];
+        $guest_email = $order_data['email'];
+        $guest_phone = $order_data['phone'] ?? '';
+        $guest_type = $order_data['guest_type'] === 'individual' ? 'Einzelperson' : 'Familie';
+        
+        foreach ($order_data['persons'] as $person_id => $person) {
+            $person_name = $person['name'];
+            $person_type = $person['type'];
+            $person_age = $person['age'] ?? '';
+            $person_highchair = $person['highchair'] ? 'Ja' : 'Nein';
+            
+            // Gruppiere Gerichte nach Kategorie
+            $dishes_by_category = [];
+            foreach ($person['dishes'] as $dish_entry) {
+                $category = $dish_entry['category'];
+                $dish = $dish_entry['dish'];
+                $price = $dish_entry['price'] ?? 0;
+                
+                if (!isset($dishes_by_category[$category])) {
+                    $dishes_by_category[$category] = [];
+                }
+                
+                // Prüfe ob Gericht schon existiert, sonst hinzufügen
+                $found = false;
+                foreach ($dishes_by_category[$category] as &$existing) {
+                    if ($existing['dish'] === $dish) {
+                        $existing['quantity']++;
+                        $found = true;
+                        break;
+                    }
+                }
+                if (!$found) {
+                    $dishes_by_category[$category][] = [
+                        'dish' => $dish,
+                        'price' => $price,
+                        'quantity' => 1
+                    ];
+                }
+            }
+            
+            // Schreibe eine Zeile pro Gericht
+            foreach ($dishes_by_category as $category => $dishes) {
+                foreach ($dishes as $dish_data) {
+                    $einzelpreis = $dish_data['price'];
+                    $anzahl = $dish_data['quantity'];
+                    $gesamtpreis = $einzelpreis * $anzahl;
+                    
+                    fputcsv($output, [
+                        $order_id,
+                        $order_date,
+                        $guest_firstname,
+                        $guest_lastname,
+                        $guest_email,
+                        $guest_phone,
+                        $guest_type,
+                        $person_name,
+                        $person_type,
+                        $person_age,
+                        $person_highchair,
+                        $category,
+                        $dish_data['dish'],
+                        number_format($einzelpreis, 2, ',', ''),
+                        $anzahl,
+                        number_format($gesamtpreis, 2, ',', '')
+                    ], ';');
+                }
+            }
+        }
+    }
+    
+    fclose($output);
+    exit;
+}
 
 // PDF Download oder Anzeige
 if (isset($_GET['download']) && $_GET['download'] === 'pdf') {
@@ -873,30 +986,7 @@ function closePdfModal(action) {
 }
 
 function exportCSV() {
-    let csv = 'Name,Email,Telefon,Typ,Bestellungen\n';
-    const rows = document.querySelectorAll('table tbody tr');
-    
-    rows.forEach(row => {
-        const cells = row.querySelectorAll('td');
-        if (cells.length > 0) {
-            const data = Array.from(cells).map(cell => {
-                let text = cell.textContent.trim();
-                // CSV-Escaping
-                if (text.includes(',') || text.includes('"') || text.includes('\n')) {
-                    text = '"' + text.replace(/"/g, '""') + '"';
-                }
-                return text;
-            });
-            csv += data.join(',') + '\n';
-        }
-    });
-
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-    link.setAttribute('href', url);
-    link.setAttribute('download', 'bestellungen_<?php echo $project_id; ?>_<?php echo date('Ymd_Hi'); ?>.csv');
-    link.click();
+    window.location.href = '?project=<?php echo $project_id; ?>&download=csv';
 }
 </script>
 
