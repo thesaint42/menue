@@ -3,85 +3,32 @@
  * admin/admin.php - Admin Dashboard
  */
 
-// Enable error reporting for debugging
-error_reporting(E_ALL);
-ini_set('display_errors', '1');
+require_once '../db.php';
+require_once '../script/auth.php';
 
-try {
-    require_once '../db.php';
-    require_once '../script/auth.php';
+checkLogin();
+$prefix = $config['database']['prefix'] ?? 'menu_';
 
-    checkLogin();
-    $prefix = $config['database']['prefix'] ?? 'menu_';
-
-    // Access-Check: Dashboard-Berechtigung erforderlich
-    requireMenuAccess($pdo, 'dashboard', 'read', $prefix);
-} catch (Exception $e) {
-    die("Initialization Error: " . $e->getMessage());
-}
+// Access-Check: Dashboard-Berechtigung erforderlich
+requireMenuAccess($pdo, 'dashboard', 'read', $prefix);
 
 // Check v2.2.0 tables
 $tables_check = checkV220Tables($pdo, $prefix);
 $v220_ready = !in_array(false, $tables_check, true);
 
-// Benutzer-Rolle und Berechtigungen ermitteln
-$user_role_id = $_SESSION['role_id'] ?? null;
-$is_admin = ($user_role_id === 1);
+// Statistiken
+$stmt = $pdo->query("SELECT COUNT(*) as count FROM {$prefix}projects WHERE is_active = 1");
+$project_count = $stmt->fetch()['count'];
 
-// Zugängliche Projekt-IDs ermitteln
-$accessible_project_ids = [];
-if ($is_admin) {
-    // Systemadmin: Alle aktiven Projekte
-    $stmt = $pdo->query("SELECT id FROM {$prefix}projects WHERE is_active = 1");
-    $accessible_project_ids = $stmt->fetchAll(PDO::FETCH_COLUMN);
-} else {
-    // Projekt Admin oder Reporting User: nur zugewiesene Projekte
-    $assigned = getUserProjects($pdo, $prefix);
-    if (is_array($assigned) && !empty($assigned)) {
-        $accessible_project_ids = array_column($assigned, 'id');
-    }
-}
+$stmt = $pdo->query("SELECT COUNT(*) as count FROM {$prefix}guests");
+$guest_count = $stmt->fetch()['count'];
 
-// Sicherstellen dass wir ein Array haben
-$accessible_project_ids = is_array($accessible_project_ids) ? $accessible_project_ids : [];
+$stmt = $pdo->query("SELECT COUNT(*) as count FROM {$prefix}orders");
+$order_count = $stmt->fetch()['count'];
 
-// Statistiken basierend auf zugänglichen Projekten
-// Projekte zählen
-$project_count = count($accessible_project_ids);
-
-// Gäste aus Bestellungen zählen (nicht Besteller)
-$guest_count = 0;
-if (!empty($accessible_project_ids)) {
-    $placeholders = implode(',', array_fill(0, count($accessible_project_ids), '?'));
-    $stmt = $pdo->prepare("
-        SELECT COUNT(DISTINCT g.id) as count 
-        FROM {$prefix}guests g
-        INNER JOIN {$prefix}orders o ON g.order_id = o.id
-        WHERE o.project_id IN ($placeholders)
-    ");
-    $stmt->execute($accessible_project_ids);
-    $result = $stmt->fetch();
-    $guest_count = $result ? $result['count'] : 0;
-}
-
-// Bestellungen zählen
-$order_count = 0;
-if (!empty($accessible_project_ids)) {
-    $placeholders = implode(',', array_fill(0, count($accessible_project_ids), '?'));
-    $stmt = $pdo->prepare("SELECT COUNT(*) as count FROM {$prefix}orders WHERE project_id IN ($placeholders)");
-    $stmt->execute($accessible_project_ids);
-    $result = $stmt->fetch();
-    $order_count = $result ? $result['count'] : 0;
-}
-
-// Aktuelle Projekte (nur zugängliche)
-$recent_projects = [];
-if (!empty($accessible_project_ids)) {
-    $placeholders = implode(',', array_fill(0, count($accessible_project_ids), '?'));
-    $stmt = $pdo->prepare("SELECT * FROM {$prefix}projects WHERE is_active = 1 AND id IN ($placeholders) ORDER BY created_at DESC LIMIT 5");
-    $stmt->execute($accessible_project_ids);
-    $recent_projects = $stmt->fetchAll();
-}
+// Aktuelle Projekte
+$stmt = $pdo->query("SELECT * FROM {$prefix}projects WHERE is_active = 1 ORDER BY created_at DESC LIMIT 5");
+$recent_projects = $stmt->fetchAll();
 ?>
 <!DOCTYPE html>
 <html lang="de" data-bs-theme="dark">
@@ -146,14 +93,8 @@ if (!empty($accessible_project_ids)) {
                     <h6 class="text-uppercase opacity-75 small mb-2">Plätze belegt</h6>
                     <h2 class="display-6 display-md-5 fw-bold mb-0">
                         <?php 
-                            $max = 0;
-                            if (!empty($accessible_project_ids)) {
-                                $placeholders = implode(',', array_fill(0, count($accessible_project_ids), '?'));
-                                $stmt = $pdo->prepare("SELECT SUM(max_guests) as total FROM {$prefix}projects WHERE is_active = 1 AND id IN ($placeholders)");
-                                $stmt->execute($accessible_project_ids);
-                                $result = $stmt->fetch();
-                                $max = ($result && isset($result['total'])) ? $result['total'] : 0;
-                            }
+                            $stmt = $pdo->query("SELECT SUM(max_guests) as total FROM {$prefix}projects WHERE is_active = 1");
+                            $max = $stmt->fetch()['total'] ?? 0;
                             echo $max > 0 ? round(($guest_count / $max) * 100) : 0;
                         ?>%
                     </h2>
