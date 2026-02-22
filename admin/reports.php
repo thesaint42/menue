@@ -725,7 +725,14 @@ if (isset($_GET['download']) && $_GET['download'] === 'pdf') {
             </a>
         </div>
 
-        <div class="col-12 col-sm-6 col-lg-4"></div>
+        <!-- Statistiken -->
+        <div class="col-12 col-sm-6 col-lg-4">
+            <a href="?project=<?php echo $project_id; ?>&view=kitchen" class="report-icon-btn">
+                <div class="icon">🍽️</div>
+                <div class="title">Statistiken</div>
+                <div class="subtitle">Übersicht Bestellungen</div>
+            </a>
+        </div>
 
         <!-- Drucken / PDF -->
         <div class="col-12 col-sm-6 col-lg-4">
