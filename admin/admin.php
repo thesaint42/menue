@@ -34,6 +34,7 @@ $recent_projects = $stmt->fetchAll();
 <html lang="de" data-bs-theme="dark">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Admin Dashboard - Event Menue Order System (EMOS)</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="../assets/css/style.css" rel="stylesheet">
@@ -61,36 +62,36 @@ $recent_projects = $stmt->fetchAll();
     </div>
 
     <!-- STATISTIK KARTEN -->
-    <div class="row g-4 mb-4">
-        <div class="col-md-3">
+    <div class="row g-3 g-md-4 mb-4">
+        <div class="col-6 col-md-3">
             <div class="card border-0 shadow-sm bg-primary text-white">
-                <div class="card-body text-center">
-                    <h6 class="text-uppercase opacity-75 small">Projekte</h6>
-                    <h2 class="display-5 fw-bold"><?php echo $project_count; ?></h2>
+                <div class="card-body text-center p-3">
+                    <h6 class="text-uppercase opacity-75 small mb-2">Projekte</h6>
+                    <h2 class="display-6 display-md-5 fw-bold mb-0"><?php echo $project_count; ?></h2>
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
+        <div class="col-6 col-md-3">
             <div class="card border-0 shadow-sm bg-success text-white">
-                <div class="card-body text-center">
-                    <h6 class="text-uppercase opacity-75 small">Gäste</h6>
-                    <h2 class="display-5 fw-bold"><?php echo $guest_count; ?></h2>
+                <div class="card-body text-center p-3">
+                    <h6 class="text-uppercase opacity-75 small mb-2">Gäste</h6>
+                    <h2 class="display-6 display-md-5 fw-bold mb-0"><?php echo $guest_count; ?></h2>
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
+        <div class="col-6 col-md-3">
             <div class="card border-0 shadow-sm bg-info text-white">
-                <div class="card-body text-center">
-                    <h6 class="text-uppercase opacity-75 small">Bestellungen</h6>
-                    <h2 class="display-5 fw-bold"><?php echo $order_count; ?></h2>
+                <div class="card-body text-center p-3">
+                    <h6 class="text-uppercase opacity-75 small mb-2">Bestellungen</h6>
+                    <h2 class="display-6 display-md-5 fw-bold mb-0"><?php echo $order_count; ?></h2>
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
+        <div class="col-6 col-md-3">
             <div class="card border-0 shadow-sm bg-warning text-dark">
-                <div class="card-body text-center">
-                    <h6 class="text-uppercase opacity-75 small">Plätze belegt</h6>
-                    <h2 class="display-5 fw-bold">
+                <div class="card-body text-center p-3">
+                    <h6 class="text-uppercase opacity-75 small mb-2">Plätze belegt</h6>
+                    <h2 class="display-6 display-md-5 fw-bold mb-0">
                         <?php 
                             $stmt = $pdo->query("SELECT SUM(max_guests) as total FROM {$prefix}projects WHERE is_active = 1");
                             $max = $stmt->fetch()['total'] ?? 0;
@@ -103,11 +104,11 @@ $recent_projects = $stmt->fetchAll();
     </div>
 
     <!-- SCHNELLZUGRIFF -->
-    <div class="row g-4 mb-4">
-        <div class="col-md-6">
+    <div class="row g-3 g-md-4 mb-4">
+        <div class="col-12 col-md-6">
             <div class="card border-0 shadow">
                 <div class="card-body">
-                    <h5 class="card-title">Neue Aktion</h5>
+                    <h5 class="card-title mb-3">Neue Aktion</h5>
                     <div class="d-grid gap-2">
                         <a href="projects.php" class="btn btn-outline-primary">+ Neues Projekt</a>
                         <a href="dishes.php" class="btn btn-outline-primary">+ Menü hinzufügen</a>
@@ -117,10 +118,10 @@ $recent_projects = $stmt->fetchAll();
             </div>
         </div>
 
-        <div class="col-md-6">
+        <div class="col-12 col-md-6">
             <div class="card border-0 shadow">
                 <div class="card-body">
-                    <h5 class="card-title">Verwaltung</h5>
+                    <h5 class="card-title mb-3">Verwaltung</h5>
                     <div class="d-grid gap-2">
                         <a href="projects.php" class="btn btn-outline-info">📋 Projekte verwalten</a>
                         <a href="guests.php" class="btn btn-outline-info">👥 Gäste anzeigen</a>
@@ -142,9 +143,9 @@ $recent_projects = $stmt->fetchAll();
                     <thead class="table-dark">
                         <tr>
                             <th>Name</th>
-                            <th>Ort</th>
+                            <th class="d-none d-md-table-cell">Ort</th>
                             <th>Gäste</th>
-                            <th>Max. Plätze</th>
+                            <th class="d-none d-sm-table-cell">Max. Plätze</th>
                             <th>Aktion</th>
                         </tr>
                     </thead>
@@ -157,9 +158,9 @@ $recent_projects = $stmt->fetchAll();
                             ?>
                             <tr>
                                 <td><strong><?php echo htmlspecialchars($p['name']); ?></strong></td>
-                                <td><?php echo htmlspecialchars($p['location'] ?? '–'); ?></td>
+                                <td class="d-none d-md-table-cell"><?php echo htmlspecialchars($p['location'] ?? '–'); ?></td>
                                 <td><?php echo $p_guests; ?></td>
-                                <td><?php echo $p['max_guests']; ?></td>
+                                <td class="d-none d-sm-table-cell"><?php echo $p['max_guests']; ?></td>
                                 <td>
                                     <a href="guests.php?project=<?php echo $p['id']; ?>" class="btn btn-sm btn-outline-info">Details</a>
                                 </td>
