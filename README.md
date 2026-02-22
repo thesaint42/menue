@@ -2,7 +2,7 @@
 
 Ein vollständiges PHP-basiertes System zur Verwaltung von Menüauswahl für Gäste mit Admin-Dashboard, PDF-Export und E-Mail-Integration.
 
-**Aktuelle Version:** 1.8.0
+**Aktuelle Version:** 2.0.0
 
 ## Features
 
@@ -112,6 +112,10 @@ http://localhost/index.php?project=1
 ├── impressum.php            # Impressum
 ├── vvt.php                  # Verfahrensverzeichnis
 ├── deploy.sh                # FTPS-Deployment-Script
+├── BACKUP_RESTORE_GUIDE.md  # Backup- & Restore-Dokumentation
+├── UPGRADE.md               # Upgrade-Anleitung
+├── UPGRADE_CHECKLIST.md     # Upgrade-Checkliste
+├── DEPLOY_LOCAL.md          # Lokales Deployment
 ├── script/
 │   ├── config.yaml          # Konfigurationsdatei (wird bei Installation erstellt)
 │   ├── auth.php             # Authentifizierungsfunktionen
@@ -126,6 +130,10 @@ http://localhost/index.php?project=1
 ├── admin/
 │   ├── login.php            # Admin Login
 │   ├── admin.php            # Dashboard
+│   ├── backup.php           # Backup-Verwaltung
+│   ├── backup_process.php   # Backup-AJAX-Endpoint
+│   ├── restore.php          # Restore-UI
+│   ├── restore_process.php  # Restore-AJAX-Endpoint
 │   ├── projects.php         # Projektenverwaltung (mit WYSIWYG-Editor)
 │   ├── dishes.php           # Menüverwaltung
 │   ├── guests.php           # Gästeübersicht
@@ -147,6 +155,7 @@ http://localhost/index.php?project=1
 │   └── js/
 ├── tools/                   # Entwickler-Tools und Scripts
 ├── storage/
+│   ├── backups/             # Backup-Dateien
 │   ├── logs/                # Log-Dateien
 │   ├── pdfs/                # Exportierte PDFs
 │   └── tmp/                 # Temporäre Dateien
@@ -212,6 +221,16 @@ id, guest_id, name, member_type (adult|child), child_age, highchair_needed, crea
 **`menu_orders`** - Einzelne Menüauswahl pro Person und Gang
 ```sql
 id, order_id (UUID), person_id, dish_id, category_id, created_at
+```
+
+**`menu_order_guest_data`** - Zwischenspeicher für Gastdaten pro Order (optional)
+```sql
+order_id, project_id, email, firstname, lastname, phone, phone_raw, guest_type, person_type, child_age, highchair_needed
+```
+
+**`menu_order_people`** - Personen pro Order (optional)
+```sql
+order_id, person_index, name, person_type, child_age, highchair_needed
 ```
 
 **`menu_smtp_config`** - SMTP Server-Konfiguration
@@ -296,6 +315,10 @@ system:
 - Admin-Bereich → Gäste
 - Übersicht aller Anmeldungen mit Bestellungen
 - Filter nach Projekt
+
+**Projekt-Backup erstellen (v1.8):**
+- Admin-Bereich → Projekte → Bearbeiten → „Projekt sichern“
+- Ergebnis: eine SQL-Datei je Projekt mit projektspezifischen Tabellen/Zeilen
 
 **PDF exportieren:**
 - Admin-Bereich → PDF Export
@@ -408,6 +431,13 @@ function sanitize_project_description($html) {
 logAction($pdo, $prefix, 'action_name', 'Details');
 ```
 
+### Projekt-Backup via AJAX (v1.8)
+
+```php
+// POST /admin/backup_process.php?action=execute
+// backup_type=project&project_id=3
+```
+
 ### Sprache ändern
 
 ```php
@@ -448,6 +478,11 @@ setLanguage('en');
 - Überprüfen Sie, dass die sanitize_project_description() Funktion die benötigten Tags erlaubt
 - Prüfen Sie, ob HTML in der Datenbank gespeichert wird (nicht nur Plain Text)
 
+**Projekt-Backup erstellt falsche Dateien (v1.8):**
+- Prüfen Sie, ob `admin/backup_process.php` auf dem Server aktualisiert ist
+- Cache/OPcache leeren
+- Stellen Sie sicher, dass die Tabellen `order_sessions`, `orders`, optional `order_guest_data`/`order_people` vorhanden sind
+
 ---
 
 ## Sicherheit
@@ -468,6 +503,31 @@ setLanguage('en');
 ---
 
 ## Changelog
+
+### Version 2.0.0 (22. Februar 2026)
+
+**Dokumentation:**
+- Vollständige Aktualisierung der Projektdokumentation
+- Überarbeitete Backup/Restore-Dokumentation
+- Konsolidierte Troubleshooting- und Support-Sektionen
+
+---
+
+### Version 1.8.0 (22. Februar 2026)
+
+**Neue Features:**
+- Projekt-Backup (projektspezifischer SQL-Export)
+- Export über `order_id`-basierte Tabellenstruktur
+
+---
+
+### Version 1.7.1 (21. Februar 2026)
+
+**Verbesserungen:**
+- Optimierter PDF-Report mit Bestellübersicht
+- Korrekte Personen-Darstellung und Statistiken
+
+---
 
 ### Version 1.7.0 (21. Februar 2026)
 
@@ -503,8 +563,14 @@ Die Anwendung wird unterstützt von:
 - `script/mailer.php` - Email-Versand
 - `nav/top_nav.php` - Konsistente Navigation
 
+**Dokumentation:**
+- `BACKUP_RESTORE_GUIDE.md` - Backup/Restore-Workflow
+- `UPGRADE.md` - Upgrade-Anleitung
+- `UPGRADE_CHECKLIST.md` - Checkliste für Releases
+- `DEPLOY_LOCAL.md` - Deployment-Workflow
+
 ---
 
-**Version:** 1.7.0
+**Version:** 2.0.0
 **Lizenz:** Proprietary  
-**Datum:** 21. Februar 2026
+**Datum:** 22. Februar 2026
