@@ -31,14 +31,16 @@ $display_name = $page_names[$current_page] ?? ucfirst($current_page);
 <nav class="navbar navbar-dark bg-dark border-bottom border-secondary mb-4">
             <div class="container-fluid px-4">
                 <?php
-                // DB-Verbindung für Feature-Checks
+                // DB-Verbindung und Auth für Feature-Checks
                 if (!isset($pdo)) {
                     require_once __DIR__ . '/../db.php';
                 }
-                @include_once __DIR__ . '/../script/auth.php';
-                $is_logged_in = function_exists('isLoggedIn') && isLoggedIn();
+                if (!function_exists('isLoggedIn')) {
+                    require_once __DIR__ . '/../script/auth.php';
+                }
+                $is_logged_in = isLoggedIn();
                 $home_href = (function() use ($root, $is_logged_in) {
-                    if ($is_logged_in && function_exists('isAdmin') && isAdmin()) {
+                    if ($is_logged_in && isAdmin()) {
                         return $root . 'admin/admin.php';
                     }
                     return $root . 'index.php';
@@ -86,8 +88,12 @@ $display_name = $page_names[$current_page] ?? ucfirst($current_page);
                             <li class="nav-item"><a class="nav-link text-end" href="<?php echo $root; ?>index.php">Zur Startseite</a></li>
                             
                             <?php
-                            // Feature-basierte Navigation
-                            $show_project_section = function_exists('hasMenuAccess') && (
+                            // Feature-basierte Navigation - Debug
+                            // error_log("hasMenuAccess exists: " . (function_exists('hasMenuAccess') ? 'yes' : 'no'));
+                            // error_log("pdo isset: " . (isset($pdo) ? 'yes' : 'no'));
+                            // error_log("prefix: " . ($prefix ?? 'not set'));
+                            
+                            $show_project_section = (
                                 hasMenuAccess($pdo, 'dashboard', $prefix) ||
                                 hasMenuAccess($pdo, 'menu_categories_read', $prefix) ||
                                 hasMenuAccess($pdo, 'projects_read', $prefix) ||
@@ -97,12 +103,12 @@ $display_name = $page_names[$current_page] ?? ucfirst($current_page);
                                 hasMenuAccess($pdo, 'reporting', $prefix)
                             );
                             
-                            $show_user_section = function_exists('hasMenuAccess') && (
+                            $show_user_section = (
                                 hasMenuAccess($pdo, 'users', $prefix) ||
                                 hasMenuAccess($pdo, 'roles', $prefix)
                             );
                             
-                            $show_system_section = function_exists('hasMenuAccess') && (
+                            $show_system_section = (
                                 hasMenuAccess($pdo, 'settings_mail', $prefix) ||
                                 hasMenuAccess($pdo, 'update', $prefix) ||
                                 hasMenuAccess($pdo, 'backup_create', $prefix)
