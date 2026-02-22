@@ -199,6 +199,10 @@ function getMenuSelectionInitData($prefix) {
          (1, 'Admin', 'Vollzugriff auf alle Funktionen'),
          (2, 'Editor', 'Kann Projekte und Menüs verwalten')",
 
+        // Rollen-Features: Editor hat project_admin Feature
+        "INSERT IGNORE INTO `{$prefix}role_features` (`role_id`, `feature_name`, `enabled`) VALUES 
+         (2, 'project_admin', 1)",
+
         // Menu Kategorien
         "INSERT IGNORE INTO `{$prefix}menu_categories` (`name`, `sort_order`) VALUES
          ('Vorspeise', 1),
