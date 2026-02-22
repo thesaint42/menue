@@ -731,6 +731,7 @@ if (isset($_GET['download']) && $_GET['download'] === 'pdf') {
             <?php elseif ($project_not_found): ?>
                 <div class="alert alert-warning mb-3">Projekt nicht gefunden.</div>
                 <select class="form-select form-select-lg" onchange="window.location.href='?project=' + this.value">
+                    <option value="">-- Bitte wählen --</option>
                     <?php foreach ($projects as $p): ?>
                         <option value="<?php echo $p['id']; ?>" <?php echo $p['id'] == $project_id ? 'selected' : ''; ?>>
                             [ID: <?php echo $p['id']; ?>] <?php echo htmlspecialchars($p['name']); ?>
@@ -739,6 +740,7 @@ if (isset($_GET['download']) && $_GET['download'] === 'pdf') {
                 </select>
             <?php else: ?>
                 <select class="form-select form-select-lg" onchange="window.location.href='?project=' + this.value">
+                    <option value="">-- Bitte wählen --</option>
                     <?php foreach ($projects as $p): ?>
                         <option value="<?php echo $p['id']; ?>" <?php echo $p['id'] == $project_id ? 'selected' : ''; ?>>
                             [ID: <?php echo $p['id']; ?>] <?php echo htmlspecialchars($p['name']); ?>
