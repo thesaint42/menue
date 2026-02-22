@@ -26,11 +26,16 @@ if ($is_admin) {
     // Systemadmin: Alle aktiven Projekte
     $stmt = $pdo->query("SELECT id FROM {$prefix}projects WHERE is_active = 1");
     $accessible_project_ids = $stmt->fetchAll(PDO::FETCH_COLUMN);
-} else if (hasMenuAccess($pdo, 'projects_write', $prefix) || hasMenuAccess($pdo, 'projects_read', $prefix)) {
+} else {
     // Projekt Admin oder Reporting User: nur zugewiesene Projekte
     $assigned = getUserProjects($pdo, $prefix);
-    $accessible_project_ids = array_column($assigned, 'id');
+    if (is_array($assigned) && !empty($assigned)) {
+        $accessible_project_ids = array_column($assigned, 'id');
+    }
 }
+
+// Sicherstellen dass wir ein Array haben
+$accessible_project_ids = is_array($accessible_project_ids) ? $accessible_project_ids : [];
 
 // Statistiken basierend auf zugänglichen Projekten
 // Projekte zählen
