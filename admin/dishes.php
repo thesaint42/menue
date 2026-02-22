@@ -7,9 +7,16 @@ require_once '../db.php';
 require_once '../script/auth.php';
 
 checkLogin();
-checkAdmin();
+
+// Feature-basierte Zugriffskontrolle (zentrale Funktion)
+requireMenuAccess($pdo, ['menus_read', 'menus_write'], 'read', $config['database']['prefix'] ?? 'menu_');
 
 $prefix = $config['database']['prefix'] ?? 'menu_';
+
+// Get individual permissions for UI
+$can_read_menus = hasMenuAccess($pdo, 'menus_read', $prefix);
+$can_write_menus = hasMenuAccess($pdo, 'menus_write', $prefix);
+
 $project_id = isset($_GET['project']) ? (int)$_GET['project'] : null;
 $message = "";
 $messageType = "info";
