@@ -237,14 +237,9 @@ function getMenuSelectionInitData($prefix) {
          (3, 'projects_read', 1),
          (3, 'guests_read', 1),
          (3, 'orders_read', 1),
-         (3, 'reporting', 1)",
+         (3, 'reporting', 1)"
 
-        // Menu Kategorien
-        "INSERT IGNORE INTO `{$prefix}menu_categories` (`name`, `sort_order`) VALUES
-         ('Vorspeise', 1),
-         ('Hauptspeise', 2),
-         ('Beilage', 3),
-         ('Salat', 4),
-         ('Nachspeise', 5)"
+        // Hinweis: Menükategorien werden nicht mehr initial eingefügt, da sie projektspezifisch sind.
+        // Kategorien werden beim Anlegen eines Projekts erstellt oder vom Admin in menu_categories.php angelegt.
     ];
 }
