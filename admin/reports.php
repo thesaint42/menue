@@ -418,10 +418,52 @@ if (isset($_GET['download']) && $_GET['download'] === 'pdf') {
     foreach ($orders_by_id as $order_data) {
         $total_highchairs += $order_data['highchair_count'];
     }
-    $pdf->Cell(0, 5, 'Anzahl Hochstühle (HS): ' . $total_highchairs, 0, 1);
-    $pdf->Ln(5);
-
-    if ($requested_view === 'kitchen') {
+    
+    // Zeige Projekt-Info nur wenn nicht Statistiken-View
+    if ($requested_view !== 'statistics') {
+        $pdf->Cell(0, 5, 'Anzahl Hochstühle (HS): ' . $total_highchairs, 0, 1);
+        $pdf->Ln(5);
+    }
+    
+    if ($requested_view === 'statistics') {
+        // Statistiken-View für PDF - nur Statistiken, keine Tabelle
+        // Berechne Statistiken
+        $total_individual_persons = 0;
+        $total_family_persons = 0;
+        $total_families = 0;
+        
+        foreach ($orders_by_id as $order_data) {
+            if ($order_data['guest_type'] === 'individual') {
+                $total_individual_persons += count($order_data['persons']);
+            } elseif ($order_data['guest_type'] === 'family') {
+                $total_families++;
+                $total_family_persons += count($order_data['persons']);
+            }
+        }
+        
+        $total_all_persons = $total_individual_persons + $total_family_persons;
+        
+        // Statistik-Boxen
+        $pdf->SetFillColor(230, 230, 230);
+        $pdf->SetFont('helvetica', 'B', 10);
+        $pdf->Cell(0, 7, 'Gesamt Gäste', 0, 1, 'L', true);
+        $pdf->SetFont('helvetica', '', 11);
+        $pdf->Cell(0, 8, $total_all_persons . ' / ' . $project['max_guests'] . ' (' . round(($total_all_persons / $project['max_guests']) * 100) . '%)', 0, 1);
+        $pdf->Ln(3);
+        
+        $pdf->SetFillColor(230, 230, 230);
+        $pdf->SetFont('helvetica', 'B', 10);
+        $pdf->Cell(0, 7, 'Einzelpersonen', 0, 1, 'L', true);
+        $pdf->SetFont('helvetica', '', 11);
+        $pdf->Cell(0, 8, $total_individual_persons, 0, 1);
+        $pdf->Ln(3);
+        
+        $pdf->SetFillColor(230, 230, 230);
+        $pdf->SetFont('helvetica', 'B', 10);
+        $pdf->Cell(0, 7, 'Familien / Personen', 0, 1, 'L', true);
+        $pdf->SetFont('helvetica', '', 11);
+        $pdf->Cell(0, 8, $total_families . ' / ' . $total_family_persons, 0, 1);
+    } elseif ($requested_view === 'kitchen') {
         // Berechne verfügbare Breite (Seitenbreite minus Margins)
         $page_width = $pdf->getPageWidth() - $pdf->getMargins()['left'] - $pdf->getMargins()['right'];
         
@@ -587,51 +629,6 @@ if (isset($_GET['download']) && $_GET['download'] === 'pdf') {
             $pdf->SetFont('helvetica', '', 8);
             $fill = !$fill;
         }
-    }
-    
-    if ($requested_view === 'statistics') {
-        // Statistiken-View für PDF
-        $pdf->SetFont('helvetica', 'B', 12);
-        $pdf->Cell(0, 8, 'Übersicht', 0, 1);
-        $pdf->SetFont('helvetica', '', 10);
-        $pdf->Ln(3);
-        
-        // Berechne Statistiken
-        $total_individual_persons = 0;
-        $total_family_persons = 0;
-        $total_families = 0;
-        
-        foreach ($orders_by_id as $order_data) {
-            if ($order_data['guest_type'] === 'individual') {
-                $total_individual_persons += count($order_data['persons']);
-            } elseif ($order_data['guest_type'] === 'family') {
-                $total_families++;
-                $total_family_persons += count($order_data['persons']);
-            }
-        }
-        
-        $total_all_persons = $total_individual_persons + $total_family_persons;
-        
-        // Statistik-Boxen
-        $pdf->SetFillColor(230, 230, 230);
-        $pdf->SetFont('helvetica', 'B', 10);
-        $pdf->Cell(0, 7, 'Gesamt Gäste', 0, 1, 'L', true);
-        $pdf->SetFont('helvetica', '', 11);
-        $pdf->Cell(0, 8, $total_all_persons . ' / ' . $project['max_guests'] . ' (' . round(($total_all_persons / $project['max_guests']) * 100) . '%)', 0, 1);
-        $pdf->Ln(3);
-        
-        $pdf->SetFillColor(230, 230, 230);
-        $pdf->SetFont('helvetica', 'B', 10);
-        $pdf->Cell(0, 7, 'Einzelpersonen', 0, 1, 'L', true);
-        $pdf->SetFont('helvetica', '', 11);
-        $pdf->Cell(0, 8, $total_individual_persons, 0, 1);
-        $pdf->Ln(3);
-        
-        $pdf->SetFillColor(230, 230, 230);
-        $pdf->SetFont('helvetica', 'B', 10);
-        $pdf->Cell(0, 7, 'Familien / Personen', 0, 1, 'L', true);
-        $pdf->SetFont('helvetica', '', 11);
-        $pdf->Cell(0, 8, $total_families . ' / ' . $total_family_persons, 0, 1);
     }
 
     $filename = 'bestellungen_' . $project_id . '_' . date('Ymd_Hi') . '.pdf';
