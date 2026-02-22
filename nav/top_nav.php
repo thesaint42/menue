@@ -12,8 +12,8 @@ $page_names = [
     'projects' => 'Projekte',
     'dishes' => 'Menüs',
     'menu_categories' => 'Menükategorien',
-    'guests' => 'Gäste',
-    'orders' => 'Bestellungen',
+    'guests' => 'Gästeübersicht',
+    'orders' => 'Bestellübersicht',
     'reports' => 'Reporting',
     'settings_mail' => 'Mail Einstellungen',
     'profile' => 'Mein Profil',
@@ -87,8 +87,8 @@ $display_name = $page_names[$current_page] ?? ucfirst($current_page);
                             <li class="nav-item"><a class="nav-link text-end" href="<?php echo $root; ?>admin/menu_categories.php">Menükategorien</a></li>
                             <li class="nav-item"><a class="nav-link text-end" href="<?php echo $root; ?>admin/projects.php">Projekte</a></li>
                             <li class="nav-item"><a class="nav-link text-end" href="<?php echo $root; ?>admin/dishes.php">Menüs</a></li>
-                            <li class="nav-item"><a class="nav-link text-end" href="<?php echo $root; ?>admin/guests.php">Gäste</a></li>
-                            <li class="nav-item"><a class="nav-link text-end" href="<?php echo $root; ?>admin/orders.php">Bestellungen</a></li>
+                            <li class="nav-item"><a class="nav-link text-end" href="<?php echo $root; ?>admin/guests.php">Gästeübersicht</a></li>
+                            <li class="nav-item"><a class="nav-link text-end" href="<?php echo $root; ?>admin/orders.php">Bestellübersicht</a></li>
                             <li class="nav-item"><a class="nav-link text-end" href="<?php echo $root; ?>admin/reports.php">Reporting</a></li>
 
                             <li class="nav-item">
