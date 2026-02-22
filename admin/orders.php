@@ -402,7 +402,7 @@ if ($project_id > 0) {
                                     <span class="badge bg-warning text-dark badge-highchair">🪑<span class="badge-text"> Hochstuhl</span></span>
                                 <?php endif; ?>
                                 <?php if ($person['type'] === 'child'): ?>
-                                    <span class="badge bg-info">Kind (<?php echo $person['age']; ?> Jahre)</span>
+                                    <span class="badge bg-info">Kind (<?php echo $person['age']; ?><span class="d-none d-md-inline"> Jahre</span>)</span>
                                 <?php else: ?>
                                     <span class="badge bg-secondary">Erwachsener</span>
                                 <?php endif; ?>
