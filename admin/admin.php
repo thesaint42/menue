@@ -209,7 +209,10 @@ if ($project_count > 0) {
                     <tbody>
                         <?php foreach ($recent_projects as $p): ?>
                             <?php 
-                                $stmt = $pdo->prepare("SELECT COUNT(*) as count FROM {$prefix}guests WHERE project_id = ?");
+                                // Gäste zählen - aus order_people, gefiltert nach project_id
+                                $stmt = $pdo->prepare("SELECT COUNT(*) as count FROM {$prefix}order_people op 
+                                                       INNER JOIN {$prefix}order_sessions os ON op.order_id = os.order_id 
+                                                       WHERE os.project_id = ?");
                                 $stmt->execute([$p['id']]);
                                 $p_guests = $stmt->fetch()['count'];
                             ?>
