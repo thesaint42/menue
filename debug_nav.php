@@ -5,6 +5,11 @@
 
 require_once __DIR__ . '/db.php';
 
+// Set prefix from config if not already set
+if (!isset($prefix) && isset($config['database']['prefix'])) {
+    $prefix = $config['database']['prefix'];
+}
+
 echo "<h1>Navigation Debug</h1>";
 echo "<pre>";
 

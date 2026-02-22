@@ -29,6 +29,12 @@ $display_name = $page_names[$current_page] ?? ucfirst($current_page);
 
 // DB-Verbindung und Auth laden (db.php lädt auch auth.php und initialisiert Session)
 require_once __DIR__ . '/../db.php';
+
+// Set prefix from config if not already set
+if (!isset($prefix) && isset($config['database']['prefix'])) {
+    $prefix = $config['database']['prefix'];
+}
+
 $is_logged_in = isLoggedIn();
 $home_href = (function() use ($root, $is_logged_in) {
     if ($is_logged_in && isAdmin()) {
