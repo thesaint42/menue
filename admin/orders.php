@@ -245,6 +245,12 @@ if ($project_id > 0) {
             margin-right: 0.5rem;
         }
         
+        /* Type-Badge gleiche Breite */
+        .badge-type {
+            min-width: 7rem;
+            text-align: center;
+        }
+        
         /* Mobile: nur Icons für Buttons, Telefon-Block */
         @media (max-width: 576px) {
             .btn-with-icon .btn-text { display: none; }
@@ -402,9 +408,9 @@ if ($project_id > 0) {
                                     <span class="badge bg-warning text-dark badge-highchair">🪑<span class="badge-text"> Hochstuhl</span></span>
                                 <?php endif; ?>
                                 <?php if ($person['type'] === 'child'): ?>
-                                    <span class="badge bg-info">Kind (<?php echo $person['age']; ?><span class="d-none d-md-inline"> Jahre</span>)</span>
+                                    <span class="badge bg-info badge-type">Kind (<?php echo $person['age']; ?><span class="d-none d-md-inline"> Jahre</span>)</span>
                                 <?php else: ?>
-                                    <span class="badge bg-secondary">Erwachsener</span>
+                                    <span class="badge bg-secondary badge-type">Erwachsener</span>
                                 <?php endif; ?>
                                 <form method="post" onsubmit="return confirm('Diese Person und ihre Auswahl wirklich löschen?');" class="d-inline">
                                     <input type="hidden" name="delete_person_order_id" value="<?php echo htmlspecialchars($order_id); ?>">
