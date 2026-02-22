@@ -50,11 +50,13 @@ if (isset($_POST['create_user'])) {
             $new_user_id = $pdo->lastInsertId();
             
             // Wenn die Rolle "Projekte schreiben" Berechtigung hat, speichere die zugewiesenen Projekte
+            // Systemadmin (ID 1) braucht keine Projekt-Zuweisungen - hat automatisch alle Zugriffe
+            // Nur Projektadmin (ID 2) und Reporter (ID 3) benötigen Projekt-Zuweisungen
             $has_projects_write = false;
-            // Fallback: Systemadmin (ID 1) und Projektadmin (ID 2) haben immer projects_write
-            if ($role_id === 1 || $role_id === 2) {
+            if ($role_id === 2 || $role_id === 3) {
                 $has_projects_write = true;
-            } else {
+            } else if ($role_id !== 1) {
+                // Andere Rollen (nicht Systemadmin): Prüfe Datenbank
                 $stmt_check = $pdo->prepare("SELECT visible FROM {$prefix}role_menu_access WHERE role_id = ? AND menu_key = 'projects_write'");
                 $stmt_check->execute([$role_id]);
                 $result = $stmt_check->fetch(PDO::FETCH_ASSOC);
@@ -104,11 +106,13 @@ if (isset($_POST['update_user'])) {
             $stmt->execute([$firstname, $lastname, $email, $role_id, $is_active, $id]);
             
             // Wenn die neue Rolle "Projekte schreiben" Berechtigung hat, speichere die zugewiesenen Projekte
+            // Systemadmin (ID 1) braucht keine Projekt-Zuweisungen - hat automatisch alle Zugriffe
+            // Nur Projektadmin (ID 2) und Reporter (ID 3) benötigen Projekt-Zuweisungen
             $has_projects_write = false;
-            // Fallback: Systemadmin (ID 1) und Projektadmin (ID 2) haben immer projects_write
-            if ($role_id === 1 || $role_id === 2) {
+            if ($role_id === 2 || $role_id === 3) {
                 $has_projects_write = true;
-            } else {
+            } else if ($role_id !== 1) {
+                // Andere Rollen (nicht Systemadmin): Prüfe Datenbank
                 $stmt_check = $pdo->prepare("SELECT visible FROM {$prefix}role_menu_access WHERE role_id = ? AND menu_key = 'projects_write'");
                 $stmt_check->execute([$role_id]);
                 $result = $stmt_check->fetch(PDO::FETCH_ASSOC);
@@ -174,25 +178,25 @@ $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
 $stmt = $pdo->query("SELECT id, name FROM {$prefix}projects ORDER BY name");
 $all_projects = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-// Lade Rollen mit projects_write Berechtigung
+// Lade Rollen mit projects_write Berechtigung (oder Projektadmin/Reporter)
 $roles_with_projects_write = [];
 try {
     $stmt = $pdo->prepare("SELECT DISTINCT role_id FROM {$prefix}role_menu_access WHERE menu_key = 'projects_write' AND visible = 1");
     $stmt->execute();
     $roles_with_projects_write = $stmt->fetchAll(PDO::FETCH_COLUMN, 0);
     
-    // Fallback: Systemadmin (ID 1) und Projektadmin (ID 2) haben immer projects_write
-    // Falls noch nicht in Datenbank (vor Migration/Update)
-    if (!in_array(1, $roles_with_projects_write)) {
-        $roles_with_projects_write[] = 1;
-    }
+    // Fallback: Projektadmin (ID 2) und Reporter (ID 3) benötigen Projekt-Zuweisungen
+    // Systemadmin (ID 1) hat automatisch alle Zugriffe und braucht keine Zuweisungen
     if (!in_array(2, $roles_with_projects_write)) {
-        $roles_with_projects_write[] = 2;
+        $roles_with_projects_write[] = 2; // Projektadmin
+    }
+    if (!in_array(3, $roles_with_projects_write)) {
+        $roles_with_projects_write[] = 3; // Reporter
     }
 } catch (Exception $e) {
     error_log("Could not load roles with projects_write: " . $e->getMessage());
-    // Fallback bei Fehler: Systemrollen haben projects_write
-    $roles_with_projects_write = [1, 2];
+    // Fallback bei Fehler: Projektadmin und Reporter
+    $roles_with_projects_write = [2, 3];
 }
 
 // Lade für jeden User die zugewiesenen Projekte (nur wenn Rolle 'projects_write' Berechtigung hat)
