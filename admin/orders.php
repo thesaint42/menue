@@ -18,6 +18,9 @@ $project_id = isset($_GET['project']) ? (int)$_GET['project'] : 0;
 // Projekte abrufen (nur zugängliche für Benutzer mit projects_write oder projects_read Berechtigung)
 $user_role_id = $_SESSION['role_id'] ?? null;
 
+// Prüfe ob User Schreibrechte hat (Admin oder projects_write)
+$has_write_access = ($user_role_id === 1) || hasMenuAccess($pdo, 'projects_write', $prefix);
+
 if ($user_role_id === 1) {
     // Admin: alle Projekte
     $stmt = $pdo->query("SELECT id, name FROM `{$prefix}projects` WHERE is_active = 1 ORDER BY name");
@@ -70,8 +73,8 @@ if ($project_id > 0) {
         $stmt->execute(["{$prefix}guests"]);
         $has_guest_order_id = $stmt->fetchColumn() > 0;
 
-        // POST-Aktionen: Bestellung oder Person löschen
-        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        // POST-Aktionen: Bestellung oder Person löschen (nur mit Schreibrechten)
+        if ($_SERVER['REQUEST_METHOD'] === 'POST' && $has_write_access) {
             if (isset($_POST['delete_order_id'])) {
                 $delete_order_id = trim($_POST['delete_order_id']);
                 if ($delete_order_id !== '') {
@@ -390,10 +393,12 @@ if ($project_id > 0) {
                         </div>
                         <div class="d-flex gap-2 flex-shrink-0">
                             <a class="btn btn-sm btn-outline-light btn-with-icon" href="../index.php?pin=<?php echo urlencode($project['access_pin']); ?>&action=edit&order_id=<?php echo urlencode($order_id); ?>"><span class="btn-icon">✏️</span><span class="btn-text">Bearbeiten</span></a>
+                            <?php if ($has_write_access): ?>
                             <form method="post" onsubmit="return confirm('Diese Bestellung wirklich löschen?');">
                                 <input type="hidden" name="delete_order_id" value="<?php echo htmlspecialchars($order_id); ?>">
                                 <button type="submit" class="btn btn-sm btn-danger btn-with-icon"><span class="btn-icon">🗑️</span><span class="btn-text">Löschen</span></button>
                             </form>
+                            <?php endif; ?>
                         </div>
                     </div>
                     <div class="order-header-meta mt-2">
