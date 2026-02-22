@@ -521,29 +521,20 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // Zeige Alert jedes Mal wenn Features-Collapse geöffnet wird
-    document.querySelectorAll('[data-bs-toggle="collapse"]').forEach(button => {
-        button.addEventListener('click', function() {
-            const targetId = this.getAttribute('data-bs-target');
-            if (targetId && targetId.startsWith('#features_')) {
-                // Kurze Verzögerung damit Collapse-Animation startet
+    // Nutze Bootstrap's shown.bs.collapse Event
+    document.querySelectorAll('[id^="features_"]').forEach(collapseElement => {
+        collapseElement.addEventListener('shown.bs.collapse', function() {
+            const roleId = this.id.replace('features_', '');
+            const alertElement = document.getElementById('system_role_alert_' + roleId);
+            if (alertElement) {
+                // Alert wieder anzeigen (egal ob es vorher ausgeblendet war oder nicht)
+                alertElement.style.display = 'block';
+                // Kleine Verzögerung für Fade-In Animation
                 setTimeout(() => {
-                    const roleId = targetId.replace('#features_', '');
-                    const alertElement = document.getElementById('system_role_alert_' + roleId);
-                    if (alertElement) {
-                        // Prüfe ob Collapse gerade geöffnet wurde
-                        const collapseElement = document.querySelector(targetId);
-                        if (collapseElement && collapseElement.classList.contains('show')) {
-                            // Alert wieder anzeigen
-                            alertElement.style.display = 'block';
-                            // Kleine Verzögerung für Fade-In Animation
-                            setTimeout(() => {
-                                alertElement.classList.add('show');
-                            }, 10);
-                            // Timer neu starten
-                            initSystemRoleAlert(alertElement);
-                        }
-                    }
-                }, 50);
+                    alertElement.classList.add('show');
+                }, 10);
+                // Timer neu starten
+                initSystemRoleAlert(alertElement);
             }
         });
     });
