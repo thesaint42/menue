@@ -243,9 +243,39 @@ try {
     <style>
         body { background-color: #1a1a1a; color: #fff; }
         .card { background-color: #222; border-color: #444; }
-        .form-control, .form-select { background-color: #333; color: #fff; border-color: #555; }
-        .form-control:focus, .form-select:focus { background-color: #333; color: #fff; border-color: #0d6efd; }
-        .card .form-label { color: #fff; }
+        
+        /* Ansichtsmodus (disabled): Graue Felder mit weißer Schrift */
+        .form-control:disabled, .form-select:disabled { 
+            background-color: #333; 
+            color: #fff; 
+            border-color: #555; 
+            opacity: 1;
+        }
+        
+        /* Bearbeitungsmodus (enabled): Weiße Felder mit schwarzer Schrift */
+        .form-control:not(:disabled), .form-select:not(:disabled) { 
+            background-color: #fff; 
+            color: #333; 
+            border-color: #555; 
+        }
+        
+        .form-control:focus, .form-select:focus { 
+            background-color: #fff; 
+            color: #333; 
+            border-color: #0d6efd; 
+        }
+        
+        /* Passwort-Feld: Placeholder-Farbe anpassen */
+        .password-field:disabled::placeholder {
+            color: #aaa;
+            opacity: 1;
+        }
+        .password-field:not(:disabled)::placeholder {
+            color: #999;
+            opacity: 1;
+        }
+        
+        .card .form-label { color: #888; }
         .alert { display: flex; align-items: center; justify-content: space-between; padding-right: 20px; }
         .close-button-wrapper {
             display: flex;
@@ -265,7 +295,10 @@ try {
         }
         .close-button-wrapper:hover { background-color: #bb2d3b; }
         .btn i { margin-right: 0.25rem; }
-        .form-check-label { user-select: none; }
+        .form-check-label { 
+            user-select: none;
+            color: #fff;
+        }
     </style>
 </head>
 <body>
@@ -350,14 +383,14 @@ try {
                             <div class="row g-3">
                                 <!-- Name und Aktiv-Status -->
                                 <div class="col-12">
-                                    <div class="d-flex justify-content-between align-items-start">
+                                    <div class="d-flex justify-content-between align-items-start gap-3">
                                         <div class="d-flex flex-column flex-md-row gap-2 flex-grow-1">
                                             <input type="text" name="firstname" value="<?php echo htmlspecialchars($user['firstname']); ?>" class="form-control form-control-sm" placeholder="Vorname" disabled>
                                             <input type="text" name="lastname" value="<?php echo htmlspecialchars($user['lastname']); ?>" class="form-control form-control-sm" placeholder="Nachname" disabled>
                                         </div>
-                                        <div class="form-check ms-3">
-                                            <input type="checkbox" name="is_active" id="active_<?php echo $user['id']; ?>" class="form-check-input" <?php echo $user['is_active'] ? 'checked' : ''; ?> disabled>
-                                            <label class="form-check-label small" for="active_<?php echo $user['id']; ?>">Aktiv</label>
+                                        <div class="form-check d-flex align-items-center gap-2">
+                                            <input type="checkbox" name="is_active" id="active_<?php echo $user['id']; ?>" class="form-check-input mt-0" <?php echo $user['is_active'] ? 'checked' : ''; ?> disabled>
+                                            <label class="form-check-label mb-0" for="active_<?php echo $user['id']; ?>" style="white-space: nowrap;">Aktiv</label>
                                         </div>
                                     </div>
                                 </div>
@@ -369,7 +402,7 @@ try {
 
                                 <!-- Passwort -->
                                 <div class="col-12">
-                                    <input type="password" name="password" placeholder="Neues Passwort (optional)" class="form-control form-control-sm" disabled style="color: #aaa;">
+                                    <input type="password" name="password" placeholder="Neues Passwort (optional)" class="form-control form-control-sm password-field" disabled>
                                     <small class="d-block mt-1" style="color: #888;">Leer lassen, um Passwort nicht zu ändern</small>
                                 </div>
 
@@ -388,14 +421,18 @@ try {
                                 <!-- Projekt-Zuweisungen -->
                                 <?php $has_projects_write = in_array($user['role_id'], $roles_with_projects_write); ?>
                                 <div class="col-12 projects-section-<?php echo $user['id']; ?>" style="<?php echo $has_projects_write ? '' : 'display: none;'; ?>">
-                                    <label class="form-label small mb-1" style="color: #888;">Verwaltbare Projekte</label>
+                                    <label class="form-label small mb-2" style="color: #888;">Verwaltbare Projekte</label>
                                     <div class="ps-2">
-                                        <?php foreach ($all_projects as $project): ?>
-                                        <div class="form-check">
-                                            <input type="checkbox" name="assigned_projects[]" value="<?php echo $project['id']; ?>" id="project_<?php echo $user['id']; ?>_<?php echo $project['id']; ?>" class="form-check-input" <?php echo in_array($project['id'], $user_projects[$user['id']] ?? []) ? 'checked' : ''; ?> disabled>
-                                            <label class="form-check-label small" for="project_<?php echo $user['id']; ?>_<?php echo $project['id']; ?>"><?php echo htmlspecialchars($project['name']); ?></label>
-                                        </div>
-                                        <?php endforeach; ?>
+                                        <?php if (empty($all_projects)): ?>
+                                            <small style="color: #888;">Keine Projekte vorhanden</small>
+                                        <?php else: ?>
+                                            <?php foreach ($all_projects as $project): ?>
+                                            <div class="form-check mb-1">
+                                                <input type="checkbox" name="assigned_projects[]" value="<?php echo $project['id']; ?>" id="project_<?php echo $user['id']; ?>_<?php echo $project['id']; ?>" class="form-check-input" <?php echo in_array($project['id'], $user_projects[$user['id']] ?? []) ? 'checked' : ''; ?> disabled>
+                                                <label class="form-check-label" for="project_<?php echo $user['id']; ?>_<?php echo $project['id']; ?>"><?php echo htmlspecialchars($project['name']); ?></label>
+                                            </div>
+                                            <?php endforeach; ?>
+                                        <?php endif; ?>
                                     </div>
                                 </div>
 
