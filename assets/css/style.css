@@ -179,20 +179,32 @@ main.container {
 }
 
 .badge.guest-type-badge {
-    min-width: 140px;
+    min-width: fit-content;
     display: inline-flex;
     justify-content: center;
     align-items: center;
+    padding: 0.3rem 0.5rem;
 }
 
 .badge.guest-highchair-badge {
     display: inline-flex;
     align-items: center;
-    padding: 0.4rem 0.6rem;
+    padding: 0.3rem 0.5rem;
 }
 
 .badge.guest-highchair-badge .hs-icon {
     margin-right: 0.3rem;
+}
+
+@media (min-width: 769px) {
+    .badge.guest-type-badge {
+        min-width: 140px;
+        padding: 0.4rem 0.8rem;
+    }
+    
+    .badge.guest-highchair-badge {
+        padding: 0.4rem 0.6rem;
+    }
 }
 
 /* Modals */
