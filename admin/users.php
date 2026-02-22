@@ -44,6 +44,22 @@ if (isset($_POST['create_user'])) {
             $password_hash = password_hash($password, PASSWORD_BCRYPT);
             $stmt = $pdo->prepare("INSERT INTO {$prefix}users (firstname, lastname, email, password_hash, role_id, is_active) VALUES (?, ?, ?, ?, ?, 1)");
             $stmt->execute([$firstname, $lastname, $email, $password_hash, $role_id]);
+            $new_user_id = $pdo->lastInsertId();
+            
+            // Wenn Rolle "Projektverwaltung" ist, speichere die zugewiesenen Projekte
+            if ($projektverwaltung_role_id && $role_id === $projektverwaltung_role_id) {
+                try {
+                    if (isset($_POST['assigned_projects']) && is_array($_POST['assigned_projects'])) {
+                        $stmt = $pdo->prepare("INSERT INTO {$prefix}user_projects (user_id, project_id) VALUES (?, ?)");
+                        foreach ($_POST['assigned_projects'] as $project_id) {
+                            $stmt->execute([$new_user_id, (int)$project_id]);
+                        }
+                    }
+                } catch (Exception $e) {
+                    error_log("Could not assign projects: " . $e->getMessage());
+                }
+            }
+            
             $message = "Benutzer erstellt.";
             $messageType = "success";
         } catch (Exception $e) {
@@ -238,13 +254,26 @@ if ($projektverwaltung_role_id) {
                         </div>
                         <div class="col-12">
                             <label for="role_id" class="form-label">Rolle</label>
-                            <select name="role_id" id="role_id" class="form-select form-select-sm" required>
+                            <select name="role_id" id="role_id" class="form-select form-select-sm" required onchange="toggleProjectsCreation()">
                                 <option value="">Wählen...</option>
                                 <?php foreach ($roles as $role): ?>
                                     <option value="<?php echo $role['id']; ?>"><?php echo htmlspecialchars($role['name']); ?></option>
                                 <?php endforeach; ?>
                             </select>
                         </div>
+                        <?php if ($projektverwaltung_role_id): ?>
+                        <div class="col-12 projects-creation-section" style="display: none;">
+                            <label class="form-label small">Verwaltbare Projekte:</label>
+                            <div class="ps-2">
+                                <?php foreach ($all_projects as $project): ?>
+                                <div class="form-check">
+                                    <input type="checkbox" name="assigned_projects[]" value="<?php echo $project['id']; ?>" id="creation_project_<?php echo $project['id']; ?>" class="form-check-input">
+                                    <label class="form-check-label" for="creation_project_<?php echo $project['id']; ?>"><?php echo htmlspecialchars($project['name']); ?></label>
+                                </div>
+                                <?php endforeach; ?>
+                            </div>
+                        </div>
+                        <?php endif; ?>
                         <div class="col-12">
                             <button type="submit" name="create_user" class="btn btn-primary w-100">Erstellen</button>
                         </div>
@@ -287,8 +316,8 @@ if ($projektverwaltung_role_id) {
                                                     <?php endforeach; ?>
                                                 </select>
                                             </div>
-                                            <?php if ($projektverwaltung_role_id && $user['role_id'] == $projektverwaltung_role_id): ?>
-                                            <div class="mt-2 projects-section-<?php echo $user['id']; ?>">
+                                            <!-- Projekt-Auswahl (versteckt wenn Rolle nicht Projektverwaltung) -->
+                                            <div class="mt-2 projects-section-<?php echo $user['id']; ?>" style="<?php echo ($projektverwaltung_role_id && $user['role_id'] == $projektverwaltung_role_id) ? '' : 'display: none;'; ?>">
                                                 <label class="form-label small">Verwaltbare Projekte:</label>
                                                 <div class="ps-2">
                                                     <?php foreach ($all_projects as $project): ?>
@@ -299,7 +328,6 @@ if ($projektverwaltung_role_id) {
                                                     <?php endforeach; ?>
                                                 </div>
                                             </div>
-                                            <?php endif; ?>
                                     <td class="text-center">
                                             <input type="checkbox" name="is_active" class="form-check-input" <?php echo $user['is_active'] ? 'checked' : ''; ?> disabled>
                                     </td>
@@ -341,12 +369,20 @@ function toggleEdit(btn, id) {
     const form = document.getElementById('form_' + id);
     if (!form) return;
     const row = form.closest('tr');
+    
+    // Toggle Text- und Select-Felder
     const inputs = row.querySelectorAll('input[type=text], input[type=email], select');
     inputs.forEach(input => {
         input.toggleAttribute('disabled');
     });
 
-    // Auch Projekt-Checkboxen aktivieren
+    // Toggle is_active checkbox (separat)
+    const isActiveCheckbox = row.querySelector('input[name="is_active"]');
+    if (isActiveCheckbox) {
+        isActiveCheckbox.toggleAttribute('disabled');
+    }
+
+    // Toggle Projekt-Checkboxen (nur wenn Projektverwaltung-Rolle)
     const projectCheckboxes = row.querySelectorAll('input[name="assigned_projects[]"]');
     projectCheckboxes.forEach(checkbox => {
         checkbox.toggleAttribute('disabled');
@@ -360,6 +396,17 @@ function toggleEdit(btn, id) {
     }
 }
 
+function toggleProjectsCreation() {
+    const roleSelect = document.getElementById('role_id');
+    const projectsSection = document.querySelector('.projects-creation-section');
+    if (!projectsSection) return;
+    
+    const selectedOption = roleSelect.options[roleSelect.selectedIndex];
+    const isProjektVerwaltung = selectedOption && selectedOption.textContent.includes('Projektverwaltung');
+    
+    projectsSection.style.display = isProjektVerwaltung ? 'block' : 'none';
+}
+
 function toggleProjectsSection(roleSelect, userId) {
     const projectsSection = document.querySelector(`.projects-section-${userId}`);
     if (!projectsSection) return;
@@ -370,11 +417,9 @@ function toggleProjectsSection(roleSelect, userId) {
     
     if (isProjektVerwaltung) {
         projectsSection.style.display = 'block';
-        // Checkboxen mitnehmen aktuellem Edit-Status
+        // Checkboxen mitnehmen aktuellen Edit-Status (disabled/enabled)
         projectsSection.querySelectorAll('input[type=checkbox]').forEach(cb => {
-            // Wenn Parent disabled ist, dann Checkboxes auch. Sonst wie Rolle-Select
-            const isEditMode = !roleSelect.disabled;
-            cb.disabled = !isEditMode;
+            // Status bleibt wie er ist (disabled wenn View-Mode, enabled wenn Edit-Mode)
         });
     } else {
         projectsSection.style.display = 'none';
