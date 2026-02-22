@@ -581,8 +581,8 @@ function generate_kitchen_report($pdo, $prefix, $project_id) {
             mc.name as category,
             mc.sort_order,
             d.name as dish,
-            COUNT(*) as quantity,
-            GROUP_CONCAT(CONCAT(g.firstname, ' ', g.lastname) SEPARATOR ', ') as guests
+            COUNT(DISTINCT CONCAT(o.order_id, '-', o.person_id, '-', o.dish_id)) as quantity,
+            GROUP_CONCAT(DISTINCT CONCAT(g.firstname, ' ', g.lastname) SEPARATOR ', ') as guests
         FROM {$prefix}order_sessions os
         JOIN {$prefix}orders o ON o.order_id = os.order_id
         JOIN {$prefix}dishes d ON d.id = o.dish_id
