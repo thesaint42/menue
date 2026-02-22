@@ -97,11 +97,11 @@ $logs = $pdo->query("SELECT * FROM {$prefix}mail_logs ORDER BY sent_at DESC LIMI
                         </div>
                         <div class="mb-3">
                             <label class="form-label">SMTP Benutzername</label>
-                            <input type="text" name="smtp_user" class="form-control" value="<?php echo htmlspecialchars($smtp['smtp_user']); ?>">
+                            <input type="text" name="smtp_user" class="form-control" value="<?php echo htmlspecialchars($smtp['smtp_user']); ?>" autocomplete="off">
                         </div>
                         <div class="mb-3">
                             <label class="form-label">SMTP Passwort</label>
-                            <input type="password" name="smtp_pass" class="form-control" value="<?php echo htmlspecialchars($smtp['smtp_pass']); ?>">
+                            <input type="password" name="smtp_pass" class="form-control" value="<?php echo htmlspecialchars($smtp['smtp_pass']); ?>" autocomplete="new-password">
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Verschlüsselung</label>
@@ -113,7 +113,7 @@ $logs = $pdo->query("SELECT * FROM {$prefix}mail_logs ORDER BY sent_at DESC LIMI
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Absender Email *</label>
-                            <input type="email" name="sender_email" class="form-control" value="<?php echo htmlspecialchars($smtp['sender_email']); ?>" required>
+                            <input type="email" name="sender_email" class="form-control" value="<?php echo htmlspecialchars($smtp['sender_email']); ?>" autocomplete="off" required>
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Absender Name *</label>
@@ -136,7 +136,7 @@ $logs = $pdo->query("SELECT * FROM {$prefix}mail_logs ORDER BY sent_at DESC LIMI
                     <form method="post">
                         <div class="mb-3">
                             <label class="form-label">Test Email Empfänger</label>
-                            <input type="email" name="test_email" class="form-control" value="<?php echo htmlspecialchars($_SESSION['email']); ?>" required>
+                            <input type="email" name="test_email" class="form-control" value="<?php echo htmlspecialchars($_SESSION['email']); ?>" autocomplete="off" required>
                         </div>
                         <button type="submit" name="send_test_mail" class="btn btn-success w-100 fw-bold">Test-Email versenden</button>
                     </form>
