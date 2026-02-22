@@ -3,6 +3,11 @@
  * admin/export_pdf.php - PDF Export der Bestellungsübersicht
  */
 
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+ini_set('log_errors', 1);
+ini_set('error_log', '../storage/logs/export_pdf_error.log');
+
 require_once '../db.php';
 require_once '../script/auth.php';
 
