@@ -323,6 +323,12 @@ if ($project_id) {
             margin-right: 0.35rem;
         }
         
+        /* Highchair badge - symbol only on mobile */
+        @media (max-width: 576px) {
+            .guest-highchair-badge .hs-text { display: none; }
+            .guest-highchair-badge .hs-icon { margin-right: 0; }
+        }
+        
         /* Mobile: Symbol only for action buttons */
         @media (max-width: 576px) {
             .guest-btn {
@@ -397,30 +403,34 @@ if ($project_id) {
             </div>
             <div class="card-body">
                 <?php foreach ($order_data['people'] as $person): ?>
-                <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom">
+                <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom gap-2">
                     <div class="d-flex flex-wrap align-items-center gap-2">
                         <span class="fw-bold">👤 <?php echo htmlspecialchars($person['name'] ?? 'N/A'); ?></span>
-                        <?php 
-                            $type = strtolower($person['person_type'] ?? 'adult');
-                            if ($type === 'child'): ?>
-                            <span class="badge bg-info">Kind (<?php echo htmlspecialchars($person['child_age'] ?? '?'); ?> Jahre)</span>
-                            <?php if (isset($person['highchair_needed']) && $person['highchair_needed']): ?>
-                                <span class="badge bg-warning text-dark">🪑 Hochstuhl</span>
-                            <?php endif; ?>
-                        <?php else: ?>
-                            <span class="badge bg-secondary">Erwachsener</span>
-                        <?php endif; ?>
                         <?php if ($person['email'] && $person['email'] !== $order_data['email']): ?>
                             <small class="text-muted">| <?php echo htmlspecialchars($person['email']); ?></small>
                         <?php endif; ?>
                     </div>
-                    <form method="post" onsubmit="return confirm('Person und zugehörige Gerichte löschen?');">
-                        <input type="hidden" name="delete_person_order_id" value="<?php echo htmlspecialchars($order_data['order_id']); ?>">
-                        <input type="hidden" name="delete_person_index" value="<?php echo (int)$person['person_index']; ?>">
-                        <button type="submit" class="btn btn-sm btn-outline-danger guest-btn">
-                            <span class="btn-icon">🗑️</span><span class="btn-text">Löschen</span>
-                        </button>
-                    </form>
+                    <div class="d-flex justify-content-end align-items-center gap-2">
+                        <div class="d-flex flex-wrap align-items-center gap-2 justify-content-end">
+                            <?php 
+                                $type = strtolower($person['person_type'] ?? 'adult');
+                                if ($type === 'child'): ?>
+                                <span class="badge bg-info guest-type-badge">Kind (<?php echo htmlspecialchars($person['child_age'] ?? '?'); ?> Jahre)</span>
+                                <?php if (isset($person['highchair_needed']) && $person['highchair_needed']): ?>
+                                    <span class="badge bg-warning text-dark guest-highchair-badge"><span class="hs-icon">🪑</span><span class="hs-text"> Hochstuhl</span></span>
+                                <?php endif; ?>
+                            <?php else: ?>
+                                <span class="badge bg-secondary guest-type-badge">Erwachsener</span>
+                            <?php endif; ?>
+                        </div>
+                        <form method="post" onsubmit="return confirm('Person und zugehörige Gerichte löschen?');">
+                            <input type="hidden" name="delete_person_order_id" value="<?php echo htmlspecialchars($order_data['order_id']); ?>">
+                            <input type="hidden" name="delete_person_index" value="<?php echo (int)$person['person_index']; ?>">
+                            <button type="submit" class="btn btn-sm btn-outline-danger guest-btn">
+                                <span class="btn-icon">🗑️</span><span class="btn-text">Löschen</span>
+                            </button>
+                        </form>
+                    </div>
                 </div>
                 <?php endforeach; ?>
             </div>
