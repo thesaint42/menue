@@ -236,40 +236,23 @@ if ($project_id > 0) {
     <link rel="stylesheet" href="../assets/css/style.css">
     <style>
         .page-container { max-width: 900px; }
+        
+        /* Order Header Meta - linksbündig */
+        .order-header-meta { text-align: left; }
+        
+        /* Buttons mit Icons */
+        .btn-with-icon .btn-icon {
+            margin-right: 0.5rem;
+        }
+        
+        /* Mobile: nur Icons für Buttons */
         @media (max-width: 576px) {
-            .order-header-meta { text-align: left !important; }
-            
-            /* Mobile: Buttons und Badges rechtsbündig */
-            @media (max-width: 768px) {
-                .card-header .d-flex {
-                    flex-direction: column-reverse !important;
-                }
-                .card-header .d-flex > div:first-child {
-                    order: 3 !important;
-                }
-                .card-header .d-flex > div:nth-child(2) {
-                    order: 1 !important;
-                    align-self: flex-end !important;
-                    text-align: right;
-                    margin-bottom: 0.5rem;
-                }
-                .card-header .d-flex > div:nth-child(3) {
-                    order: 2 !important;
-                    align-self: flex-end !important;
-                }
-                
-                /* In card-body: Badges und Buttons auch rechtsbündig */
-                .card-body .border-bottom.mb-3 .d-flex {
-                    flex-direction: column-reverse !important;
-                }
-                .card-body .border-bottom.mb-3 .d-flex > h6 {
-                    order: 2 !important;
-                }
-                .card-body .border-bottom.mb-3 .d-flex > div:last-child {
-                    order: 1 !important;
-                    align-self: flex-end !important;
-                    margin-bottom: 0.5rem;
-                }
+            .btn-with-icon .btn-text { display: none; }
+            .btn-with-icon .btn-icon { margin-right: 0; }
+            .btn-with-icon {
+                min-width: auto;
+                padding-left: 0.5rem;
+                padding-right: 0.5rem;
             }
         }
     </style>
@@ -380,10 +363,10 @@ if ($project_id > 0) {
                             <small><?php echo date('d.m.Y H:i', strtotime($order_data['order_date'])); ?></small>
                         </div>
                         <div class="d-flex gap-2">
-                            <a class="btn btn-sm btn-outline-light" href="../index.php?pin=<?php echo urlencode($project['access_pin']); ?>&action=edit&order_id=<?php echo urlencode($order_id); ?>">Bearbeiten</a>
+                            <a class="btn btn-sm btn-outline-light btn-with-icon" href="../index.php?pin=<?php echo urlencode($project['access_pin']); ?>&action=edit&order_id=<?php echo urlencode($order_id); ?>"><span class="btn-icon">✏️</span><span class="btn-text">Bearbeiten</span></a>
                             <form method="post" onsubmit="return confirm('Diese Bestellung wirklich löschen?');">
                                 <input type="hidden" name="delete_order_id" value="<?php echo htmlspecialchars($order_id); ?>">
-                                <button type="submit" class="btn btn-sm btn-danger">Löschen</button>
+                                <button type="submit" class="btn btn-sm btn-danger btn-with-icon"><span class="btn-icon">🗑️</span><span class="btn-text">Löschen</span></button>
                             </form>
                         </div>
                     </div>
