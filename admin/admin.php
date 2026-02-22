@@ -44,6 +44,16 @@ try {
     $accessible_project_ids = [];
 }
 
+// DEBUG: Ausgabe für Fehlersuche
+if (isset($_GET['debug'])) {
+    echo "<pre>DEBUG INFO:\n";
+    echo "User Role ID: " . var_export($user_role_id, true) . "\n";
+    echo "Is Systemadmin: " . var_export($is_systemadmin, true) . "\n";
+    echo "Accessible Project IDs: " . var_export($accessible_project_ids, true) . "\n";
+    echo "Project Count: " . count($accessible_project_ids) . "\n";
+    echo "</pre>";
+}
+
 // Statistiken basierend auf zugänglichen Projekten
 $project_count = count($accessible_project_ids);
 $guest_count = 0;
