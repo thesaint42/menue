@@ -446,8 +446,15 @@ $available_menu_items = [
                                                             }
                                                         }
                                                     } else if ($role['id'] === 3) {
-                                                        // Reporter (ID 3) hat nur Reporting
-                                                        $is_visible = ($menu_key === 'reporting');
+                                                        // Reporter (ID 3) - Prüfe Features aus Datenbank
+                                                        try {
+                                                            $stmt = $pdo->prepare("SELECT visible FROM {$prefix}role_menu_access WHERE role_id = ? AND menu_key = ?");
+                                                            $stmt->execute([$role['id'], $menu_key]);
+                                                            $menu_access = $stmt->fetch(PDO::FETCH_ASSOC);
+                                                            $is_visible = $menu_access && $menu_access['visible'];
+                                                        } catch (Exception $e) {
+                                                            $is_visible = false;
+                                                        }
                                                     } else {
                                                         try {
                                                             $stmt = $pdo->prepare("SELECT visible FROM {$prefix}role_menu_access WHERE role_id = ? AND menu_key = ?");
