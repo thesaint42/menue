@@ -7,63 +7,87 @@ require_once '../db.php';
 require_once '../script/auth.php';
 
 checkLogin();
-checkAdmin();
 
 $prefix = $config['database']['prefix'] ?? 'menu_';
+
+// Feature-basierte Zugriffskontrolle
+$can_read_categories = hasMenuAccess($pdo, 'menu_categories_read', $prefix);
+$can_write_categories = hasMenuAccess($pdo, 'menu_categories_write', $prefix);
+
+// Wenn Benutzer keine Leseberechtigung hat, Zugriff verweigern
+if (!$can_read_categories) {
+    header("Location: ../error_access_denied.php?reason=" . urlencode('Sie haben keine Berechtigung, Menükategorien anzuzeigen.') . "&feature=" . urlencode('menu_categories_read'));
+    exit;
+}
+
 $message = "";
 $messageType = "info";
 
 // Kategorie erstellen
 if (isset($_POST['create_category'])) {
-    $name = trim($_POST['name']);
-    $sort_order = isset($_POST['sort_order']) && $_POST['sort_order'] !== '' ? (int)$_POST['sort_order'] : 0;
-    
-    if (empty($name)) {
-        $message = "Kategoriename ist erforderlich.";
+    if (!$can_write_categories) {
+        $message = "⚠️ Keine Berechtigung zum Erstellen von Menükategorien.";
         $messageType = "danger";
     } else {
-        try {
-            $stmt = $pdo->prepare("INSERT INTO {$prefix}menu_categories (name, sort_order) VALUES (?, ?)");
-            $stmt->execute([$name, $sort_order]);
-            $message = "Kategorie erstellt.";
-            $messageType = "success";
-        } catch (Exception $e) {
-            $message = "Fehler beim Erstellen: " . $e->getMessage();
+        $name = trim($_POST['name']);
+        $sort_order = isset($_POST['sort_order']) && $_POST['sort_order'] !== '' ? (int)$_POST['sort_order'] : 0;
+        
+        if (empty($name)) {
+            $message = "Kategoriename ist erforderlich.";
             $messageType = "danger";
+        } else {
+            try {
+                $stmt = $pdo->prepare("INSERT INTO {$prefix}menu_categories (name, sort_order) VALUES (?, ?)");
+                $stmt->execute([$name, $sort_order]);
+                $message = "Kategorie erstellt.";
+                $messageType = "success";
+            } catch (Exception $e) {
+                $message = "Fehler beim Erstellen: " . $e->getMessage();
+                $messageType = "danger";
+            }
         }
     }
 }
 
 // Kategorie bearbeiten
 if (isset($_POST['update_category'])) {
-    $id = (int)$_POST['id'];
-    $name = trim($_POST['name']);
-    $sort_order = (int)$_POST['sort_order'];
-    
-    if (empty($name)) {
-        $message = "Kategoriename ist erforderlich.";
+    if (!$can_write_categories) {
+        $message = "⚠️ Keine Berechtigung zum Bearbeiten von Menükategorien.";
         $messageType = "danger";
     } else {
-        try {
-            $stmt = $pdo->prepare("UPDATE {$prefix}menu_categories SET name = ?, sort_order = ? WHERE id = ?");
-            $stmt->execute([$name, $sort_order, $id]);
-            $message = "Kategorie aktualisiert.";
-            $messageType = "success";
-        } catch (Exception $e) {
-            $message = "Fehler beim Aktualisieren: " . $e->getMessage();
+        $id = (int)$_POST['id'];
+        $name = trim($_POST['name']);
+        $sort_order = (int)$_POST['sort_order'];
+        
+        if (empty($name)) {
+            $message = "Kategoriename ist erforderlich.";
             $messageType = "danger";
+        } else {
+            try {
+                $stmt = $pdo->prepare("UPDATE {$prefix}menu_categories SET name = ?, sort_order = ? WHERE id = ?");
+                $stmt->execute([$name, $sort_order, $id]);
+                $message = "Kategorie aktualisiert.";
+                $messageType = "success";
+            } catch (Exception $e) {
+                $message = "Fehler beim Aktualisieren: " . $e->getMessage();
+                $messageType = "danger";
+            }
         }
     }
 }
 
 // Kategorie löschen
 if (isset($_POST['delete_category'])) {
-    $id = (int)$_POST['id'];
-    try {
-        $pdo->beginTransaction();
-        
-        // Lösche Gerichte in dieser Kategorie
-        $stmt = $pdo->prepare("DELETE FROM {$prefix}dishes WHERE category_id = ?");
+    if (!$can_write_categories) {
+        $message = "⚠️ Keine Berechtigung zum Löschen von Menükategorien.";
+        $messageType = "danger";
+    } else {
+        $id = (int)$_POST['id'];
+        try {
+            $pdo->beginTransaction();
+            
+            // Lösche Gerichte in dieser Kategorie
+            $stmt = $pdo->prepare("DELETE FROM {$prefix}dishes WHERE category_id = ?");
         $stmt->execute([$id]);
         
         // Lösche Kategorie
@@ -77,6 +101,7 @@ if (isset($_POST['delete_category'])) {
         $pdo->rollBack();
         $message = "Fehler beim Löschen: " . $e->getMessage();
         $messageType = "danger";
+    }
     }
 }
 
@@ -152,15 +177,20 @@ $categories = $stmt->fetchAll(PDO::FETCH_ASSOC);
             <h5 class="mb-0">Neue Kategorie</h5>
         </div>
         <div class="card-body">
+            <?php if (!$can_write_categories): ?>
+            <div class="alert alert-warning" role="alert">
+                <strong>ℹ️ Hinweis:</strong> Sie haben nur Leseberechtigung für Menükategorien.
+            </div>
+            <?php endif; ?>
             <form method="post" class="row g-2">
                 <div class="col-12 col-md-6">
-                    <input type="text" name="name" class="form-control" placeholder="Kategoriename" required>
+                    <input type="text" name="name" class="form-control" placeholder="Kategoriename" required <?php echo !$can_write_categories ? 'disabled' : ''; ?>>
                 </div>
                 <div class="col-12 col-md-3">
-                    <input type="number" name="sort_order" class="form-control" placeholder="Reihenfolge" min="0" required>
+                    <input type="number" name="sort_order" class="form-control" placeholder="Reihenfolge" min="0" required <?php echo !$can_write_categories ? 'disabled' : ''; ?>>
                 </div>
                 <div class="col-12 col-md-3">
-                    <button type="submit" name="create_category" class="btn btn-primary w-100">Erstellen</button>
+                    <button type="submit" name="create_category" class="btn btn-primary w-100" <?php echo !$can_write_categories ? 'disabled' : ''; ?>>Erstellen</button>
                 </div>
             </form>
         </div>
@@ -197,9 +227,13 @@ $categories = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                     <input type="number" name="sort_order" value="<?php echo $cat['sort_order']; ?>" class="form-control form-control-sm" min="0" disabled>
                                 </td>
                                 <td class="text-nowrap">
+                                    <?php if ($can_write_categories): ?>
                                     <button type="button" class="btn btn-sm btn-success edit-btn" onclick="toggleEdit(this, <?php echo $cat['id']; ?>)" data-id="<?php echo $cat['id']; ?>">Bearbeiten</button>
                                     <button type="submit" name="update_category" form="form_<?php echo $cat['id']; ?>" class="btn btn-sm btn-warning d-none" data-id="<?php echo $cat['id']; ?>">Speichern</button>
                                     <button type="button" class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#deleteModal" onclick="document.getElementById('deleteForm').innerHTML = '<input type=hidden name=id value=<?php echo $cat['id']; ?>><input type=hidden name=delete_category value=1>'">Löschen</button>
+                                    <?php else: ?>
+                                    <span class="badge bg-secondary">Nur Lesezugriff</span>
+                                    <?php endif; ?>
                                     </form>
                                 </td>
                             </tr>
