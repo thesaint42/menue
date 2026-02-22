@@ -8,17 +8,14 @@ require_once '../script/auth.php';
 
 checkLogin();
 
+// Feature-basierte Zugriffskontrolle (zentrale Funktion)
+requireMenuAccess($pdo, ['menu_categories_read', 'menu_categories_write'], 'read', $config['database']['prefix'] ?? 'menu_');
+
 $prefix = $config['database']['prefix'] ?? 'menu_';
 
-// Feature-basierte Zugriffskontrolle
+// Get individual permissions for UI
 $can_read_categories = hasMenuAccess($pdo, 'menu_categories_read', $prefix);
 $can_write_categories = hasMenuAccess($pdo, 'menu_categories_write', $prefix);
-
-// Wenn Benutzer keine Leseberechtigung hat, Zugriff verweigern
-if (!$can_read_categories) {
-    header("Location: ../error_access_denied.php?reason=" . urlencode('Sie haben keine Berechtigung, Menükategorien anzuzeigen.') . "&feature=" . urlencode('menu_categories_read'));
-    exit;
-}
 
 $message = "";
 $messageType = "info";

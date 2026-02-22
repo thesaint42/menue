@@ -38,6 +38,45 @@ function isAdmin() {
 }
 
 /**
+ * Check menu access and redirect to error page if denied
+ * @param PDO $pdo Database connection
+ * @param string|array $required_features Single feature or array of features
+ * @param string $feature_type 'read' or 'write' (default: 'read')
+ * @param string|null $prefix Database prefix
+ */
+function requireMenuAccess($pdo, $required_features, $feature_type = 'read', $prefix = null) {
+    global $config;
+    if (!$prefix) {
+        $prefix = $config['database']['prefix'] ?? 'menu_';
+    }
+    
+    if (!isLoggedIn()) {
+        header("Location: ../error_access_denied.php?reason=" . urlencode('Sie müssen eingeloggt sein.') . "&feature=" . urlencode('Login erforderlich'));
+        exit;
+    }
+    
+    // Systemadmin (ID 1) hat immer Zugriff
+    if ($_SESSION['role_id'] === 1) {
+        return true;
+    }
+    
+    // Normalize to array
+    $features = is_array($required_features) ? $required_features : [$required_features];
+    
+    // Check each feature
+    foreach ($features as $feature) {
+        if (hasMenuAccess($pdo, $feature, $prefix)) {
+            return true;
+        }
+    }
+    
+    // Zugriff verweigert
+    $feature_display = implode(', ', $features);
+    header("Location: ../error_access_denied.php?reason=" . urlencode('Sie haben keine Berechtigung, auf diese Seite zuzugreifen.') . "&feature=" . urlencode($feature_display));
+    exit;
+}
+
+/**
  * Check if current user has a specific feature/permission
  */
 function hasRoleFeature($pdo, $feature_name, $prefix = null) {

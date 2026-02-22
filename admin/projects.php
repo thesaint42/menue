@@ -43,7 +43,9 @@ set_exception_handler(function($e) {
 });
 
 checkLogin();
-checkAdmin();
+
+// Feature-basierte Zugriffskontrolle
+requireMenuAccess($pdo, ['projects_read', 'projects_write'], 'read', $config['database']['prefix'] ?? 'menu_');
 
 $prefix = $config['database']['prefix'] ?? 'menu_';
 if (empty($prefix)) {
