@@ -347,7 +347,7 @@ if ($project_id) {
 <?php include '../nav/top_nav.php'; ?>
 
 <div class="container py-4">
-    <h2 class="mb-4">Gästeübersicht</h2>
+    <h1 class="mb-4">Gästeübersicht</h1>
 
     <!-- PROJEKT FILTER (Select wie in orders.php) -->
     <div class="card border-0 shadow mb-4">
