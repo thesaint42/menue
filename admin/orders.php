@@ -272,6 +272,17 @@ if ($project_id > 0) {
     </div>
 
     <?php if ($project_id > 0): ?>
+        <div class="mb-4 d-flex justify-content-between align-items-center">
+            <div>
+                <h5><?php echo htmlspecialchars($project['name']); ?> - <?php echo count($orders); ?> Bestellung(en)</h5>
+            </div>
+            <div>
+                <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#pdfModal">
+                    📄 PDF Export
+                </button>
+            </div>
+        </div>
+        
         <?php if (empty($orders)): ?>
             <div class="alert alert-info">Keine Bestellungen für dieses Projekt vorhanden.</div>
         <?php else: ?>
@@ -380,13 +391,6 @@ if ($project_id > 0) {
                 </div>
             </div>
             <?php endforeach; ?>
-
-            <!-- Export-Buttons -->
-            <div class="mt-4 d-flex flex-column flex-sm-row gap-2">
-                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#pdfModal">
-                    🖨️ PDF Export
-                </button>
-            </div>
         <?php endif; ?>
     <?php else: ?>
         <div class="alert alert-warning">Bitte wählen Sie ein Projekt aus.</div>
