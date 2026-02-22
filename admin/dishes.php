@@ -283,9 +283,9 @@ if ($project_id) {
             <table class="table table-dark table-hover table-sm mb-0">
                 <thead>
                     <tr>
-                        <th style="width: 30%">Gericht</th>
                         <th style="width: 20%">Kategorie</th>
-                        <th style="width: 30%">Beschreibung</th>
+                        <th style="width: 25%">Gericht</th>
+                        <th style="width: 35%">Beschreibung</th>
                         <th style="width: 10%">Preis</th>
                         <th style="width: 10%">Aktionen</th>
                     </tr>
@@ -301,21 +301,20 @@ if ($project_id) {
                                 <td>
                                     <form method="post" id="form_<?php echo $dish['id']; ?>" style="display: inline;">
                                         <input type="hidden" name="id" value="<?php echo $dish['id']; ?>">
-                                        <input type="hidden" name="description" value="<?php echo htmlspecialchars($dish['description']); ?>">
                                         <input type="hidden" name="sort_order" value="<?php echo $dish['sort_order']; ?>">
-                                        <input type="text" name="name" value="<?php echo htmlspecialchars($dish['name']); ?>" class="form-control form-control-sm" required disabled>
+                                        <select name="category_id" class="form-select form-select-sm" disabled>
+                                            <?php foreach ($categories as $cat): ?>
+                                                <option value="<?php echo $cat['id']; ?>" <?php echo $dish['category_id'] == $cat['id'] ? 'selected' : ''; ?>>
+                                                    <?php echo htmlspecialchars($cat['name']); ?>
+                                                </option>
+                                            <?php endforeach; ?>
+                                        </select>
                                 </td>
                                 <td>
-                                    <select name="category_id" class="form-select form-select-sm" disabled>
-                                        <?php foreach ($categories as $cat): ?>
-                                            <option value="<?php echo $cat['id']; ?>" <?php echo $dish['category_id'] == $cat['id'] ? 'selected' : ''; ?>>
-                                                <?php echo htmlspecialchars($cat['name']); ?>
-                                            </option>
-                                        <?php endforeach; ?>
-                                    </select>
+                                    <input type="text" name="name" value="<?php echo htmlspecialchars($dish['name']); ?>" class="form-control form-control-sm" required disabled>
                                 </td>
                                 <td>
-                                    <small class="text-muted"><?php echo htmlspecialchars($dish['description']); ?></small>
+                                    <textarea name="description" class="form-control form-control-sm" rows="2" disabled><?php echo htmlspecialchars($dish['description']); ?></textarea>
                                 </td>
                                 <td>
                                     <input type="text" name="price" value="<?php echo is_null($dish['price']) ? '' : number_format((float)$dish['price'], 2, ',', '.'); ?>" class="form-control form-control-sm" disabled>
@@ -383,7 +382,7 @@ function toggleEdit(btn, id) {
     const row = form.closest('tr');
     
     // Finde alle Input-Felder in dieser Reihe (außer dem hidden input für id)
-    const inputs = row.querySelectorAll('input[type=text], select');
+    const inputs = row.querySelectorAll('input[type=text], select, textarea');
     const editBtn = btn;
     const saveBtn = document.querySelector(`button[name=update_dish][data-id="${id}"]`);
     

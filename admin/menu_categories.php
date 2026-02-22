@@ -197,7 +197,7 @@ if ($project_id) {
 <body>
 <?php include '../nav/top_nav.php'; ?>
 
-<div class="container mt-4" style="max-width: 900px;">
+<div class="container mt-4" style="max-width: 1200px;">
     <?php if ($message): ?>
         <div class="alert alert-<?php echo $messageType; ?> alert-dismissible fade show mb-4" role="alert" style="display: flex; align-items: center; justify-content: space-between;">
             <span><?php echo htmlspecialchars($message); ?></span>
