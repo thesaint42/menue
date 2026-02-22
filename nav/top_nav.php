@@ -89,18 +89,7 @@ $home_href = (function() use ($root, $is_logged_in) {
                             <li class="nav-item"><a class="nav-link text-end" href="<?php echo $root; ?>index.php">Zur Startseite</a></li>
                             
                             <?php
-                            // Feature-basierte Navigation - Debug
-                            error_log("=== NAV DEBUG ===");
-                            error_log("hasMenuAccess exists: " . (function_exists('hasMenuAccess') ? 'yes' : 'no'));
-                            error_log("pdo isset: " . (isset($pdo) ? 'yes' : 'no'));
-                            error_log("prefix: " . ($prefix ?? 'not set'));
-                            error_log("is_logged_in: " . ($is_logged_in ? 'yes' : 'no'));
-                            error_log("role_id: " . ($_SESSION['role_id'] ?? 'not set'));
-                            
-                            if (isset($pdo) && function_exists('hasMenuAccess')) {
-                                error_log("projects_read check: " . (hasMenuAccess($pdo, 'projects_read', $prefix) ? 'yes' : 'no'));
-                            }
-                            
+                            // Feature-basierte Navigation
                             $show_project_section = (
                                 hasMenuAccess($pdo, 'dashboard', $prefix) ||
                                 hasMenuAccess($pdo, 'menu_categories_read', $prefix) ||
@@ -110,7 +99,6 @@ $home_href = (function() use ($root, $is_logged_in) {
                                 hasMenuAccess($pdo, 'orders_read', $prefix) ||
                                 hasMenuAccess($pdo, 'reporting', $prefix)
                             );
-                            error_log("show_project_section: " . ($show_project_section ? 'yes' : 'no'));
                             
                             $show_user_section = (
                                 hasMenuAccess($pdo, 'users', $prefix) ||
