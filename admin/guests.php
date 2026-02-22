@@ -447,7 +447,7 @@ if ($project_id) {
                                 <?php if (isset($person['highchair_needed']) && $person['highchair_needed']): ?>
                                     <span class="badge bg-warning text-dark guest-highchair-badge"><span class="hs-icon">🪑</span><span class="hs-text d-none d-md-inline"> Hochstuhl</span></span>
                                 <?php endif; ?>
-                                <span class="badge bg-info guest-type-badge">Kind <span class="d-none d-md-inline"> (<?php echo htmlspecialchars($person['child_age'] ?? '?'); ?> Jahre)</span><span class="d-md-none"> (<?php echo htmlspecialchars($person['child_age'] ?? '?'); ?>)</span></span>
+                                <span class="badge bg-info guest-type-badge">Kind<span class="d-none d-md-inline">&nbsp;(<?php echo htmlspecialchars($person['child_age'] ?? '?'); ?> Jahre)</span><span class="d-md-none">&nbsp;(<?php echo htmlspecialchars($person['child_age'] ?? '?'); ?>)</span></span>
                             <?php else: ?>
                                 <span class="badge bg-secondary guest-type-badge">Erwachsener</span>
                             <?php endif; ?>
