@@ -738,8 +738,8 @@ if (isset($_POST['run_migration']) && isset($_POST['migration_key'])) {
                                     </div>
                                     <div class="col-auto">
                                         <?php if (in_array($key, $executed_migrations)): ?>
-                                            <div class="d-flex gap-2">
-                                                <span class="badge bg-success">✓ Ausgeführt</span>
+                                            <div class="d-flex gap-2 align-items-center">
+                                                <span class="badge rounded-pill bg-success fs-6 px-3 py-2">✓ Ausgeführt</span>
                                                 <form method="post" style="display: inline;">
                                                     <input type="hidden" name="migration_key" value="<?php echo $key; ?>">
                                                     <button type="submit" name="reset_single_migration" class="btn btn-sm btn-warning" onclick="return confirm('Migration zurücksetzen? Sie können sie danach erneut ausführen.')">
