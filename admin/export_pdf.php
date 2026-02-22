@@ -68,10 +68,14 @@ $stmt->execute([$project_id]);
 $guests = $stmt->fetchAll();
 
 // PDF Download
-if (isset($_GET['download']) && $tcpdf_available) {
+if (isset($_GET['download'])) {
+    if (!$tcpdf_available) {
+        die('TCPDF ist nicht verfügbar. Bitte installieren Sie TCPDF.');
+    }
+    
     require_once '../script/tcpdf/tcpdf.php';
 
-    $pdf = new TCPDF(PDF_PAGE_ORIENTATION, PDF_UNIT, PDF_PAGE_FORMAT, true, 'UTF-8', false);
+    $pdf = new TCPDF('P', 'mm', 'A4', true, 'UTF-8', false);
     $pdf->SetCreator('Event Menue Order System (EMOS)');
     $pdf->SetTitle('Bestellungsübersicht - ' . $project['name']);
     $pdf->SetMargins(10, 10, 10);
