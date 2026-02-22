@@ -259,6 +259,11 @@ if ($project_id > 0) {
             small.d-block.d-md-inline {
                 display: block !important;
             }
+            
+            /* Hochstuhl-Badge: nur Icon auf Mobile */
+            .badge-highchair .badge-text {
+                display: none;
+            }
         }
     </style>
 </head>
@@ -387,19 +392,19 @@ if ($project_id > 0) {
                             </h6>
                             <div class="d-flex gap-2 align-items-center">
                                 <div class="d-flex gap-2">
+                                    <?php if ($person['highchair']): ?>
+                                        <span class="badge bg-warning text-dark badge-highchair"><span class="badge-text">🪑 Hochstuhl</span></span>
+                                    <?php endif; ?>
                                     <?php if ($person['type'] === 'child'): ?>
                                         <span class="badge bg-info">Kind (<?php echo $person['age']; ?> Jahre)</span>
-                                        <?php if ($person['highchair']): ?>
-                                            <span class="badge bg-warning text-dark">🪑 Hochstuhl</span>
-                                        <?php endif; ?>
                                     <?php else: ?>
                                         <span class="badge bg-secondary">Erwachsener</span>
                                     <?php endif; ?>
                                 </div>
-                                <form method="post" onsubmit="return confirm('Diese Person und ihre Auswahl wirklich löschen?');">
+                                <form method="post" onsubmit="return confirm('Diese Person und ihre Auswahl wirklich löschen?');" class="d-inline">
                                     <input type="hidden" name="delete_person_order_id" value="<?php echo htmlspecialchars($order_id); ?>">
                                     <input type="hidden" name="delete_person_index" value="<?php echo (int)$person['person_index']; ?>">
-                                    <button type="submit" class="btn btn-sm btn-outline-danger">Löschen</button>
+                                    <button type="submit" class="btn btn-sm btn-outline-danger btn-with-icon"><span class="btn-icon">🗑️</span><span class="btn-text">Löschen</span></button>
                                 </form>
                             </div>
                         </div>
