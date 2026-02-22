@@ -243,16 +243,9 @@ try {
     <style>
         body { background-color: #1a1a1a; color: #fff; }
         .card { background-color: #222; border-color: #444; }
-        .table-dark { background-color: #222; }
         .form-control, .form-select { background-color: #333; color: #fff; border-color: #555; }
         .form-control:focus, .form-select:focus { background-color: #333; color: #fff; border-color: #0d6efd; }
         .card .form-label { color: #fff; }
-        .users-table .form-control,
-        .users-table .form-select {
-            color: #fff;
-            background-color: #333;
-        }
-        .users-table tbody tr { border-bottom: 12px solid #1a1a1a; }
         .alert { display: flex; align-items: center; justify-content: space-between; padding-right: 20px; }
         .close-button-wrapper {
             display: flex;
@@ -271,15 +264,8 @@ try {
             margin-left: auto;
         }
         .close-button-wrapper:hover { background-color: #bb2d3b; }
-        .action-buttons { display: flex; gap: 0.5rem; }
-        .action-buttons .btn { min-width: 120px; }
-        .btn-action { min-width: 120px; }
-        .action-row { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
-        .actions-col { padding-left: 0.5rem; }
-        @media (max-width: 576px) {
-            .action-buttons { flex-direction: column; }
-            .action-buttons .btn { width: 100%; }
-        }
+        .btn i { margin-right: 0.25rem; }
+        .form-check-label { user-select: none; }
     </style>
 </head>
 <body>
@@ -348,85 +334,102 @@ try {
         </div>
 
         <div class="col-12 col-lg-8">
-            <div class="card">
-                <div class="card-header bg-secondary">
-                    <h5 class="mb-0">Benutzer (<?php echo count($users); ?>)</h5>
-                </div>
-                <div class="table-responsive">
-                    <table class="table table-dark table-hover table-sm mb-0 align-middle users-table">
-                        <thead>
-                            <tr>
-                                <th>Name</th>
-                                <th>Aktiv</th>
-                                <th class="actions-col">Aktionen</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php foreach ($users as $user): ?>
-                                <tr>
-                                    <td>
-                                        <form method="post" id="form_<?php echo $user['id']; ?>" class="d-inline">
-                                            <input type="hidden" name="id" value="<?php echo $user['id']; ?>">
-                                            <div class="d-flex flex-column flex-md-row gap-2">
-                                                <input type="text" name="firstname" value="<?php echo htmlspecialchars($user['firstname']); ?>" class="form-control form-control-sm w-100" disabled>
-                                                <input type="text" name="lastname" value="<?php echo htmlspecialchars($user['lastname']); ?>" class="form-control form-control-sm w-100" disabled>
-                                            </div>
-                                            <div class="mt-2">
-                                                <input type="email" name="email" value="<?php echo htmlspecialchars($user['email']); ?>" class="form-control form-control-sm w-100" disabled>
-                                            </div>
-                                            <div class="mt-2">
-                                                <input type="password" name="password" placeholder="Neues Passwort (optional)" class="form-control form-control-sm w-100" disabled style="color: #aaa;">
-                                                <small class="d-block mt-1" style="color: #888;">Leer lassen, um Passwort nicht zu ändern</small>
-                                            </div>
-                                            <div class="mt-2">
-                                                <select name="role_id" class="form-select form-select-sm w-100 role-select" onchange="toggleProjectsSection(this, <?php echo $user['id']; ?>)" disabled>
-                                                    <?php foreach ($roles as $role): 
-                                                        $has_projects_write = in_array($role['id'], $roles_with_projects_write);
-                                                    ?>
-                                                        <option value="<?php echo $role['id']; ?>" data-has-project-admin="<?php echo $has_projects_write ? '1' : '0'; ?>" <?php echo $user['role_id'] == $role['id'] ? 'selected' : ''; ?>><?php echo htmlspecialchars($role['name']); ?></option>
-                                                    <?php endforeach; ?>
-                                                </select>
-                                            </div>
-                                            <!-- Projekt-Auswahl (versteckt wenn Rolle nicht 'projects_write' Berechtigung hat) -->
-                                            <?php $has_projects_write = in_array($user['role_id'], $roles_with_projects_write); ?>
-                                            <div class="mt-2 projects-section-<?php echo $user['id']; ?>" style="<?php echo $has_projects_write ? '' : 'display: none;'; ?>">
-                                                <label class="form-label small">Verwaltbare Projekte:</label>
-                                                <div class="ps-2">
-                                                    <?php foreach ($all_projects as $project): ?>
-                                                    <div class="form-check">
-                                                        <input type="checkbox" name="assigned_projects[]" value="<?php echo $project['id']; ?>" id="project_<?php echo $user['id']; ?>_<?php echo $project['id']; ?>" class="form-check-input" <?php echo in_array($project['id'], $user_projects[$user['id']] ?? []) ? 'checked' : ''; ?> disabled>
-                                                        <label class="form-check-label" for="project_<?php echo $user['id']; ?>_<?php echo $project['id']; ?>"><?php echo htmlspecialchars($project['name']); ?></label>
-                                                    </div>
-                                                    <?php endforeach; ?>
-                                                </div>
-                                            </div>
-                                    <td class="text-center">
-                                            <input type="checkbox" name="is_active" class="form-check-input" <?php echo $user['is_active'] ? 'checked' : ''; ?> disabled>
-                                    </td>
-                                        <td class="actions-col">
-                                            <div class="action-row">
-                                                <div class="action-buttons">
-                                                    <button type="button" class="btn btn-sm btn-success btn-action edit-btn" onclick="toggleEdit(this, <?php echo $user['id']; ?>)">Bearbeiten</button>
-                                                    <button type="submit" name="update_user" form="form_<?php echo $user['id']; ?>" class="btn btn-sm btn-warning btn-action d-none" data-id="<?php echo $user['id']; ?>">Speichern</button>
-                                                </div>
-                                        </form>
-                                        <form method="post" class="d-inline" onsubmit="return confirm('Benutzer löschen?');">
-                                            <input type="hidden" name="id" value="<?php echo $user['id']; ?>">
-                                            <button type="submit" name="delete_user" class="btn btn-sm btn-danger btn-action">Löschen</button>
-                                        </form>
-                                            </div>
-                                    </td>
-                                </tr>
-                            <?php endforeach; ?>
-                        </tbody>
-                    </table>
-                </div>
+            <div class="mb-3">
+                <h5>Benutzer (<?php echo count($users); ?>)</h5>
             </div>
+            
+            <?php if (empty($users)): ?>
+                <div class="alert alert-info">Noch keine Benutzer vorhanden.</div>
+            <?php else: ?>
+                <?php foreach ($users as $user): ?>
+                <div class="card border-0 shadow mb-3">
+                    <div class="card-body">
+                        <form method="post" id="form_<?php echo $user['id']; ?>">
+                            <input type="hidden" name="id" value="<?php echo $user['id']; ?>">
+                            
+                            <div class="row g-3">
+                                <!-- Name und Aktiv-Status -->
+                                <div class="col-12">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <div class="d-flex flex-column flex-md-row gap-2 flex-grow-1">
+                                            <input type="text" name="firstname" value="<?php echo htmlspecialchars($user['firstname']); ?>" class="form-control form-control-sm" placeholder="Vorname" disabled>
+                                            <input type="text" name="lastname" value="<?php echo htmlspecialchars($user['lastname']); ?>" class="form-control form-control-sm" placeholder="Nachname" disabled>
+                                        </div>
+                                        <div class="form-check ms-3">
+                                            <input type="checkbox" name="is_active" id="active_<?php echo $user['id']; ?>" class="form-check-input" <?php echo $user['is_active'] ? 'checked' : ''; ?> disabled>
+                                            <label class="form-check-label small" for="active_<?php echo $user['id']; ?>">Aktiv</label>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- E-Mail -->
+                                <div class="col-12">
+                                    <input type="email" name="email" value="<?php echo htmlspecialchars($user['email']); ?>" class="form-control form-control-sm" placeholder="E-Mail" disabled>
+                                </div>
+
+                                <!-- Passwort -->
+                                <div class="col-12">
+                                    <input type="password" name="password" placeholder="Neues Passwort (optional)" class="form-control form-control-sm" disabled style="color: #aaa;">
+                                    <small class="d-block mt-1" style="color: #888;">Leer lassen, um Passwort nicht zu ändern</small>
+                                </div>
+
+                                <!-- Rolle -->
+                                <div class="col-12">
+                                    <label class="form-label small mb-1" style="color: #888;">Rolle</label>
+                                    <select name="role_id" class="form-select form-select-sm role-select" onchange="toggleProjectsSection(this, <?php echo $user['id']; ?>)" disabled>
+                                        <?php foreach ($roles as $role): 
+                                            $has_projects_write = in_array($role['id'], $roles_with_projects_write);
+                                        ?>
+                                            <option value="<?php echo $role['id']; ?>" data-has-project-admin="<?php echo $has_projects_write ? '1' : '0'; ?>" <?php echo $user['role_id'] == $role['id'] ? 'selected' : ''; ?>><?php echo htmlspecialchars($role['name']); ?></option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                </div>
+
+                                <!-- Projekt-Zuweisungen -->
+                                <?php $has_projects_write = in_array($user['role_id'], $roles_with_projects_write); ?>
+                                <div class="col-12 projects-section-<?php echo $user['id']; ?>" style="<?php echo $has_projects_write ? '' : 'display: none;'; ?>">
+                                    <label class="form-label small mb-1" style="color: #888;">Verwaltbare Projekte</label>
+                                    <div class="ps-2">
+                                        <?php foreach ($all_projects as $project): ?>
+                                        <div class="form-check">
+                                            <input type="checkbox" name="assigned_projects[]" value="<?php echo $project['id']; ?>" id="project_<?php echo $user['id']; ?>_<?php echo $project['id']; ?>" class="form-check-input" <?php echo in_array($project['id'], $user_projects[$user['id']] ?? []) ? 'checked' : ''; ?> disabled>
+                                            <label class="form-check-label small" for="project_<?php echo $user['id']; ?>_<?php echo $project['id']; ?>"><?php echo htmlspecialchars($project['name']); ?></label>
+                                        </div>
+                                        <?php endforeach; ?>
+                                    </div>
+                                </div>
+
+                                <!-- Action Buttons -->
+                                <div class="col-12">
+                                    <div class="d-flex gap-2 flex-wrap">
+                                        <button type="button" class="btn btn-sm btn-success edit-btn" onclick="toggleEdit(this, <?php echo $user['id']; ?>)">
+                                            <i class="bi bi-pencil-fill"></i> <span>Bearbeiten</span>
+                                        </button>
+                                        <button type="submit" name="update_user" class="btn btn-sm btn-warning d-none save-btn-<?php echo $user['id']; ?>">
+                                            <i class="bi bi-check-lg"></i> <span>Speichern</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </form>
+                        
+                        <!-- Löschen-Button außerhalb des Edit-Forms -->
+                        <form method="post" class="mt-2" onsubmit="return confirm('⚠️ Benutzer <?php echo htmlspecialchars($user['firstname'] . ' ' . $user['lastname']); ?> wirklich löschen?\n\nDiese Aktion kann nicht rückgängig gemacht werden.');">
+                            <input type="hidden" name="id" value="<?php echo $user['id']; ?>">
+                            <button type="submit" name="delete_user" class="btn btn-sm btn-danger">
+                                <i class="bi bi-trash-fill"></i> <span>Löschen</span>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+                <?php endforeach; ?>
+            <?php endif; ?>
         </div>
     </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const alerts = document.querySelectorAll('.alert');
@@ -440,28 +443,28 @@ document.addEventListener('DOMContentLoaded', function() {
 function toggleEdit(btn, id) {
     const form = document.getElementById('form_' + id);
     if (!form) return;
-    const row = form.closest('tr');
+    const card = form.closest('.card-body');
     
     // Toggle Text-, Password- und Select-Felder
-    const inputs = row.querySelectorAll('input[type=text], input[type=email], input[type=password], select');
+    const inputs = card.querySelectorAll('input[type=text], input[type=email], input[type=password], select');
     inputs.forEach(input => {
         input.toggleAttribute('disabled');
     });
 
     // Toggle is_active checkbox (separat)
-    const isActiveCheckbox = row.querySelector('input[name="is_active"]');
+    const isActiveCheckbox = card.querySelector('input[name="is_active"]');
     if (isActiveCheckbox) {
         isActiveCheckbox.toggleAttribute('disabled');
     }
 
     // Toggle Projekt-Checkboxen (nur wenn Projektverwaltung-Rolle)
-    const projectCheckboxes = row.querySelectorAll('input[name="assigned_projects[]"]');
+    const projectCheckboxes = card.querySelectorAll('input[name="assigned_projects[]"]');
     projectCheckboxes.forEach(checkbox => {
         checkbox.toggleAttribute('disabled');
     });
 
     const editBtn = btn;
-    const saveBtn = row.querySelector(`button[name=update_user][data-id="${id}"]`);
+    const saveBtn = card.querySelector(`.save-btn-${id}`);
     if (saveBtn) {
         editBtn.classList.toggle('d-none');
         saveBtn.classList.toggle('d-none');
