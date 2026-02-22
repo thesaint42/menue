@@ -16,42 +16,20 @@ requireMenuAccess($pdo, 'dashboard', 'read', $prefix);
 $tables_check = checkV220Tables($pdo, $prefix);
 $v220_ready = !in_array(false, $tables_check, true);
 
-// Benutzer-Rolle ermitteln
-$user_role_id = isset($_SESSION['role_id']) ? intval($_SESSION['role_id']) : null;
-$is_systemadmin = ($user_role_id === 1);
-
-// Zugängliche Projekt-IDs ermitteln
+// Zugängliche Projekt-IDs ermitteln (getUserProjects handhabt alle Rollen korrekt)
 $accessible_project_ids = [];
 try {
-    if ($is_systemadmin) {
-        // Systemadmin: Alle aktiven Projekte
-        $stmt = $pdo->query("SELECT id FROM {$prefix}projects WHERE is_active = 1");
-        $result = $stmt->fetchAll(PDO::FETCH_COLUMN);
-        $accessible_project_ids = $result ? $result : [];
-    } else {
-        // Andere Rollen: nur zugewiesene Projekte
-        $user_projects = getUserProjects($pdo, $prefix);
-        if (is_array($user_projects) && !empty($user_projects)) {
-            foreach ($user_projects as $proj) {
-                if (isset($proj['id'])) {
-                    $accessible_project_ids[] = intval($proj['id']);
-                }
+    $user_projects = getUserProjects($pdo, $prefix);
+    if (is_array($user_projects) && !empty($user_projects)) {
+        foreach ($user_projects as $proj) {
+            if (isset($proj['id'])) {
+                $accessible_project_ids[] = intval($proj['id']);
             }
         }
     }
 } catch (Exception $e) {
     error_log("Dashboard: Fehler beim Laden der Projekte - " . $e->getMessage());
     $accessible_project_ids = [];
-}
-
-// DEBUG: Ausgabe für Fehlersuche
-if (isset($_GET['debug'])) {
-    echo "<pre>DEBUG INFO:\n";
-    echo "User Role ID: " . var_export($user_role_id, true) . "\n";
-    echo "Is Systemadmin: " . var_export($is_systemadmin, true) . "\n";
-    echo "Accessible Project IDs: " . var_export($accessible_project_ids, true) . "\n";
-    echo "Project Count: " . count($accessible_project_ids) . "\n";
-    echo "</pre>";
 }
 
 // Statistiken basierend auf zugänglichen Projekten
