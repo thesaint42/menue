@@ -433,8 +433,10 @@ if (!$can_read_projects) {
         /* Project action buttons - uniform size */
         .project-btn {
             display: inline-block;
-            min-width: 110px;
+            flex: 0 0 auto;
+            width: 120px;
             white-space: nowrap;
+            text-align: center;
         }
         
         .project-btn .btn-icon { margin-right: 0.35rem; }
