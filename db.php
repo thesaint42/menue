@@ -89,6 +89,12 @@ if (file_exists($configPath)) {
                     exit;
                 }
         }
+        
+        // Auto-initialize v2.2.0 tables if needed
+        if ($pdo) {
+            require_once __DIR__ . '/script/auth.php';
+            @initializeV220Tables($pdo, $config['database']['prefix'] ?? 'menu_');
+        }
     }
 } else {
     // config.yaml existiert nicht - Installation erforderlich

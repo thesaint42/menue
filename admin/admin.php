@@ -9,6 +9,10 @@ require_once '../script/auth.php';
 checkLogin();
 $prefix = $config['database']['prefix'] ?? 'menu_';
 
+// Check v2.2.0 tables
+$tables_check = checkV220Tables($pdo, $prefix);
+$v220_ready = !in_array(false, $tables_check, true);
+
 // Statistiken
 $stmt = $pdo->query("SELECT COUNT(*) as count FROM {$prefix}projects WHERE is_active = 1");
 $project_count = $stmt->fetch()['count'];
@@ -36,6 +40,17 @@ $recent_projects = $stmt->fetchAll();
 <?php include '../nav/top_nav.php'; ?>
 
 <div class="container py-4">
+    <?php if (!$v220_ready): ?>
+    <div class="alert alert-warning alert-dismissible fade show" role="alert">
+        <strong>⚙️ System-Update erforderlich!</strong> Die neuen Features für v2.2.0 werden initialisiert... 
+        <br><small>Bitte aktualisieren Sie die Seite nach wenigen Sekunden.</small>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    <script>
+        setTimeout(() => { location.reload(); }, 2000);
+    </script>
+    <?php endif; ?>
+    
     <div class="row">
         <div class="col-lg-12">
             <h2 class="mb-4">Willkommen, <?php echo htmlspecialchars($_SESSION['user_name']); ?>! 👋</h2>
