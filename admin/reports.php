@@ -916,11 +916,13 @@ if (isset($_GET['download']) && $_GET['download'] === 'pdf') {
                         // Berechne korrekte Statistiken basierend auf orders_by_id
                         $total_individual_persons = 0;
                         $total_family_persons = 0;
+                        $total_families = 0;
                         
                         foreach ($orders_by_id as $order_data) {
                             if ($order_data['guest_type'] === 'individual') {
                                 $total_individual_persons += count($order_data['persons']);
                             } elseif ($order_data['guest_type'] === 'family') {
+                                $total_families++;
                                 $total_family_persons += count($order_data['persons']);
                             }
                         }
@@ -945,8 +947,8 @@ if (isset($_GET['download']) && $_GET['download'] === 'pdf') {
                         </div>
                         <div class="col-12 col-sm-6 col-lg-4">
                             <div class="bg-light p-3 rounded d-flex flex-column" style="min-height: 120px;">
-                                <div class="text-muted small">Familien (Personen)</div>
-                                <div class="fs-3 fw-bold"><?php echo $total_family_persons; ?></div>
+                                <div class="text-muted small">Familien / Personen</div>
+                                <div class="fs-3 fw-bold"><?php echo $total_families; ?> / <?php echo $total_family_persons; ?></div>
                             </div>
                         </div>
                     </div>
