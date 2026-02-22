@@ -18,8 +18,13 @@ $v220_ready = !in_array(false, $tables_check, true);
 
 // Zugängliche Projekt-IDs ermitteln (getUserProjects handhabt alle Rollen korrekt)
 $accessible_project_ids = [];
+$debug_info = [];
 try {
     $user_projects = getUserProjects($pdo, $prefix);
+    $debug_info['user_projects'] = $user_projects;
+    $debug_info['is_array'] = is_array($user_projects);
+    $debug_info['count'] = is_array($user_projects) ? count($user_projects) : 0;
+    
     if (is_array($user_projects) && !empty($user_projects)) {
         foreach ($user_projects as $proj) {
             if (isset($proj['id'])) {
@@ -27,9 +32,11 @@ try {
             }
         }
     }
+    $debug_info['accessible_ids'] = $accessible_project_ids;
 } catch (Exception $e) {
     error_log("Dashboard: Fehler beim Laden der Projekte - " . $e->getMessage());
     $accessible_project_ids = [];
+    $debug_info['error'] = $e->getMessage();
 }
 
 // Statistiken basierend auf zugänglichen Projekten
@@ -92,6 +99,17 @@ if ($project_count > 0) {
 <?php include '../nav/top_nav.php'; ?>
 
 <div class="container py-4">
+    <!-- DEBUG INFO -->
+    <div class="alert alert-info">
+        <strong>DEBUG:</strong><br>
+        User Projects: <?php echo json_encode($debug_info['user_projects'], JSON_PRETTY_PRINT); ?><br>
+        Is Array: <?php echo $debug_info['is_array'] ? 'YES' : 'NO'; ?><br>
+        Count: <?php echo $debug_info['count']; ?><br>
+        Accessible IDs: <?php echo json_encode($debug_info['accessible_ids']); ?><br>
+        Role ID: <?php echo $_SESSION['role_id'] ?? 'NONE'; ?><br>
+        User ID: <?php echo $_SESSION['user_id'] ?? 'NONE'; ?>
+    </div>
+    
     <?php if (!$v220_ready): ?>
     <div class="alert alert-warning alert-dismissible fade show" role="alert">
         <strong>⚙️ System-Update erforderlich!</strong> Die neuen Features für v2.2.0 werden initialisiert... 
