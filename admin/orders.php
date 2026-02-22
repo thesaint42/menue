@@ -361,16 +361,18 @@ if ($project_id > 0) {
                         <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-2">
                             <h6 class="fw-bold mb-0">
                             👤 <?php echo htmlspecialchars($person['name']); ?>
-                            <?php if ($person['type'] === 'child'): ?>
-                                <span class="badge bg-info">Kind (<?php echo $person['age']; ?> Jahre)</span>
-                                <?php if ($person['highchair']): ?>
-                                    <span class="badge bg-warning text-dark">🪑 Hochstuhl</span>
-                                <?php endif; ?>
-                            <?php else: ?>
-                                <span class="badge bg-secondary">Erwachsener</span>
-                            <?php endif; ?>
                             </h6>
-                            <div class="d-flex gap-2">
+                            <div class="d-flex gap-2 align-items-center">
+                                <div class="d-flex gap-2">
+                                    <?php if ($person['type'] === 'child'): ?>
+                                        <span class="badge bg-info">Kind (<?php echo $person['age']; ?> Jahre)</span>
+                                        <?php if ($person['highchair']): ?>
+                                            <span class="badge bg-warning text-dark">🪑 Hochstuhl</span>
+                                        <?php endif; ?>
+                                    <?php else: ?>
+                                        <span class="badge bg-secondary">Erwachsener</span>
+                                    <?php endif; ?>
+                                </div>
                                 <form method="post" onsubmit="return confirm('Diese Person und ihre Auswahl wirklich löschen?');">
                                     <input type="hidden" name="delete_person_order_id" value="<?php echo htmlspecialchars($order_id); ?>">
                                     <input type="hidden" name="delete_person_index" value="<?php echo (int)$person['person_index']; ?>">
