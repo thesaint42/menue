@@ -238,39 +238,6 @@ if ($project_id > 0) {
         .page-container { max-width: 900px; }
         @media (max-width: 576px) {
             .order-header-meta { text-align: left !important; }
-            
-            /* Mobile: Buttons und Badges rechtsbündig */
-            @media (max-width: 768px) {
-                .card-header .d-flex {
-                    flex-direction: column-reverse !important;
-                }
-                .card-header .d-flex > div:first-child {
-                    order: 3 !important;
-                }
-                .card-header .d-flex > div:nth-child(2) {
-                    order: 1 !important;
-                    align-self: flex-end !important;
-                    text-align: right;
-                    margin-bottom: 0.5rem;
-                }
-                .card-header .d-flex > div:nth-child(3) {
-                    order: 2 !important;
-                    align-self: flex-end !important;
-                }
-                
-                /* In card-body: Badges und Buttons auch rechtsbündig */
-                .card-body .border-bottom.mb-3 .d-flex {
-                    flex-direction: column-reverse !important;
-                }
-                .card-body .border-bottom.mb-3 .d-flex > h6 {
-                    order: 2 !important;
-                }
-                .card-body .border-bottom.mb-3 .d-flex > div:last-child {
-                    order: 1 !important;
-                    align-self: flex-end !important;
-                    margin-bottom: 0.5rem;
-                }
-            }
         }
     </style>
 </head>
@@ -363,7 +330,7 @@ if ($project_id > 0) {
             <?php foreach ($grouped_orders as $order_id => $order_data): ?>
             <div class="card border-0 shadow mb-4">
                 <div class="card-header bg-primary text-white">
-                    <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-2">
+                    <div class="d-flex flex-column flex-md-row justify-content-between align-items-start gap-2">
                         <div>
                             <h5 class="mb-0">
                                 <?php echo htmlspecialchars($order_data['firstname'] . ' ' . $order_data['lastname']); ?>
@@ -375,28 +342,29 @@ if ($project_id > 0) {
                                 <?php endif; ?>
                             </small>
                         </div>
-                        <div class="order-header-meta text-md-end ms-md-auto">
-                            <small class="d-block">Order-ID: <code><?php echo htmlspecialchars($order_id); ?></code></small>
-                            <small><?php echo date('d.m.Y H:i', strtotime($order_data['order_date'])); ?></small>
-                        </div>
-                        <div class="d-flex gap-2">
-                            <a class="btn btn-sm btn-outline-light" href="../index.php?pin=<?php echo urlencode($project['access_pin']); ?>&action=edit&order_id=<?php echo urlencode($order_id); ?>">Bearbeiten</a>
-                            <form method="post" onsubmit="return confirm('Diese Bestellung wirklich löschen?');">
-                                <input type="hidden" name="delete_order_id" value="<?php echo htmlspecialchars($order_id); ?>">
-                                <button type="submit" class="btn btn-sm btn-danger">Löschen</button>
-                            </form>
-                        </div>
+                        <div class="d-flex flex-column flex-md-row gap-2 align-items-start align-items-md-center ms-md-auto">
+                            <div class="order-header-meta">
+                                <small class="d-block">Order-ID: <code><?php echo htmlspecialchars($order_id); ?></code></small>
+                                <small><?php echo date('d.m.Y H:i', strtotime($order_data['order_date'])); ?></small>
+                            </div>
+                            <div class="d-flex gap-2 flex-shrink-0">
+                                <a class="btn btn-sm btn-outline-light" href="../index.php?pin=<?php echo urlencode($project['access_pin']); ?>&action=edit&order_id=<?php echo urlencode($order_id); ?>">Bearbeiten</a>
+                                <form method="post" onsubmit="return confirm('Diese Bestellung wirklich löschen?');">
+                                    <input type="hidden" name="delete_order_id" value="<?php echo htmlspecialchars($order_id); ?>">
+                                    <button type="submit" class="btn btn-sm btn-danger">Löschen</button>
+                                </form>
+                            </div>
                     </div>
                 </div>
                 <div class="card-body">
                     <?php foreach ($order_data['persons'] as $person): ?>
                     <div class="mb-3 pb-3 border-bottom">
-                        <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-2">
-                            <h6 class="fw-bold mb-0">
-                            👤 <?php echo htmlspecialchars($person['name']); ?>
-                            </h6>
-                            <div class="d-flex gap-2 align-items-center">
-                                <div class="d-flex gap-2">
+                        <div class="d-flex flex-column flex-md-row justify-content-between align-items-start gap-2">
+                            <div class="d-flex gap-2 align-items-start">
+                                <h6 class="fw-bold mb-0 flex-shrink-0">
+                                👤 <?php echo htmlspecialchars($person['name']); ?>
+                                </h6>
+                                <div class="d-flex gap-2 flex-wrap">
                                     <?php if ($person['type'] === 'child'): ?>
                                         <span class="badge bg-info">Kind (<?php echo $person['age']; ?> Jahre)</span>
                                         <?php if ($person['highchair']): ?>
@@ -406,12 +374,12 @@ if ($project_id > 0) {
                                         <span class="badge bg-secondary">Erwachsener</span>
                                     <?php endif; ?>
                                 </div>
-                                <form method="post" onsubmit="return confirm('Diese Person und ihre Auswahl wirklich löschen?');">
-                                    <input type="hidden" name="delete_person_order_id" value="<?php echo htmlspecialchars($order_id); ?>">
-                                    <input type="hidden" name="delete_person_index" value="<?php echo (int)$person['person_index']; ?>">
-                                    <button type="submit" class="btn btn-sm btn-outline-danger">Löschen</button>
-                                </form>
                             </div>
+                            <form method="post" onsubmit="return confirm('Diese Person und ihre Auswahl wirklich löschen?');" class="flex-shrink-0">
+                                <input type="hidden" name="delete_person_order_id" value="<?php echo htmlspecialchars($order_id); ?>">
+                                <input type="hidden" name="delete_person_index" value="<?php echo (int)$person['person_index']; ?>">
+                                <button type="submit" class="btn btn-sm btn-outline-danger">Löschen</button>
+                            </form>
                         </div>
                         <ul class="list-unstyled mb-0 ms-0 ms-md-3">
                             <?php foreach ($person['dishes'] as $dish): ?>
