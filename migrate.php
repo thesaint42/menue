@@ -768,12 +768,12 @@ if (isset($_POST['run_migration']) && isset($_POST['migration_key'])) {
                     <hr class="my-4">
 
                     <div class="alert alert-danger">
-                        <strong>⚠️ Probleme mit Migrationen?</strong>
-                        <br>Falls Migrationen als "Ausgeführt" angezeigt werden, obwohl Sie fehlgeschlagen sind, können Sie die Historie hier zurücksetzen:
+                        <strong>⚠️ Probleme mit Updates?</strong>
+                        <br>Falls Updates als "Ausgeführt" angezeigt werden, obwohl Sie fehlgeschlagen sind, können Sie die gesamte Historie aller Updates hier zurücksetzen:
                         <br><br>
                         <form method="post" style="display: inline;">
                             <button type="submit" name="reset_migrations" class="btn btn-danger btn-sm" onclick="return confirm('ACHTUNG: Dies setzt die Migrations-Historie zurück! Sind Sie sicher?')">
-                                🔄 Migrations-Historie zurücksetzen
+                                🔄 Gesamte Updatehistorie zurücksetzen
                             </button>
                         </form>
                     </div>
