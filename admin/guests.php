@@ -417,7 +417,7 @@ if ($project_id) {
                                 <small>👥 <?php echo count($order_data['people']); ?> Person(en)</small>
                                 <?php if ($order_data['highchair_count'] > 0): ?>
                                     <span>|</span>
-                                    <small>🪑 <?php echo $order_data['highchair_count']; ?> Hochstuhl(e)</small>
+                                    <small>🪑 <?php echo $order_data['highchair_count']; ?> Hochstühl(e)</small>
                                 <?php endif; ?>
                             </div>
                             <form method="post" onsubmit="return confirm('Bestellung und alle Personen/Gerichte wirklich löschen?');">
