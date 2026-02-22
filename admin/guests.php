@@ -387,10 +387,10 @@ if ($project_id) {
                         <span>|</span>
                         <small><?php echo date('d.m.Y H:i', strtotime($order_data['created_at'])); ?></small>
                         <span>|</span>
-                        <small>👥 <?php echo count($order_data['people']); ?> Person(en)</small>
+                        <small>👥 <span class="d-none d-md-inline"><?php echo count($order_data['people']); ?> Person(en)</span><span class="d-md-none"><?php echo count($order_data['people']); ?></span></small>
                         <?php if ($order_data['highchair_count'] > 0): ?>
                             <span>|</span>
-                            <small>🪑 <?php echo $order_data['highchair_count']; ?> Hochstuhl(e)</small>
+                            <small>🪑 <span class="d-none d-md-inline"><?php echo $order_data['highchair_count']; ?> Hochstühl(e)</span><span class="d-md-none"><?php echo $order_data['highchair_count']; ?></span></small>
                         <?php endif; ?>
                     </div>
                     <form method="post" onsubmit="return confirm('Bestellung und alle Personen/Gerichte wirklich löschen?');">
@@ -415,10 +415,10 @@ if ($project_id) {
                             <?php 
                                 $type = strtolower($person['person_type'] ?? 'adult');
                                 if ($type === 'child'): ?>
-                                <span class="badge bg-info guest-type-badge">Kind (<?php echo htmlspecialchars($person['child_age'] ?? '?'); ?> Jahre)</span>
                                 <?php if (isset($person['highchair_needed']) && $person['highchair_needed']): ?>
-                                    <span class="badge bg-warning text-dark guest-highchair-badge"><span class="hs-icon">🪑</span><span class="hs-text"> Hochstuhl</span></span>
+                                    <span class="badge bg-warning text-dark guest-highchair-badge"><span class="hs-icon">🪑</span><span class="hs-text d-none d-md-inline"> Hochstühl</span></span>
                                 <?php endif; ?>
+                                <span class="badge bg-info guest-type-badge">Kind <span class="d-none d-md-inline">(<?php echo htmlspecialchars($person['child_age'] ?? '?'); ?> Jahre)</span><span class="d-md-none">(<?php echo htmlspecialchars($person['child_age'] ?? '?'); ?>)</span></span>
                             <?php else: ?>
                                 <span class="badge bg-secondary guest-type-badge">Erwachsener</span>
                             <?php endif; ?>
