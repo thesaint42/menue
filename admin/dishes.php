@@ -348,6 +348,7 @@ if ($user_role_id === 1) {
     <?php endif; ?>
 
     <div class="row g-4">
+        <?php if ($can_write_menus): ?>
         <div class="col-12 col-lg-4">
             <div class="card">
                 <div class="card-header bg-primary">
@@ -387,8 +388,9 @@ if ($user_role_id === 1) {
                 </div>
             </div>
         </div>
+        <?php endif; ?>
 
-        <div class="col-12 col-lg-8">
+        <div class="col-12 <?php echo $can_write_menus ? 'col-lg-8' : 'col-lg-12'; ?>">
             <div class="card">
                 <div class="card-header bg-secondary">
                     <label class="form-label mb-0">Projekt auswählen</label>
@@ -406,7 +408,7 @@ if ($user_role_id === 1) {
                 <div class="card-body">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
                         <h5 class="mb-0">Gerichte (<?php echo count($dishes); ?>)</h5>
-                        <?php if (!empty($dishes)): ?>
+                        <?php if (!empty($dishes) && $can_write_menus): ?>
                         <div class="bulk-actions" style="margin-bottom: 0; margin-left: auto !important;">
                             <button type="button" class="btn btn-primary" id="bulk-edit-btn" onclick="bulkEdit()">Bearbeiten</button>
                             <button type="button" class="btn btn-warning d-none" id="bulk-save-btn" onclick="bulkSave()">Speichern</button>
