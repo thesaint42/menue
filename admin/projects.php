@@ -403,44 +403,40 @@ $projects = $pdo->query("SELECT * FROM {$prefix}projects ORDER BY created_at DES
                             <td><code><?php echo htmlspecialchars($p['access_pin']); ?></code></td>
                             <td><small><?php echo htmlspecialchars($p['admin_email']); ?></small></td>
                             <td>
-                                <div class="project-actions">
-                                    <!-- Top row: Link, PIN/QR, Activate/Deactivate -->
+                                <div class="d-flex flex-wrap gap-2">
                                     <a href="../index.php?pin=<?php echo urlencode($p['access_pin']); ?>" class="btn btn-sm btn-outline-info" target="_blank" title="Link öffnen">
-                                        🔗<span class="btn-text">Link</span>
+                                        🔗 Link
                                     </a>
                                     <button class="btn btn-sm btn-outline-success" data-bs-toggle="modal" data-bs-target="#pinModal" 
                                             onclick="showPinQR(<?php echo htmlspecialchars(json_encode($p)); ?>)" title="PIN & QR-Code anzeigen">
-                                        📱<span class="btn-text">PIN/QR</span>
+                                        📱 PIN/QR
                                     </button>
                                     <?php if ($p['is_active']): ?>
                                         <a href="?deactivate=<?php echo $p['id']; ?>" class="btn btn-sm btn-outline-danger" onclick="return confirm('Projekt deaktivieren?')" title="Deaktivieren">
-                                            🔴<span class="btn-text">Deaktivieren</span>
+                                            Deaktivieren
                                         </a>
                                     <?php else: ?>
                                         <a href="?activate=<?php echo $p['id']; ?>" class="btn btn-sm btn-success" onclick="return confirm('Projekt aktivieren?')" title="Aktivieren">
-                                            ✅<span class="btn-text">Aktivieren</span>
+                                            Aktivieren
                                         </a>
                                     <?php endif; ?>
-
-                                    <!-- Bottom row: Edit + (Menü/Gäste) OR (Backup/Löschen) -->
                                     <button class="btn btn-sm btn-outline-warning" data-bs-toggle="modal" data-bs-target="#editProjectModal" 
                                             onclick="loadProjectData(<?php echo htmlspecialchars(json_encode($p)); ?>)" title="Bearbeiten">
-                                        ✏️<span class="btn-text">Bearbeiten</span>
+                                        ✏️ Bearbeiten
                                     </button>
-
                                     <?php if ($p['is_active']): ?>
                                         <a href="dishes.php?project=<?php echo $p['id']; ?>" class="btn btn-sm btn-outline-secondary" title="Menü verwalten">
-                                            🍽️<span class="btn-text">Menü</span>
+                                            🍽️ Menü
                                         </a>
                                         <a href="guests.php?project=<?php echo $p['id']; ?>" class="btn btn-sm btn-outline-secondary" title="Gäste verwalten">
-                                            👥<span class="btn-text">Gäste</span>
+                                            👥 Gäste
                                         </a>
                                     <?php else: ?>
                                         <button class="btn btn-sm btn-outline-secondary" onclick="createProjectBackupFor(<?php echo $p['id']; ?>)" title="Projekt-Backup erstellen">
-                                            💾<span class="btn-text">Backup</span>
+                                            💾 Backup
                                         </button>
                                         <button class="btn btn-sm btn-outline-dark" onclick="confirmDelete(<?php echo $p['id']; ?>)" title="Projekt löschen">
-                                            🗑️<span class="btn-text">Löschen</span>
+                                            🗑️ Löschen
                                         </button>
                                     <?php endif; ?>
                                 </div>

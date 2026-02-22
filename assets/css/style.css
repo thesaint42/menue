@@ -246,32 +246,7 @@ a:hover {
     }
 }
 
-/* Project action buttons: uniform size, two rows (3 + 3) */
-.project-actions {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 0.5rem;
-}
-
-.project-actions .btn {
-    width: 100% !important;
-    font-size: 0.875rem;
-    padding: 0.5rem 0.6rem !important;
-    white-space: nowrap;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 38px;
-    box-sizing: border-box;
-}
-
-/* Button text spacing - visible on desktop */
-.project-actions .btn .btn-text {
-    display: inline;
-    margin-left: 0.4rem;
-}
-
-/* Mobile: Convert table to card layout & symbol-only buttons */
+/* Mobile: Convert projects table to card layout */
 @media (max-width: 768px) {
     /* Hide table header on mobile */
     .projects-table thead {
@@ -308,37 +283,11 @@ a:hover {
     .projects-table tbody td:nth-child(5)::before { content: 'Max: '; font-weight: bold; }
     .projects-table tbody td:nth-child(6)::before { content: 'PIN: '; font-weight: bold; }
     .projects-table tbody td:nth-child(7)::before { content: 'Email: '; font-weight: bold; }
-    .projects-table tbody td:nth-child(8)::before { content: 'Aktionen: '; font-weight: bold; display: block; margin-top: 0.5rem; margin-bottom: 0.5rem; }
+    .projects-table tbody td:nth-child(8)::before { content: 'Aktionen: '; font-weight: bold; display: block; margin-bottom: 0.5rem; }
     
     /* Actions column full width on mobile */
     .projects-table tbody td:nth-child(8) {
         padding-top: 0.75rem;
     }
-    
-    /* Symbol-only buttons on mobile - hide text */
-    .project-actions .btn .btn-text {
-        display: none !important;
-    }
-    
-    .project-actions {
-        gap: 0.5rem;
-    }
-    
-    .project-actions .btn {
-        font-size: 1.3rem !important;
-        padding: 0.6rem 0.4rem !important;
-        min-height: 44px;
-    }
 }
 
-/* Tablet: Keep text but smaller */
-@media (min-width: 769px) and (max-width: 1024px) {
-    .project-actions .btn {
-        font-size: 0.8rem !important;
-        padding: 0.45rem 0.5rem !important;
-    }
-    
-    .project-actions .btn .btn-text {
-        margin-left: 0.3rem;
-    }
-}
