@@ -963,7 +963,7 @@ if (isset($_GET['download']) && $_GET['download'] === 'pdf') {
                         </div>
                     </div>
                 </div>
-            
+            <?php endif; ?>
         </div>
     <?php endif; ?>
 
