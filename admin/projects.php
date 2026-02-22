@@ -64,9 +64,14 @@ function sanitize_project_description($html) {
 
 // Projekt erstellen
 if (isset($_POST['create_project'])) {
-    $name = trim($_POST['name']);
-    $description = sanitize_project_description($_POST['description'] ?? '');
-    $location = trim($_POST['location']);
+    // Berechtigungsprüfung
+    if (!hasMenuAccess($pdo, 'projects_write', $prefix)) {
+        $message = "⚠️ Keine Berechtigung zum Erstellen von Projekten.";
+        $messageType = "danger";
+    } else {
+        $name = trim($_POST['name']);
+        $description = sanitize_project_description($_POST['description'] ?? '');
+        $location = trim($_POST['location']);
     $contact_person = trim($_POST['contact_person']);
     $contact_phone_raw = trim($_POST['contact_phone']);
     $contact_phone = normalize_phone_e164($contact_phone_raw, 'DE');
@@ -130,14 +135,20 @@ if (isset($_POST['create_project'])) {
             $messageType = "danger";
         }
     }
+    }
 }
 
 // Projekt aktualisieren
 if (isset($_POST['update_project'])) {
-    $id = (int)$_POST['project_id'];
-    $name = trim($_POST['name']);
-    $description = sanitize_project_description($_POST['description'] ?? '');
-    $location = trim($_POST['location']);
+    // Berechtigungsprüfung
+    if (!hasMenuAccess($pdo, 'projects_write', $prefix)) {
+        $message = "⚠️ Keine Berechtigung zum Bearbeiten von Projekten.";
+        $messageType = "danger";
+    } else {
+        $id = (int)$_POST['project_id'];
+        $name = trim($_POST['name']);
+        $description = sanitize_project_description($_POST['description'] ?? '');
+        $location = trim($_POST['location']);
     $contact_person = trim($_POST['contact_person']);
     $contact_phone_raw = trim($_POST['contact_phone']);
     $contact_phone = normalize_phone_e164($contact_phone_raw, 'DE');
@@ -175,31 +186,46 @@ if (isset($_POST['update_project'])) {
             $messageType = "danger";
         }
     }
+    }
 }
 
 // Projekt deaktivieren
 if (isset($_GET['deactivate'])) {
-    $id = (int)$_GET['deactivate'];
-    $stmt = $pdo->prepare("UPDATE {$prefix}projects SET is_active = 0 WHERE id = ?");
-    $stmt->execute([$id]);
-    $message = "Projekt deaktiviert.";
-    $messageType = "success";
-    logAction($pdo, $prefix, 'project_deactivated', "Projekt ID: $id");
+    if (!hasMenuAccess($pdo, 'projects_write', $prefix)) {
+        $message = "⚠️ Keine Berechtigung zum Deaktivieren von Projekten.";
+        $messageType = "danger";
+    } else {
+        $id = (int)$_GET['deactivate'];
+        $stmt = $pdo->prepare("UPDATE {$prefix}projects SET is_active = 0 WHERE id = ?");
+        $stmt->execute([$id]);
+        $message = "Projekt deaktiviert.";
+        $messageType = "success";
+        logAction($pdo, $prefix, 'project_deactivated', "Projekt ID: $id");
+    }
 }
 
 // Projekt aktivieren
 if (isset($_GET['activate'])) {
-    $id = (int)$_GET['activate'];
-    $stmt = $pdo->prepare("UPDATE {$prefix}projects SET is_active = 1 WHERE id = ?");
-    $stmt->execute([$id]);
-    $message = "Projekt aktiviert.";
-    $messageType = "success";
-    logAction($pdo, $prefix, 'project_activated', "Projekt ID: $id");
+    if (!hasMenuAccess($pdo, 'projects_write', $prefix)) {
+        $message = "⚠️ Keine Berechtigung zum Aktivieren von Projekten.";
+        $messageType = "danger";
+    } else {
+        $id = (int)$_GET['activate'];
+        $stmt = $pdo->prepare("UPDATE {$prefix}projects SET is_active = 1 WHERE id = ?");
+        $stmt->execute([$id]);
+        $message = "Projekt aktiviert.";
+        $messageType = "success";
+        logAction($pdo, $prefix, 'project_activated', "Projekt ID: $id");
+    }
 }
 
 // Projekt löschen (nur wenn inaktiv)
 if (isset($_POST['delete_project'])) {
-    $id = (int)$_POST['project_id'];
+    if (!hasMenuAccess($pdo, 'projects_write', $prefix)) {
+        $message = "⚠️ Keine Berechtigung zum Löschen von Projekten.";
+        $messageType = "danger";
+    } else {
+        $id = (int)$_POST['project_id'];
 
     // Prüfe aktuellen Status
     $stmt = $pdo->prepare("SELECT is_active, name FROM {$prefix}projects WHERE id = ?");
@@ -253,6 +279,7 @@ if (isset($_POST['delete_project'])) {
             $message = "Fehler beim Löschen: " . $e->getMessage();
             $messageType = "danger";
         }
+    }
     }
 }
 
@@ -352,15 +379,22 @@ if (isset($_POST['send_invite'])) {
     }
 }
 
-// Alle Projekte laden (nur zugängliche für project_admin Users)
+// Alle Projekte laden - basierend auf Zugriffsrechten
 $user_role_id = $_SESSION['role_id'] ?? null;
 $projects = [];
 
-if ($user_role_id === 1) {
-    // Admin: alle Projekte
+// Prüfe ob User Projekte lesen darf
+$can_read_projects = hasMenuAccess($pdo, 'projects_read', $prefix);
+$can_write_projects = hasMenuAccess($pdo, 'projects_write', $prefix);
+
+if (!$can_read_projects) {
+    // Keine Leseberechtigung - keine Projekte anzeigen
+    $projects = [];
+} else if ($user_role_id === 1) {
+    // Systemadmin: alle Projekte
     $projects = $pdo->query("SELECT * FROM {$prefix}projects ORDER BY created_at DESC")->fetchAll();
-} else if (hasRoleFeature($pdo, 'project_admin', $prefix)) {
-    // Project Admin: nur zugewiesene Projekte
+} else if ($user_role_id === 2 || $user_role_id === 3) {
+    // Projektadmin oder Reporter: nur zugewiesene Projekte
     $assigned = getUserProjects($pdo, $prefix);
     if (!empty($assigned)) {
         $project_ids = array_column($assigned, 'id');
@@ -370,8 +404,8 @@ if ($user_role_id === 1) {
         $projects = $stmt->fetchAll();
     }
 } else {
-    // Andere Rollen: keine Projekte
-    $projects = [];
+    // Andere Rollen mit projects_read: alle Projekte (falls sie die Berechtigung haben)
+    $projects = $pdo->query("SELECT * FROM {$prefix}projects ORDER BY created_at DESC")->fetchAll();
 }
 ?>
 <!DOCTYPE html>
@@ -443,7 +477,9 @@ if ($user_role_id === 1) {
 <div class="container py-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2>Projekte verwalten</h2>
+        <?php if ($can_write_projects): ?>
         <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addProjectModal">+ Neues Projekt</button>
+        <?php endif; ?>
     </div>
 
     <?php if ($message): ?>
@@ -515,19 +551,21 @@ if ($user_role_id === 1) {
                                             onclick="showPinQR(<?php echo htmlspecialchars(json_encode($p)); ?>)" title="PIN & QR-Code anzeigen">
                                         <span class="btn-icon">📱</span><span class="btn-text">PIN/QR</span>
                                     </button>
-                                    <?php if ($p['is_active']): ?>
-                                        <a href="?deactivate=<?php echo $p['id']; ?>" class="btn btn-sm btn-outline-danger project-btn" onclick="return confirm('Projekt deaktivieren?')" title="Deaktivieren">
-                                            <span class="btn-icon">🔴</span><span class="btn-text">Deaktivieren</span>
-                                        </a>
-                                    <?php else: ?>
-                                        <a href="?activate=<?php echo $p['id']; ?>" class="btn btn-sm btn-success project-btn" onclick="return confirm('Projekt aktivieren?')" title="Aktivieren">
-                                            <span class="btn-icon">✅</span><span class="btn-text">Aktivieren</span>
-                                        </a>
+                                    <?php if ($can_write_projects): ?>
+                                        <?php if ($p['is_active']): ?>
+                                            <a href="?deactivate=<?php echo $p['id']; ?>" class="btn btn-sm btn-outline-danger project-btn" onclick="return confirm('Projekt deaktivieren?')" title="Deaktivieren">
+                                                <span class="btn-icon">🔴</span><span class="btn-text">Deaktivieren</span>
+                                            </a>
+                                        <?php else: ?>
+                                            <a href="?activate=<?php echo $p['id']; ?>" class="btn btn-sm btn-success project-btn" onclick="return confirm('Projekt aktivieren?')" title="Aktivieren">
+                                                <span class="btn-icon">✅</span><span class="btn-text">Aktivieren</span>
+                                            </a>
+                                        <?php endif; ?>
+                                        <button class="btn btn-sm btn-outline-warning project-btn" data-bs-toggle="modal" data-bs-target="#editProjectModal" 
+                                                onclick="loadProjectData(<?php echo htmlspecialchars(json_encode($p)); ?>)" title="Bearbeiten">
+                                            <span class="btn-icon">✏️</span><span class="btn-text">Bearbeiten</span>
+                                        </button>
                                     <?php endif; ?>
-                                    <button class="btn btn-sm btn-outline-warning project-btn" data-bs-toggle="modal" data-bs-target="#editProjectModal" 
-                                            onclick="loadProjectData(<?php echo htmlspecialchars(json_encode($p)); ?>)" title="Bearbeiten">
-                                        <span class="btn-icon">✏️</span><span class="btn-text">Bearbeiten</span>
-                                    </button>
                                     <?php if ($p['is_active']): ?>
                                         <a href="dishes.php?project=<?php echo $p['id']; ?>" class="btn btn-sm btn-outline-secondary project-btn" title="Menü verwalten">
                                             <span class="btn-icon">🍽️</span><span class="btn-text">Menü</span>
@@ -536,12 +574,14 @@ if ($user_role_id === 1) {
                                             <span class="btn-icon">👥</span><span class="btn-text">Gäste</span>
                                         </a>
                                     <?php else: ?>
-                                        <button class="btn btn-sm btn-outline-secondary project-btn" onclick="createProjectBackupFor(<?php echo $p['id']; ?>)" title="Projekt-Backup erstellen">
-                                            <span class="btn-icon">💾</span><span class="btn-text">Backup</span>
-                                        </button>
-                                        <button class="btn btn-sm btn-outline-dark project-btn" onclick="confirmDelete(<?php echo $p['id']; ?>)" title="Projekt löschen">
-                                            <span class="btn-icon">🗑️</span><span class="btn-text">Löschen</span>
-                                        </button>
+                                        <?php if ($can_write_projects): ?>
+                                            <button class="btn btn-sm btn-outline-secondary project-btn" onclick="createProjectBackupFor(<?php echo $p['id']; ?>)" title="Projekt-Backup erstellen">
+                                                <span class="btn-icon">💾</span><span class="btn-text">Backup</span>
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-dark project-btn" onclick="confirmDelete(<?php echo $p['id']; ?>)" title="Projekt löschen">
+                                                <span class="btn-icon">🗑️</span><span class="btn-text">Löschen</span>
+                                            </button>
+                                        <?php endif; ?>
                                     <?php endif; ?>
                                 </div>
                             </td>
