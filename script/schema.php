@@ -233,6 +233,7 @@ function getMenuSelectionInitData($prefix) {
          (2, 'orders_read', 1),
          (2, 'orders_write', 1),
          (2, 'reporting', 1),
+         (3, 'projects_read', 1),
          (3, 'reporting', 1)",
 
         // Menu Kategorien

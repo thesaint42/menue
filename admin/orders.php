@@ -15,14 +15,14 @@ $prefix = $config['database']['prefix'] ?? 'menu_';
 // Projekt auswählen
 $project_id = isset($_GET['project']) ? (int)$_GET['project'] : 0;
 
-// Projekte abrufen (nur zugängliche für Benutzer mit projects_write Berechtigung)
+// Projekte abrufen (nur zugängliche für Benutzer mit projects_write oder projects_read Berechtigung)
 $user_role_id = $_SESSION['role_id'] ?? null;
 
 if ($user_role_id === 1) {
     // Admin: alle Projekte
     $stmt = $pdo->query("SELECT id, name FROM `{$prefix}projects` WHERE is_active = 1 ORDER BY name");
-} else if (hasMenuAccess($pdo, 'projects_write', $prefix)) {
-    // Project Admin: nur zugewiesene Projekte
+} else if (hasMenuAccess($pdo, 'projects_write', $prefix) || hasMenuAccess($pdo, 'projects_read', $prefix)) {
+    // Project Admin oder Reporting User: nur zugewiesene Projekte
     $assigned = getUserProjects($pdo, $prefix);
     if (!empty($assigned)) {
         $project_ids = array_column($assigned, 'id');

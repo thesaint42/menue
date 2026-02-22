@@ -13,14 +13,14 @@ $project_id = isset($_GET['project']) ? (int)$_GET['project'] : null;
 $message = "";
 $messageType = "info";
 
-// Projekte laden (nur zugängliche für project_admin Users)
+// Projekte laden (nur zugängliche für project_admin oder reporting Users)
 $user_role_id = $_SESSION['role_id'] ?? null;
 
 if ($user_role_id === 1) {
     // Admin: alle Projekte
     $projects = $pdo->query("SELECT * FROM {$prefix}projects WHERE is_active = 1 ORDER BY name")->fetchAll();
-} else if (hasRoleFeature($pdo, 'project_admin', $prefix)) {
-    // Project Admin: nur zugewiesene Projekte
+} else if (hasRoleFeature($pdo, 'project_admin', $prefix) || hasMenuAccess($pdo, 'projects_read', $prefix)) {
+    // Project Admin oder Reporting User: nur zugewiesene Projekte
     $assigned = getUserProjects($pdo, $prefix);
     if (!empty($assigned)) {
         $project_ids = array_column($assigned, 'id');
