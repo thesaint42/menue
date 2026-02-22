@@ -75,21 +75,31 @@ if (isset($_POST['update_user'])) {
             
             // Wenn Rolle "Projektverwaltung" ist, speichere die zugewiesenen Projekte
             if ($projektverwaltung_role_id && $role_id === $projektverwaltung_role_id) {
-                // Erst alte Zuordnungen löschen
-                $stmt = $pdo->prepare("DELETE FROM {$prefix}user_projects WHERE user_id = ?");
-                $stmt->execute([$id]);
-                
-                // Neue Zuordnungen speichern
-                if (isset($_POST['assigned_projects']) && is_array($_POST['assigned_projects'])) {
-                    $stmt = $pdo->prepare("INSERT INTO {$prefix}user_projects (user_id, project_id) VALUES (?, ?)");
-                    foreach ($_POST['assigned_projects'] as $project_id) {
-                        $stmt->execute([$id, (int)$project_id]);
+                try {
+                    // Erst alte Zuordnungen löschen
+                    $stmt = $pdo->prepare("DELETE FROM {$prefix}user_projects WHERE user_id = ?");
+                    $stmt->execute([$id]);
+                    
+                    // Neue Zuordnungen speichern
+                    if (isset($_POST['assigned_projects']) && is_array($_POST['assigned_projects'])) {
+                        $stmt = $pdo->prepare("INSERT INTO {$prefix}user_projects (user_id, project_id) VALUES (?, ?)");
+                        foreach ($_POST['assigned_projects'] as $project_id) {
+                            $stmt->execute([$id, (int)$project_id]);
+                        }
                     }
+                } catch (Exception $e) {
+                    // user_projects table not available yet
+                    error_log("Could not update user_projects: " . $e->getMessage());
                 }
             } else {
                 // Wenn Rolle wechselt weg von "Projektverwaltung", lösche Zuordnungen
-                $stmt = $pdo->prepare("DELETE FROM {$prefix}user_projects WHERE user_id = ?");
-                $stmt->execute([$id]);
+                try {
+                    $stmt = $pdo->prepare("DELETE FROM {$prefix}user_projects WHERE user_id = ?");
+                    $stmt->execute([$id]);
+                } catch (Exception $e) {
+                    // user_projects table not available yet
+                    error_log("Could not delete user_projects: " . $e->getMessage());
+                }
             }
             
             $message = "Benutzer aktualisiert.";
@@ -126,13 +136,19 @@ $all_projects = $stmt->fetchAll(PDO::FETCH_ASSOC);
 // Lade für jeden User die zugewiesenen Projekte
 $user_projects = [];
 if ($projektverwaltung_role_id) {
-    $stmt = $pdo->prepare("SELECT user_id, project_id FROM {$prefix}user_projects WHERE user_id IN (SELECT id FROM {$prefix}users WHERE role_id = ?)");
-    $stmt->execute([$projektverwaltung_role_id]);
-    foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
-        if (!isset($user_projects[$row['user_id']])) {
-            $user_projects[$row['user_id']] = [];
+    try {
+        $stmt = $pdo->prepare("SELECT user_id, project_id FROM {$prefix}user_projects WHERE user_id IN (SELECT id FROM {$prefix}users WHERE role_id = ?)");
+        $stmt->execute([$projektverwaltung_role_id]);
+        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+            if (!isset($user_projects[$row['user_id']])) {
+                $user_projects[$row['user_id']] = [];
+            }
+            $user_projects[$row['user_id']][] = $row['project_id'];
         }
-        $user_projects[$row['user_id']][] = $row['project_id'];
+    } catch (Exception $e) {
+        // Table might not exist yet - that's ok for now
+        error_log("user_projects table not ready: " . $e->getMessage());
+        $user_projects = [];
     }
 }
 ?>
