@@ -17,58 +17,77 @@ $tables_check = checkV220Tables($pdo, $prefix);
 $v220_ready = !in_array(false, $tables_check, true);
 
 // Benutzer-Rolle ermitteln
-$user_role_id = $_SESSION['role_id'] ?? null;
+$user_role_id = isset($_SESSION['role_id']) ? intval($_SESSION['role_id']) : null;
 $is_systemadmin = ($user_role_id === 1);
 
 // Zugängliche Projekt-IDs ermitteln
 $accessible_project_ids = [];
-if ($is_systemadmin) {
-    // Systemadmin: Alle aktiven Projekte
-    $stmt = $pdo->query("SELECT id FROM {$prefix}projects WHERE is_active = 1");
-    $accessible_project_ids = $stmt->fetchAll(PDO::FETCH_COLUMN);
-} else {
-    // Andere Rollen: nur zugewiesene Projekte
-    $user_projects = getUserProjects($pdo, $prefix);
-    if (!empty($user_projects)) {
-        $accessible_project_ids = array_column($user_projects, 'id');
+try {
+    if ($is_systemadmin) {
+        // Systemadmin: Alle aktiven Projekte
+        $stmt = $pdo->query("SELECT id FROM {$prefix}projects WHERE is_active = 1");
+        $result = $stmt->fetchAll(PDO::FETCH_COLUMN);
+        $accessible_project_ids = $result ? $result : [];
+    } else {
+        // Andere Rollen: nur zugewiesene Projekte
+        $user_projects = getUserProjects($pdo, $prefix);
+        if (is_array($user_projects) && !empty($user_projects)) {
+            foreach ($user_projects as $proj) {
+                if (isset($proj['id'])) {
+                    $accessible_project_ids[] = intval($proj['id']);
+                }
+            }
+        }
     }
+} catch (Exception $e) {
+    error_log("Dashboard: Fehler beim Laden der Projekte - " . $e->getMessage());
+    $accessible_project_ids = [];
 }
 
 // Statistiken basierend auf zugänglichen Projekten
 $project_count = count($accessible_project_ids);
-
-// Gäste aus Bestellungen zählen
 $guest_count = 0;
-if (!empty($accessible_project_ids)) {
-    $placeholders = rtrim(str_repeat('?,', count($accessible_project_ids)), ',');
-    $stmt = $pdo->prepare("
-        SELECT COUNT(DISTINCT g.id) as count 
-        FROM {$prefix}guests g
-        INNER JOIN {$prefix}orders o ON g.order_id = o.id
-        WHERE o.project_id IN ($placeholders)
-    ");
-    $stmt->execute($accessible_project_ids);
-    $result = $stmt->fetch(PDO::FETCH_ASSOC);
-    $guest_count = $result ? intval($result['count']) : 0;
-}
-
-// Bestellungen zählen
 $order_count = 0;
-if (!empty($accessible_project_ids)) {
-    $placeholders = rtrim(str_repeat('?,', count($accessible_project_ids)), ',');
-    $stmt = $pdo->prepare("SELECT COUNT(*) as count FROM {$prefix}orders WHERE project_id IN ($placeholders)");
-    $stmt->execute($accessible_project_ids);
-    $result = $stmt->fetch(PDO::FETCH_ASSOC);
-    $order_count = $result ? intval($result['count']) : 0;
-}
-
-// Aktuelle Projekte (nur zugängliche)
 $recent_projects = [];
-if (!empty($accessible_project_ids)) {
-    $placeholders = rtrim(str_repeat('?,', count($accessible_project_ids)), ',');
-    $stmt = $pdo->prepare("SELECT * FROM {$prefix}projects WHERE is_active = 1 AND id IN ($placeholders) ORDER BY created_at DESC LIMIT 5");
-    $stmt->execute($accessible_project_ids);
-    $recent_projects = $stmt->fetchAll();
+
+// Nur Statistiken laden wenn Projekte vorhanden
+if ($project_count > 0) {
+    try {
+        // Gäste aus Bestellungen zählen
+        $placeholders = implode(',', array_fill(0, count($accessible_project_ids), '?'));
+        $stmt = $pdo->prepare("
+            SELECT COUNT(DISTINCT g.id) as count 
+            FROM {$prefix}guests g
+            INNER JOIN {$prefix}orders o ON g.order_id = o.id
+            WHERE o.project_id IN ($placeholders)
+        ");
+        $stmt->execute($accessible_project_ids);
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        $guest_count = ($result && isset($result['count'])) ? intval($result['count']) : 0;
+    } catch (Exception $e) {
+        error_log("Dashboard: Fehler beim Zählen der Gäste - " . $e->getMessage());
+    }
+
+    try {
+        // Bestellungen zählen
+        $placeholders = implode(',', array_fill(0, count($accessible_project_ids), '?'));
+        $stmt = $pdo->prepare("SELECT COUNT(*) as count FROM {$prefix}orders WHERE project_id IN ($placeholders)");
+        $stmt->execute($accessible_project_ids);
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        $order_count = ($result && isset($result['count'])) ? intval($result['count']) : 0;
+    } catch (Exception $e) {
+        error_log("Dashboard: Fehler beim Zählen der Bestellungen - " . $e->getMessage());
+    }
+
+    try {
+        // Aktuelle Projekte laden
+        $placeholders = implode(',', array_fill(0, count($accessible_project_ids), '?'));
+        $stmt = $pdo->prepare("SELECT * FROM {$prefix}projects WHERE is_active = 1 AND id IN ($placeholders) ORDER BY created_at DESC LIMIT 5");
+        $stmt->execute($accessible_project_ids);
+        $recent_projects = $stmt->fetchAll();
+    } catch (Exception $e) {
+        error_log("Dashboard: Fehler beim Laden der Projekte - " . $e->getMessage());
+    }
 }
 ?>
 <!DOCTYPE html>
@@ -135,12 +154,16 @@ if (!empty($accessible_project_ids)) {
                     <h2 class="display-6 display-md-5 fw-bold mb-0">
                         <?php 
                             $max = 0;
-                            if (!empty($accessible_project_ids)) {
-                                $placeholders = rtrim(str_repeat('?,', count($accessible_project_ids)), ',');
-                                $stmt = $pdo->prepare("SELECT SUM(max_guests) as total FROM {$prefix}projects WHERE is_active = 1 AND id IN ($placeholders)");
-                                $stmt->execute($accessible_project_ids);
-                                $result = $stmt->fetch(PDO::FETCH_ASSOC);
-                                $max = ($result && $result['total']) ? intval($result['total']) : 0;
+                            if ($project_count > 0) {
+                                try {
+                                    $placeholders = implode(',', array_fill(0, count($accessible_project_ids), '?'));
+                                    $stmt = $pdo->prepare("SELECT SUM(max_guests) as total FROM {$prefix}projects WHERE is_active = 1 AND id IN ($placeholders)");
+                                    $stmt->execute($accessible_project_ids);
+                                    $result = $stmt->fetch(PDO::FETCH_ASSOC);
+                                    $max = ($result && isset($result['total']) && $result['total']) ? intval($result['total']) : 0;
+                                } catch (Exception $e) {
+                                    error_log("Dashboard: Fehler bei Plätze-Berechnung - " . $e->getMessage());
+                                }
                             }
                             echo $max > 0 ? round(($guest_count / $max) * 100) : 0;
                         ?>%
