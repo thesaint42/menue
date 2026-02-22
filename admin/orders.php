@@ -9,6 +9,81 @@ require_once '../script/auth.php';
 // Authentifizierung prüfen
 checkLogin();
 
+// PDF Download
+if (isset($_GET['download']) && $_GET['download'] === '1') {
+    $project_id = isset($_GET['project']) ? (int)$_GET['project'] : null;
+    
+    if (!$project_id || !hasProjectAccess($pdo, $project_id, $prefix)) {
+        die('Zugriff verweigert');
+    }
+    
+    // TCPDF laden
+    if (!file_exists('../script/tcpdf/tcpdf.php')) {
+        die('TCPDF nicht verfügbar');
+    }
+    
+    require_once '../script/tcpdf/tcpdf.php';
+    
+    // Projekt laden
+    $stmt = $pdo->prepare("SELECT * FROM `{$prefix}projects` WHERE id = ?");
+    $stmt->execute([$project_id]);
+    $project = $stmt->fetch();
+    
+    if (!$project) {
+        die('Projekt nicht gefunden');
+    }
+    
+    // Gäste und Bestellungen laden
+    $stmt = $pdo->prepare("SELECT g.*, COUNT(o.id) as order_count FROM `{$prefix}guests` g 
+                           LEFT JOIN `{$prefix}orders` o ON g.id = o.guest_id 
+                           WHERE g.project_id = ? GROUP BY g.id ORDER BY g.created_at DESC");
+    $stmt->execute([$project_id]);
+    $guests = $stmt->fetchAll();
+    
+    // PDF erstellen
+    $pdf = new TCPDF('P', 'mm', 'A4', true, 'UTF-8', false);
+    $pdf->SetCreator('EMOS');
+    $pdf->SetTitle('Bestellungen - ' . $project['name']);
+    $pdf->SetMargins(10, 10, 10);
+    $pdf->SetAutoPageBreak(true, 15);
+    $pdf->AddPage();
+    
+    // Header
+    $pdf->SetFillColor(13, 110, 253);
+    $pdf->SetTextColor(255, 255, 255);
+    $pdf->SetFont('helvetica', 'B', 16);
+    $pdf->Cell(0, 10, 'Bestellungen - ' . $project['name'], 0, 1, 'C', true);
+    
+    $pdf->SetTextColor(0, 0, 0);
+    $pdf->SetFont('helvetica', '', 10);
+    $pdf->Cell(0, 5, 'Erstellt: ' . date('d.m.Y H:i'), 0, 1, 'R');
+    $pdf->Ln(5);
+    
+    // Tabelle
+    $pdf->SetFont('helvetica', 'B', 10);
+    $pdf->SetFillColor(200, 200, 200);
+    $pdf->Cell(50, 7, 'Name', 1, 0, 'L', true);
+    $pdf->Cell(40, 7, 'Email', 1, 0, 'L', true);
+    $pdf->Cell(30, 7, 'Telefon', 1, 0, 'L', true);
+    $pdf->Cell(30, 7, 'Bestellungen', 1, 1, 'C', true);
+    
+    $pdf->SetFont('helvetica', '', 9);
+    foreach ($guests as $g) {
+        $pdf->MultiCell(50, 7, $g['firstname'] . ' ' . $g['lastname'], 1, 'L');
+        $pdf->SetXY(60, $pdf->GetY() - 7);
+        $pdf->MultiCell(40, 7, $g['email'], 1, 'L');
+        $pdf->SetXY(100, $pdf->GetY() - 7);
+        $pdf->MultiCell(30, 7, $g['phone'] ?? '', 1, 'L');
+        $pdf->SetXY(130, $pdf->GetY() - 7);
+        $pdf->MultiCell(30, 7, (string)$g['order_count'], 1, 'C');
+        $pdf->Ln();
+    }
+    
+    $filename = 'bestellungen_' . $project_id . '_' . date('Ymd_Hi') . '.pdf';
+    $pdf->Output($filename, 'D');
+    exit;
+}
+
 // Projekt auswählen
 $project_id = isset($_GET['project']) ? (int)$_GET['project'] : 0;
 
@@ -423,9 +498,9 @@ function openPdfModal(action) {
         modal.hide();
     }
     
-    // Zu export_pdf.php navigieren
+    // Zu orders.php mit download Parameter navigieren
     const projectId = <?php echo $project_id; ?>;
-    const url = '../admin/export_pdf.php?project=' + projectId + '&download=1';
+    const url = '?project=' + projectId + '&download=1';
     
     if (action === 'view') {
         window.open(url, '_blank');
