@@ -155,7 +155,7 @@ try {
 
 // Definiere verfügbare Features für Featureverwaltung (im Burger-Menü)
 $available_menu_items = [
-    'dashboard' => 'Startseite',
+    'dashboard' => 'Dashboard',
     'menu_categories_read' => 'Menükategorien lesen',
     'menu_categories_write' => 'Menükategorien schreiben',
     'projects_read' => 'Projekte lesen',
