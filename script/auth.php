@@ -38,9 +38,63 @@ function isAdmin() {
 }
 
 /**
+ * Check if current user has a specific feature/permission
+ */
+function hasRoleFeature($pdo, $feature_name, $prefix = null) {
+    global $config;
+    if (!$prefix) {
+        $prefix = $config['database']['prefix'] ?? 'menu_';
+    }
+    
+    if (!isLoggedIn()) {
+        return false;
+    }
+    
+    $role_id = getUserRole();
+    
+    // Admin role (ID=1) always has all features
+    if ($role_id === 1) {
+        return true;
+    }
+    
+    try {
+        $stmt = $pdo->prepare("SELECT enabled FROM {$prefix}role_features 
+                             WHERE role_id = ? AND feature_name = ? AND enabled = 1");
+        $stmt->execute([$role_id, $feature_name]);
+        return $stmt->rowCount() > 0;
+    } catch (Exception $e) {
+        // role_features table doesn't exist yet - use fallback
+        return false;
+    }
+}
+
+/**
+ * Get all features for a specific role
+ */
+function getRoleFeatures($pdo, $role_id, $prefix = null) {
+    global $config;
+    if (!$prefix) {
+        $prefix = $config['database']['prefix'] ?? 'menu_';
+    }
+    
+    try {
+        $stmt = $pdo->prepare("SELECT feature_name, enabled FROM {$prefix}role_features 
+                             WHERE role_id = ?");
+        $stmt->execute([$role_id]);
+        $features = [];
+        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+            $features[$row['feature_name']] = $row['enabled'];
+        }
+        return $features;
+    } catch (Exception $e) {
+        return [];
+    }
+}
+
+/**
  * Get all projects accessible to the current user
  * - Admin users: all projects
- * - Projektverwaltung users: only assigned projects
+ * - Users with 'project_admin' feature: only assigned projects
  * - Other users: no projects
  */
 function getUserProjects($pdo, $prefix = null) {
@@ -62,12 +116,8 @@ function getUserProjects($pdo, $prefix = null) {
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
     
-    // Check if user has Projektverwaltung role and assigned projects
-    $stmt = $pdo->prepare("SELECT r.name FROM {$prefix}roles r WHERE r.id = ?");
-    $stmt->execute([$role_id]);
-    $role = $stmt->fetch(PDO::FETCH_ASSOC);
-    
-    if ($role && strtolower($role['name']) === strtolower('Projektverwaltung')) {
+    // Check if user has 'project_admin' feature
+    if (hasRoleFeature($pdo, 'project_admin', $prefix)) {
         $stmt = $pdo->prepare("SELECT p.id, p.name FROM {$prefix}projects p 
                              INNER JOIN {$prefix}user_projects up ON p.id = up.project_id 
                              WHERE up.user_id = ? AND p.is_active = 1 
@@ -101,12 +151,8 @@ function hasProjectAccess($pdo, $project_id, $prefix = null) {
         return true;
     }
     
-    // Check if user has Projektverwaltung role with assigned project
-    $stmt = $pdo->prepare("SELECT r.name FROM {$prefix}roles r WHERE r.id = ?");
-    $stmt->execute([$role_id]);
-    $role = $stmt->fetch(PDO::FETCH_ASSOC);
-    
-    if ($role && strtolower($role['name']) === strtolower('Projektverwaltung')) {
+    // Check if user has 'project_admin' feature with assigned project
+    if (hasRoleFeature($pdo, 'project_admin', $prefix)) {
         $stmt = $pdo->prepare("SELECT COUNT(*) FROM {$prefix}user_projects 
                              WHERE user_id = ? AND project_id = ?");
         $stmt->execute([$user_id, $project_id]);

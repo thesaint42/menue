@@ -13,16 +13,19 @@ $prefix = $config['database']['prefix'] ?? 'menu_';
 $message = "";
 $messageType = "info";
 
-// Rollen laden und Projektverwaltung ID finden
+// Rollen laden
 $stmt = $pdo->query("SELECT * FROM {$prefix}roles ORDER BY name");
 $roles = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-$projektverwaltung_role_id = null;
-foreach ($roles as $role) {
-    if (strtolower($role['name']) === strtolower('Projektverwaltung')) {
-        $projektverwaltung_role_id = $role['id'];
-        break;
+// Lade Rollen-Features (mit Fallback wenn Tabelle nicht existiert)
+$role_features = [];
+try {
+    foreach ($roles as $role) {
+        $role_features[$role['id']] = getRoleFeatures($pdo, $role['id'], $prefix);
     }
+} catch (Exception $e) {
+    // role_features table doesn't exist yet
+    $role_features = [];
 }
 
 // Benutzer erstellen
@@ -46,8 +49,8 @@ if (isset($_POST['create_user'])) {
             $stmt->execute([$firstname, $lastname, $email, $password_hash, $role_id]);
             $new_user_id = $pdo->lastInsertId();
             
-            // Wenn Rolle "Projektverwaltung" ist, speichere die zugewiesenen Projekte
-            if ($projektverwaltung_role_id && $role_id === $projektverwaltung_role_id) {
+            // Wenn die Rolle das 'project_admin' Feature hat, speichere die zugewiesenen Projekte
+            if (isset($role_features[$role_id]) && isset($role_features[$role_id]['project_admin']) && $role_features[$role_id]['project_admin']) {
                 try {
                     if (isset($_POST['assigned_projects']) && is_array($_POST['assigned_projects'])) {
                         $stmt = $pdo->prepare("INSERT INTO {$prefix}user_projects (user_id, project_id) VALUES (?, ?)");
@@ -89,8 +92,8 @@ if (isset($_POST['update_user'])) {
             $stmt = $pdo->prepare("UPDATE {$prefix}users SET firstname = ?, lastname = ?, email = ?, role_id = ?, is_active = ? WHERE id = ?");
             $stmt->execute([$firstname, $lastname, $email, $role_id, $is_active, $id]);
             
-            // Wenn Rolle "Projektverwaltung" ist, speichere die zugewiesenen Projekte
-            if ($projektverwaltung_role_id && $role_id === $projektverwaltung_role_id) {
+            // Wenn die neue Rolle das 'project_admin' Feature hat, speichere die zugewiesenen Projekte
+            if (isset($role_features[$role_id]) && isset($role_features[$role_id]['project_admin']) && $role_features[$role_id]['project_admin']) {
                 try {
                     // Erst alte Zuordnungen löschen
                     $stmt = $pdo->prepare("DELETE FROM {$prefix}user_projects WHERE user_id = ?");
@@ -149,23 +152,31 @@ $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
 $stmt = $pdo->query("SELECT id, name FROM {$prefix}projects ORDER BY name");
 $all_projects = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-// Lade für jeden User die zugewiesenen Projekte
+// Lade für jeden User die zugewiesenen Projekte (nur wenn Rolle 'project_admin' Feature hat)
 $user_projects = [];
-if ($projektverwaltung_role_id) {
-    try {
-        $stmt = $pdo->prepare("SELECT user_id, project_id FROM {$prefix}user_projects WHERE user_id IN (SELECT id FROM {$prefix}users WHERE role_id = ?)");
-        $stmt->execute([$projektverwaltung_role_id]);
+try {
+    // Finde alle Rollen mit 'project_admin' Feature
+    $stmt = $pdo->prepare("SELECT DISTINCT role_id FROM {$prefix}role_features 
+                         WHERE feature_name = 'project_admin' AND enabled = 1");
+    $stmt->execute();
+    $project_admin_roles = $stmt->fetchAll(PDO::FETCH_COLUMN, 0);
+    
+    if (!empty($project_admin_roles)) {
+        $placeholders = implode(',', array_fill(0, count($project_admin_roles), '?'));
+        $stmt = $pdo->prepare("SELECT user_id, project_id FROM {$prefix}user_projects 
+                             WHERE user_id IN (SELECT id FROM {$prefix}users WHERE role_id IN ($placeholders))");
+        $stmt->execute($project_admin_roles);
         foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
             if (!isset($user_projects[$row['user_id']])) {
                 $user_projects[$row['user_id']] = [];
             }
             $user_projects[$row['user_id']][] = $row['project_id'];
         }
-    } catch (Exception $e) {
-        // Table might not exist yet - that's ok for now
-        error_log("user_projects table not ready: " . $e->getMessage());
-        $user_projects = [];
     }
+} catch (Exception $e) {
+    // Table might not exist yet - that's ok
+    error_log("user_projects table not ready: " . $e->getMessage());
+    $user_projects = [];
 }
 ?>
 <!DOCTYPE html>
@@ -261,7 +272,6 @@ if ($projektverwaltung_role_id) {
                                 <?php endforeach; ?>
                             </select>
                         </div>
-                        <?php if ($projektverwaltung_role_id): ?>
                         <div class="col-12 projects-creation-section" style="display: none;">
                             <label class="form-label small">Verwaltbare Projekte:</label>
                             <div class="ps-2">
@@ -273,7 +283,6 @@ if ($projektverwaltung_role_id) {
                                 <?php endforeach; ?>
                             </div>
                         </div>
-                        <?php endif; ?>
                         <div class="col-12">
                             <button type="submit" name="create_user" class="btn btn-primary w-100">Erstellen</button>
                         </div>
@@ -310,14 +319,17 @@ if ($projektverwaltung_role_id) {
                                                 <input type="email" name="email" value="<?php echo htmlspecialchars($user['email']); ?>" class="form-control form-control-sm w-100" disabled>
                                             </div>
                                             <div class="mt-2">
-                                                <select name="role_id" class="form-select form-select-sm w-100" onchange="toggleProjectsSection(this, <?php echo $user['id']; ?>)" disabled>
-                                                    <?php foreach ($roles as $role): ?>
-                                                        <option value="<?php echo $role['id']; ?>" <?php echo $user['role_id'] == $role['id'] ? 'selected' : ''; ?>><?php echo htmlspecialchars($role['name']); ?></option>
+                                                <select name="role_id" class="form-select form-select-sm w-100 role-select" onchange="toggleProjectsSection(this, <?php echo $user['id']; ?>)" disabled>
+                                                    <?php foreach ($roles as $role): 
+                                                        $has_project_admin = isset($role_features[$role['id']]) && isset($role_features[$role['id']]['project_admin']) && $role_features[$role['id']]['project_admin'];
+                                                    ?>
+                                                        <option value="<?php echo $role['id']; ?>" data-has-project-admin="<?php echo $has_project_admin ? '1' : '0'; ?>" <?php echo $user['role_id'] == $role['id'] ? 'selected' : ''; ?>><?php echo htmlspecialchars($role['name']); ?></option>
                                                     <?php endforeach; ?>
                                                 </select>
                                             </div>
-                                            <!-- Projekt-Auswahl (versteckt wenn Rolle nicht Projektverwaltung) -->
-                                            <div class="mt-2 projects-section-<?php echo $user['id']; ?>" style="<?php echo ($projektverwaltung_role_id && $user['role_id'] == $projektverwaltung_role_id) ? '' : 'display: none;'; ?>">
+                                            <!-- Projekt-Auswahl (versteckt wenn Rolle nicht 'project_admin' Feature hat) -->
+                                            <?php $has_project_admin = isset($role_features[$user['role_id']]) && isset($role_features[$user['role_id']]['project_admin']) && $role_features[$user['role_id']]['project_admin']; ?>
+                                            <div class="mt-2 projects-section-<?php echo $user['id']; ?>" style="<?php echo $has_project_admin ? '' : 'display: none;'; ?>">
                                                 <label class="form-label small">Verwaltbare Projekte:</label>
                                                 <div class="ps-2">
                                                     <?php foreach ($all_projects as $project): ?>
@@ -399,28 +411,24 @@ function toggleEdit(btn, id) {
 function toggleProjectsCreation() {
     const roleSelect = document.getElementById('role_id');
     const projectsSection = document.querySelector('.projects-creation-section');
-    if (!projectsSection) return;
+    if (!roleSelect || !projectsSection) return;
     
     const selectedOption = roleSelect.options[roleSelect.selectedIndex];
-    const isProjektVerwaltung = selectedOption && selectedOption.textContent.includes('Projektverwaltung');
+    const hasProjectAdmin = selectedOption && selectedOption.dataset.hasProjectAdmin === '1';
     
-    projectsSection.style.display = isProjektVerwaltung ? 'block' : 'none';
+    projectsSection.style.display = hasProjectAdmin ? 'block' : 'none';
 }
 
 function toggleProjectsSection(roleSelect, userId) {
     const projectsSection = document.querySelector(`.projects-section-${userId}`);
     if (!projectsSection) return;
     
-    // Check if the selected role is "Projektverwaltung" by checking the option name
+    // Check if the selected role has 'project_admin' feature
     const selectedOption = roleSelect.options[roleSelect.selectedIndex];
-    const isProjektVerwaltung = selectedOption && selectedOption.textContent.includes('Projektverwaltung');
+    const hasProjectAdmin = selectedOption && selectedOption.dataset.hasProjectAdmin === '1';
     
-    if (isProjektVerwaltung) {
+    if (hasProjectAdmin) {
         projectsSection.style.display = 'block';
-        // Checkboxen mitnehmen aktuellen Edit-Status (disabled/enabled)
-        projectsSection.querySelectorAll('input[type=checkbox]').forEach(cb => {
-            // Status bleibt wie er ist (disabled wenn View-Mode, enabled wenn Edit-Mode)
-        });
     } else {
         projectsSection.style.display = 'none';
         // Alle Checkboxes deselektieren und deaktivieren

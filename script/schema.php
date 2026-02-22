@@ -13,6 +13,17 @@ function getMenuSelectionSchema($prefix) {
             `description` TEXT
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4",
 
+        // 1b. ROLLEN-FEATURES (Flexible Berechtigungen pro Rolle)
+        "CREATE TABLE IF NOT EXISTS `{$prefix}role_features` (
+            `id` INT AUTO_INCREMENT PRIMARY KEY,
+            `role_id` INT NOT NULL,
+            `feature_name` VARCHAR(50) NOT NULL,
+            `enabled` TINYINT(1) DEFAULT 1,
+            `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE KEY `unique_role_feature` (`role_id`, `feature_name`),
+            FOREIGN KEY (`role_id`) REFERENCES `{$prefix}roles`(`id`) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4",
+
         // 2. BENUTZER (Admins)
         "CREATE TABLE IF NOT EXISTS `{$prefix}users` (
             `id` INT AUTO_INCREMENT PRIMARY KEY,

@@ -361,6 +361,41 @@ $migrations = [
                 throw new Exception("Fehler beim Erstellen der user_projects Tabelle: " . $e->getMessage());
             }
         }
+    ],
+
+    'add_role_features_table' => [
+        'name' => 'Rollen-Features Tabelle hinzufügen',
+        'description' => 'Erstellt die role_features Tabelle für flexible Rollen-Berechtigungen',
+        'version' => '2.2.0',
+        'up' => function($pdo, $prefix) {
+            try {
+                // Prüfe ob Tabelle schon existiert
+                $stmt = $pdo->prepare("SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?");
+                $stmt->execute(["{$prefix}role_features"]);
+                if ($stmt->rowCount() > 0) {
+                    return true; // Tabelle existiert bereits
+                }
+                
+                $pdo->exec("CREATE TABLE IF NOT EXISTS `{$prefix}role_features` (
+                    `id` INT AUTO_INCREMENT PRIMARY KEY,
+                    `role_id` INT NOT NULL,
+                    `feature_name` VARCHAR(50) NOT NULL,
+                    `enabled` TINYINT(1) DEFAULT 1,
+                    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE KEY `unique_role_feature` (`role_id`, `feature_name`),
+                    FOREIGN KEY (`role_id`) REFERENCES `{$prefix}roles`(`id`) ON DELETE CASCADE
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+                
+                // Migriere alte Daten: Wenn eine Rolle "Projektverwaltung" heißt, aktiviere feature
+                $stmt = $pdo->prepare("INSERT IGNORE INTO `{$prefix}role_features` (role_id, feature_name, enabled) 
+                    SELECT id, 'project_admin', 1 FROM `{$prefix}roles` WHERE LOWER(name) = 'projektverwaltung'");
+                $stmt->execute();
+                
+                return true;
+            } catch (Exception $e) {
+                throw new Exception("Fehler beim Erstellen der role_features Tabelle: " . $e->getMessage());
+            }
+        }
     ]
 ];
 
